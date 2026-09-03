@@ -30,6 +30,10 @@ describe('actor input normalization', () => {
     [' @ATPROTO.COM ', 'atproto.com'],
     ['https://bsky.app/profile/atproto.com', 'atproto.com'],
     [`https://bsky.app/profile/${did}`, did],
+    ['https://blacksky.community/profile/atproto.com', 'atproto.com'],
+    ['https://witchsky.app/profile/ATPROTO.COM', 'atproto.com'],
+    [`https://mu.social/profile/${did}`, did],
+    ['https://www.mu.social/profile/atproto.com/post/3example', 'atproto.com'],
     [did, did],
   ])('normalizes %s', (input, expected) => expect(normalizeActorInput(input)).toBe(expected))
 

@@ -1,12 +1,5 @@
 import { parseAtUri } from './parse'
 
-export const socialAppOrigins = {
-  bluesky: 'https://bsky.app',
-  blacksky: 'https://blacksky.community',
-  witchsky: 'https://witchsky.app',
-  mu: 'https://mu.social',
-} as const
-
 export function pdslsRecordUrl(uri: string): string | undefined {
   return parseAtUri(uri) ? `https://pdsls.dev/${uri}` : undefined
 }

@@ -1,14 +1,8 @@
 import { ArrowUpRightIcon, EllipsisHorizontalIcon } from '@heroicons/react/20/solid'
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { pdslsRecordUrl, socialAppOrigins } from '../lib/links'
-
-const socialApps = [
-  { label: 'Bluesky', origin: socialAppOrigins.bluesky, favicon: '/favicons/bluesky.png' },
-  { label: 'Blacksky', origin: socialAppOrigins.blacksky, favicon: '/favicons/blacksky.png' },
-  { label: 'Witchsky', origin: socialAppOrigins.witchsky, favicon: '/favicons/witchsky.ico' },
-  { label: 'mu', origin: socialAppOrigins.mu, favicon: '/favicons/mu.png' },
-] as const
+import { SOCIAL_APPS } from '../config/socialApps'
+import { pdslsRecordUrl } from '../lib/links'
 
 const PDSLS_FAVICON = '/favicons/pdsls.ico'
 
@@ -143,7 +137,7 @@ export function RecordLinksMenu({
               ) : null
             })}
             {socialPath &&
-              socialApps.map((app) => (
+              SOCIAL_APPS.map((app) => (
                 <MenuLink
                   key={app.origin}
                   href={`${app.origin}${socialPath}`}

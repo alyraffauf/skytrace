@@ -5,6 +5,7 @@ import {
   parseCanonicalResourceUri,
 } from '@atcute/lexicons/syntax'
 import type { Did } from '@atcute/lexicons/syntax'
+import { isSocialAppHostname } from '../config/socialApps'
 
 type AtUriParts = { did: string; collection: string; rkey: string }
 
@@ -29,9 +30,7 @@ export function normalizeActorInput(input: string): string {
     } catch {
       throw new Error('That profile URL is not valid.')
     }
-    if (!['bsky.app', 'www.bsky.app'].includes(url.hostname.toLowerCase())) {
-      throw new Error('Use a bsky.app profile URL.')
-    }
+    if (!isSocialAppHostname(url.hostname)) throw new Error('Use a supported social app profile URL.')
     const parts = url.pathname.split('/').filter(Boolean)
     if (parts[0] !== 'profile' || !parts[1]) throw new Error('That URL does not point to a profile.')
     value = decodeURIComponent(parts[1])
