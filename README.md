@@ -93,8 +93,6 @@ The repository includes `public/_redirects` with this rule:
 
 Vite copies the rule into `dist` during the build. If your host does not support `_redirects`, configure the same fallback in the host settings.
 
-Set `SITE_URL` to the site's public origin so social-image URLs use the deployed domain. Cloudflare Pages builds can use the automatic `CF_PAGES_URL` value instead.
-
 ## License
 
 SkyTrace is licensed under the [GNU Affero General Public License, version 3 only](./LICENSE.md).

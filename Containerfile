@@ -3,8 +3,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY . .
-ARG SITE_URL=http://localhost
-RUN SITE_URL="$SITE_URL" bun run build
+RUN bun run build
 
 FROM docker.io/nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
