@@ -15,17 +15,11 @@ import type {
   RepositoryRecord,
   UnavailableItem,
 } from '../types'
+import { SERVICE_URLS } from '../config/serviceUrls'
 import { dedupeBy } from '../lib/collections'
 import { isDid, parseAtUri } from '../lib/parse'
 import { hydrationRequests, paginationRequests } from '../lib/requestScheduler'
 import { objectValue, stringValue } from './recordParsers'
-
-const SLINGSHOT_URL = 'https://slingshot.cute.haus'
-const CONSTELLATION_URL = 'https://constellation.microcosm.blue'
-export const LABEL_RELAY_URL = 'https://labelers.firehose.stream'
-export const BLUESKY_APPVIEW_URL = 'https://public.api.bsky.app'
-const TYPEAHEAD_URL = 'https://typeahead.waow.tech'
-const PLC_DIRECTORY_URL = 'https://plc.directory'
 
 export class PublicDataValidationError extends Error {}
 
@@ -50,7 +44,7 @@ function clientFor(service: string): Client {
     handler: simpleFetchHandler({
       service,
       fetch: (input, init) => {
-        if (service !== TYPEAHEAD_URL) return fetch(input, init)
+        if (service !== SERVICE_URLS.typeahead) return fetch(input, init)
         const headers = new Headers(init?.headers)
         headers.set('X-Client', 'skytrace')
         return fetch(input, { ...init, headers })
@@ -158,7 +152,7 @@ export async function resolveActor(identifier: string, signal?: AbortSignal): Pr
   const data = await hydrationRequests.run(
     () =>
       ok(
-        clientFor(SLINGSHOT_URL).get('blue.microcosm.identity.resolveMiniDoc', {
+        clientFor(SERVICE_URLS.slingshot).get('blue.microcosm.identity.resolveMiniDoc', {
           params: { identifier: identifier as ActorIdentifier },
           signal,
         }),
@@ -175,7 +169,7 @@ export async function searchActorsTypeahead(query: string, signal?: AbortSignal)
   const data = await hydrationRequests.run(
     () =>
       ok(
-        clientFor(TYPEAHEAD_URL).get('app.bsky.actor.searchActorsTypeahead', {
+        clientFor(SERVICE_URLS.typeahead).get('app.bsky.actor.searchActorsTypeahead', {
           params: { q: normalizedQuery, limit: 8 },
           signal,
         }),
@@ -193,7 +187,7 @@ export async function searchActorsTypeahead(query: string, signal?: AbortSignal)
 export async function getPlcAccountDetails(did: string, signal?: AbortSignal): Promise<AccountDetails> {
   if (!/^did:plc:[a-z2-7]{24}$/.test(did)) throw new Error('Cannot fetch PLC history for an invalid DID.')
   const response = await hydrationRequests.run(
-    () => fetch(`${PLC_DIRECTORY_URL}/${did}/log/audit`, { signal, headers: { Accept: 'application/json' } }),
+    () => fetch(`${SERVICE_URLS.plcDirectory}/${did}/log/audit`, { signal, headers: { Accept: 'application/json' } }),
     signal,
   )
   if (!response.ok) throw new Error(`The PLC directory returned ${response.status}.`)
@@ -238,7 +232,7 @@ export async function getRecordByUri(uri: string, signal?: AbortSignal): Promise
   const data = await hydrationRequests.run(
     () =>
       ok(
-        clientFor(SLINGSHOT_URL).get('blue.microcosm.repo.getRecordByUri', {
+        clientFor(SERVICE_URLS.slingshot).get('blue.microcosm.repo.getRecordByUri', {
           params: { at_uri: uri as CanonicalResourceUri },
           signal,
         }),
@@ -299,7 +293,7 @@ export async function getBacklinks(options: {
   const data = await paginationRequests.run(
     () =>
       ok(
-        clientFor(CONSTELLATION_URL).call(backlinksSchema, {
+        clientFor(SERVICE_URLS.constellation).call(backlinksSchema, {
           params: {
             subject: options.subject as GenericUri,
             source: options.source,
@@ -339,7 +333,7 @@ export async function queryLabels(options: {
   const data = await paginationRequests.run(
     () =>
       ok(
-        clientFor(options.service ?? LABEL_RELAY_URL).call(queryLabelsSchema, {
+        clientFor(options.service ?? SERVICE_URLS.labelRelay).call(queryLabelsSchema, {
           params: {
             uriPatterns: options.uriPatterns,
             sources,

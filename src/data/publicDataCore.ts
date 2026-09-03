@@ -14,6 +14,7 @@ import type {
   RepositoryRecord,
   UnavailableItem,
 } from '../types'
+import { SERVICE_URLS } from '../config/serviceUrls'
 import { combinedSignal, deadlineSignal, throwIfAborted } from '../lib/abort'
 import { CACHE_TTL_MS } from '../lib/cache'
 import { queryKeys } from './queryKeys'
@@ -22,7 +23,6 @@ import {
   getBacklinks,
   getPlcAccountDetails,
   getRecordByUri,
-  LABEL_RELAY_URL,
   listRecords,
   PublicDataValidationError,
   queryLabels,
@@ -34,7 +34,10 @@ const REQUEST_TIMEOUT_MS = 15_000
 
 const didDocumentResolver = new CompositeDidDocumentResolver({
   methods: {
-    plc: new PlcDidDocumentResolver({ fetch: (input, init) => fetch(input, init) }),
+    plc: new PlcDidDocumentResolver({
+      apiUrl: SERVICE_URLS.plcDirectory,
+      fetch: (input, init) => fetch(input, init),
+    }),
     web: new WebDidDocumentResolver({ fetch: (input, init) => fetch(input, init) }),
   },
 })
@@ -216,7 +219,7 @@ export class PublicDataCore {
   async labelRecords(
     options: Parameters<typeof queryLabels>[0],
   ): Promise<Page<Omit<LabelEvent, 'source'> | UnavailableItem>> {
-    const service = options.service ?? LABEL_RELAY_URL
+    const service = options.service ?? SERVICE_URLS.labelRelay
     const key = queryKeys.labels(
       service,
       options.uriPatterns,

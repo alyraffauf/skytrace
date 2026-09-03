@@ -1,10 +1,10 @@
 import type { LabelEvent, Page, UnavailableItem } from '../types'
+import { SERVICE_URLS } from '../config/serviceUrls'
 import { deadlineSignal, throwIfAborted } from '../lib/abort'
 import { dedupeBy } from '../lib/collections'
 import { timestampFor } from '../lib/sorting'
 import { readLabelState, storeLabelState, type LabelPagingState } from './labelPaging'
 import { actorReference, type PublicDataCore } from './publicDataCore'
-import { BLUESKY_APPVIEW_URL, LABEL_RELAY_URL } from './xrpc'
 
 export const LABEL_PAGE_SIZE = 250
 const OPTIONAL_LABELER_TIMEOUT_MS = 2_500
@@ -87,12 +87,12 @@ export class LabelDataService {
             provider.useAppView = true
           }
         }
-        if (!provider.service || provider.service === LABEL_RELAY_URL) provider.useAppView = true
+        if (!provider.service || provider.service === SERVICE_URLS.labelRelay) provider.useAppView = true
 
         let page: Awaited<ReturnType<PublicDataCore['labelRecords']>>
         try {
           page = await this.core.labelRecords({
-            service: provider.useAppView ? BLUESKY_APPVIEW_URL : provider.service,
+            service: provider.useAppView ? SERVICE_URLS.blueskyAppView : provider.service,
             sources: provider.useAppView ? [provider.did] : undefined,
             uriPatterns,
             cursor: provider.cursor,
