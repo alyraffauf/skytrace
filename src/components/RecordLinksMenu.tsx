@@ -106,7 +106,7 @@ export function RecordLinksMenu({
           setPopupPosition((position) => ({ ...position, ready: false }))
           setIsOpen((open) => !open)
         }}
-        className="grid size-10 place-items-center text-zinc-600 hover:text-rose-800 dark:text-zinc-400 dark:hover:text-rose-300 sm:size-8"
+        className="grid size-10 place-items-center text-zinc-600 hover:text-violet-800 dark:text-zinc-400 dark:hover:text-violet-300 sm:size-8"
       >
         <EllipsisHorizontalIcon className="size-5" aria-hidden="true" />
       </button>
@@ -179,7 +179,7 @@ const MenuLink = ({
       target="_blank"
       rel="noreferrer"
       onClick={close}
-      className="flex min-h-11 items-center gap-2 px-2.5 py-1.5 text-sm text-zinc-800 hover:bg-rose-50 hover:text-rose-900 dark:text-zinc-200 dark:hover:bg-rose-950/40 dark:hover:text-rose-200 sm:min-h-10"
+      className="flex min-h-11 items-center gap-2 px-2.5 py-1.5 text-sm text-zinc-800 hover:bg-violet-50 hover:text-violet-900 dark:text-zinc-200 dark:hover:bg-violet-950/40 dark:hover:text-violet-200 sm:min-h-10"
     >
       <span className="grid size-4 shrink-0 place-items-center" aria-hidden="true">
         <img

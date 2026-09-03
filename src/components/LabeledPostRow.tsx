@@ -24,7 +24,7 @@ function PostLabels({
   displayNames?: ReadonlyMap<string, string>
 }) {
   return (
-    <section aria-label="Post labels" className="mt-2 border-l-2 border-rose-200 pl-2.5 dark:border-rose-900">
+    <section aria-label="Post labels" className="mt-2 border-l-2 border-violet-200 pl-2.5 dark:border-violet-900">
       <h3 className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Post labels</h3>
       <ul className="mt-0.5">
         {labels.map((label) => {

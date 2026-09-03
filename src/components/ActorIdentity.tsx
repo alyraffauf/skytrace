@@ -23,12 +23,12 @@ export function ActorIdentityText({ profile, inline = false }: { profile: ActorP
   return (
     <Link
       to={profilePath(profile.identity.did)}
-      className={`group/actor min-w-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 ${inline ? 'flex items-baseline gap-2' : ''}`}
+      className={`group/actor min-w-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 ${inline ? 'flex items-baseline gap-2' : ''}`}
     >
       <p className="truncate text-sm font-semibold tracking-[-0.01em] text-zinc-950 dark:text-zinc-100">
         {actorLabel(profile)}
       </p>
-      <p className="truncate text-xs text-zinc-500 group-hover/actor:text-rose-700 dark:text-zinc-400 dark:group-hover/actor:text-rose-300 sm:text-sm">
+      <p className="truncate text-xs text-zinc-500 group-hover/actor:text-violet-700 dark:text-zinc-400 dark:group-hover/actor:text-violet-300 sm:text-sm">
         {handle}
       </p>
     </Link>
@@ -90,7 +90,7 @@ export function ActorReferenceText({ actor }: { actor: ActorReference }) {
   return (
     <Link
       to={profilePath(actor.did)}
-      className="truncate rounded-sm font-mono text-xs text-zinc-700 hover:text-rose-700 hover:underline dark:text-zinc-300 dark:hover:text-rose-300"
+      className="truncate rounded-sm font-mono text-xs text-zinc-700 hover:text-violet-700 hover:underline dark:text-zinc-300 dark:hover:text-violet-300"
     >
       {actor.did}
     </Link>
@@ -104,7 +104,7 @@ export function ActorHandle({ actor, compact = false }: { actor: Actor; compact?
     return (
       <Link
         to={profilePath(actor.did)}
-        className="truncate rounded-sm font-mono text-xs text-zinc-700 hover:text-rose-700 hover:underline dark:text-zinc-300 dark:hover:text-rose-300"
+        className="truncate rounded-sm font-mono text-xs text-zinc-700 hover:text-violet-700 hover:underline dark:text-zinc-300 dark:hover:text-violet-300"
       >
         {actor.did}
       </Link>
@@ -114,7 +114,7 @@ export function ActorHandle({ actor, compact = false }: { actor: Actor; compact?
   return (
     <Link
       to={profilePath(actor.identity.did)}
-      className={`truncate rounded-sm hover:text-rose-700 hover:underline dark:hover:text-rose-300 ${compact ? 'text-xs font-normal text-zinc-600 dark:text-zinc-400' : 'text-sm font-medium text-zinc-800 dark:text-zinc-200'}`}
+      className={`truncate rounded-sm hover:text-violet-700 hover:underline dark:hover:text-violet-300 ${compact ? 'text-xs font-normal text-zinc-600 dark:text-zinc-400' : 'text-sm font-medium text-zinc-800 dark:text-zinc-200'}`}
     >
       {handle}
     </Link>
@@ -141,7 +141,7 @@ function MiniActorView({ actor, label }: { actor: Actor; label?: string }) {
         {did ? (
           <Link
             to={profilePath(did)}
-            className="truncate rounded-sm font-mono text-[11px] text-zinc-600 hover:text-rose-700 hover:underline dark:text-zinc-400 dark:hover:text-rose-300"
+            className="truncate rounded-sm font-mono text-[11px] text-zinc-600 hover:text-violet-700 hover:underline dark:text-zinc-400 dark:hover:text-violet-300"
             title={did}
           >
             {did}

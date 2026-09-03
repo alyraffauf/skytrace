@@ -252,7 +252,7 @@ function SourceIssues({ issues, retry }: { issues: SourceIssue[]; retry: () => v
       <button
         type="button"
         onClick={retry}
-        className="min-h-10 px-2 font-semibold text-rose-800 hover:underline dark:text-rose-300"
+        className="min-h-10 px-2 font-semibold text-violet-800 hover:underline dark:text-violet-300"
       >
         Retry
       </button>

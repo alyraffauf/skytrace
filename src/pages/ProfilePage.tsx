@@ -71,7 +71,7 @@ export function ProfilePage() {
                 to={path ? profileTabPath(actor, path) : profilePath(actor)}
                 end={!path}
                 className={({ isActive }) =>
-                  `flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-0.5 text-sm font-medium sm:min-h-0 sm:py-3 ${isActive ? 'border-rose-600 text-rose-700 dark:border-rose-400 dark:text-rose-300' : 'border-transparent text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'}`
+                  `flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-0.5 text-sm font-medium sm:min-h-0 sm:py-3 ${isActive ? 'border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-300' : 'border-transparent text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'}`
                 }
               >
                 {label}

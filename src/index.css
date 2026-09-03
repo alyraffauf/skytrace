@@ -1,5 +1,27 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @layer base {
   html {
     color-scheme: light dark;
@@ -11,13 +33,14 @@
     min-height: 100vh;
     background: #fff;
     color: #18181b;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
   button,
   a,
   summary {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 dark:focus-visible:ring-rose-400 dark:focus-visible:ring-offset-zinc-950;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-violet-400 dark:focus-visible:ring-offset-zinc-950;
   }
 }
 
@@ -33,6 +56,44 @@
   50% {
     opacity: 0.45;
   }
+}
+
+@keyframes rain-fall {
+  0%,
+  15% {
+    opacity: 0;
+    transform: translateY(-0.125rem);
+  }
+
+  35% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 0.9;
+    transform: translateY(0.125rem);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+}
+
+.home-hero {
+  min-height: min(42rem, calc(100vh - 8rem));
+}
+
+.rain-cloud path:not(:first-child) {
+  animation: rain-fall 1.8s ease-in infinite backwards;
+}
+
+.rain-cloud path:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.rain-cloud path:nth-child(4) {
+  animation-delay: 0.6s;
 }
 
 .skeleton {
@@ -81,5 +142,10 @@
 
   .media-image {
     transition: none;
+  }
+
+  .rain-cloud path:not(:first-child) {
+    animation: none;
+    opacity: 1;
   }
 }

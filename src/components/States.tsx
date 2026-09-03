@@ -93,7 +93,7 @@ export function RouteError() {
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">{message}</p>
         <Link
           to="/"
-          className="mt-5 inline-block border border-zinc-300 px-4 py-2 font-medium text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:border-zinc-700 dark:text-rose-300 dark:hover:border-rose-700 dark:hover:bg-rose-950/40"
+          className="mt-5 inline-block border border-zinc-300 px-4 py-2 font-medium text-violet-700 hover:border-violet-300 hover:bg-violet-50 dark:border-zinc-700 dark:text-violet-300 dark:hover:border-violet-700 dark:hover:bg-violet-950/40"
         >
           Back to search
         </Link>

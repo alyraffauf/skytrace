@@ -82,7 +82,7 @@ function ResolvedListPage({
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-2">
             <h1 className="truncate text-xl font-semibold text-zinc-950 dark:text-zinc-100 sm:text-2xl">{list.name}</h1>
-            <span className="text-xs text-rose-700 dark:text-rose-300">{listPurposeLabel(list.purpose)}</span>
+            <span className="text-xs text-violet-700 dark:text-violet-300">{listPurposeLabel(list.purpose)}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
             <MiniActor actor={list.owner} label="By" />
@@ -105,7 +105,7 @@ function ResolvedListPage({
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Members</h2>
         <Link
           to={profileTabPath(listRecord.did, 'lists')}
-          className="text-xs text-zinc-500 hover:text-rose-700 dark:text-zinc-400 dark:hover:text-rose-300"
+          className="text-xs text-zinc-500 hover:text-violet-700 dark:text-zinc-400 dark:hover:text-violet-300"
         >
           Owner's lists
         </Link>

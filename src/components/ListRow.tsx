@@ -24,10 +24,10 @@ export function ListRow({ list, membership }: { list: ListSummary | UnavailableI
   const details = (
     <>
       <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-0.5">
-        <h3 className="line-clamp-2 min-w-0 break-words text-sm font-semibold leading-5 text-zinc-950 group-hover:text-rose-700 dark:text-zinc-100 dark:group-hover:text-rose-300 sm:line-clamp-1">
+        <h3 className="line-clamp-2 min-w-0 break-words text-sm font-semibold leading-5 text-zinc-950 group-hover:text-violet-700 dark:text-zinc-100 dark:group-hover:text-violet-300 sm:line-clamp-1">
           {list.name}
         </h3>
-        <span className="shrink-0 pt-0.5 text-xs text-rose-700 dark:text-rose-300">
+        <span className="shrink-0 pt-0.5 text-xs text-violet-700 dark:text-violet-300">
           {listPurposeLabel(list.purpose)}
         </span>
       </div>
@@ -53,7 +53,7 @@ export function ListRow({ list, membership }: { list: ListSummary | UnavailableI
       />
       <div className="min-w-0">
         {internalPath ? (
-          <Link to={internalPath} className="block rounded-sm hover:text-rose-700 dark:hover:text-rose-300">
+          <Link to={internalPath} className="block rounded-sm hover:text-violet-700 dark:hover:text-violet-300">
             {details}
           </Link>
         ) : (

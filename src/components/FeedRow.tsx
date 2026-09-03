@@ -53,7 +53,7 @@ function RichText({ text, facets, className }: { text: string; facets: Facet[]; 
           <Link
             key={index}
             to={mentionPath}
-            className="rounded text-rose-700 underline decoration-rose-200 underline-offset-2 hover:text-rose-900 dark:text-rose-300 dark:decoration-rose-900 dark:hover:text-rose-200"
+            className="rounded text-violet-700 underline decoration-violet-200 underline-offset-2 hover:text-violet-900 dark:text-violet-300 dark:decoration-violet-900 dark:hover:text-violet-200"
           >
             {part.text}
           </Link>
@@ -63,7 +63,7 @@ function RichText({ text, facets, className }: { text: string; facets: Facet[]; 
             href={externalHref}
             target="_blank"
             rel="noreferrer"
-            className="rounded text-rose-700 underline decoration-rose-200 underline-offset-2 hover:text-rose-900 dark:text-rose-300 dark:decoration-rose-900 dark:hover:text-rose-200"
+            className="rounded text-violet-700 underline decoration-violet-200 underline-offset-2 hover:text-violet-900 dark:text-violet-300 dark:decoration-violet-900 dark:hover:text-violet-200"
           >
             {part.text}
           </a>
@@ -98,7 +98,7 @@ function PostBody({ post, quoted = false }: { post: FeedPost; quoted?: boolean }
                 href={imageUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="block focus-visible:outline-2 focus-visible:outline-rose-600"
+                className="block focus-visible:outline-2 focus-visible:outline-violet-600"
               >
                 <ImageWithFallback
                   src={thumbnailUrl}

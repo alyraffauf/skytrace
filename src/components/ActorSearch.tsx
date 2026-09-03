@@ -17,6 +17,8 @@ type ActorSearchProps = {
 export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchProps) {
   const navigate = useNavigate()
   const listboxId = useId()
+  const inputId = compact ? 'header-actor-search' : 'actor-search'
+  const errorId = compact ? 'header-search-error' : 'search-error'
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
   const [hasFocus, setHasFocus] = useState(false)
@@ -99,16 +101,16 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
       className={compact ? 'relative w-full max-w-md' : 'relative w-full'}
       noValidate
     >
-      <label htmlFor={compact ? 'header-actor-search' : 'actor-search'} className="sr-only">
+      <label htmlFor={inputId} className="sr-only">
         AT Protocol account
       </label>
       <div className="relative">
         <MagnifyingGlassIcon
-          className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-zinc-400 dark:text-zinc-500"
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 ${compact ? 'left-3 size-[18px]' : 'left-4 size-5'}`}
           aria-hidden="true"
         />
         <input
-          id={compact ? 'header-actor-search' : 'actor-search'}
+          id={inputId}
           value={input}
           onChange={(event) => {
             setInput(event.target.value)
@@ -118,7 +120,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
           }}
           onKeyDown={handleInputKeyDown}
           placeholder={compact ? 'Search...' : 'Handle, DID, or profile URL'}
-          aria-describedby={error ? `${compact ? 'header-' : ''}search-error` : undefined}
+          aria-describedby={error ? errorId : undefined}
           aria-invalid={Boolean(error)}
           aria-autocomplete="list"
           aria-controls={showSuggestions ? listboxId : undefined}
@@ -127,12 +129,12 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
           role="combobox"
           autoComplete="off"
           autoFocus={autoFocus}
-          className={`${compact ? 'h-8 text-base md:text-sm' : 'h-11 text-base'} w-full rounded-sm border bg-white pl-10 pr-11 text-zinc-950 outline-none placeholder:text-zinc-400 focus-visible:border-rose-500 focus-visible:ring-1 focus-visible:ring-rose-500 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus-visible:border-rose-400 dark:focus-visible:ring-rose-400 ${error ? 'border-red-400 dark:border-red-500' : 'border-zinc-300 hover:border-zinc-500 dark:border-zinc-700 dark:hover:border-zinc-500'}`}
+          className={`${compact ? 'h-8 rounded-sm pl-10 pr-11 text-base md:text-sm' : 'h-14 rounded-md pl-12 pr-14 text-base shadow-[0_10px_35px_-22px_rgba(124,58,237,0.45)]'} w-full border bg-white text-zinc-950 outline-none placeholder:text-zinc-400 focus-visible:border-violet-500 focus-visible:ring-1 focus-visible:ring-violet-500 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus-visible:border-violet-400 dark:focus-visible:ring-violet-400 ${error ? 'border-red-500' : compact ? 'border-zinc-500 hover:border-zinc-700 dark:border-zinc-500 dark:hover:border-zinc-300' : 'border-violet-500 hover:border-violet-700 dark:border-violet-500 dark:hover:border-violet-300'}`}
         />
         <button
           type="submit"
           aria-label="Explore profile"
-          className={`${compact ? 'right-0 size-10' : 'right-0 size-11'} absolute top-1/2 grid -translate-y-1/2 place-items-center text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100`}
+          className={`${compact ? 'right-0 size-10 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100' : 'right-0 size-14 text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-200'} absolute top-1/2 grid -translate-y-1/2 place-items-center`}
         >
           <ArrowRightIcon className="size-4" aria-hidden="true" />
         </button>
@@ -161,7 +163,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
                     onPointerDown={(event) => event.preventDefault()}
                     onPointerMove={() => setActiveIndex(index)}
                     onClick={() => selectSuggestion(suggestion)}
-                    className={`flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-left ${activeIndex === index ? 'bg-rose-50 dark:bg-rose-950/40' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                    className={`flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-left ${activeIndex === index ? 'bg-violet-50 dark:bg-violet-950/40' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
                   >
                     <ImageWithFallback
                       src={suggestion.avatar}
@@ -195,7 +197,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
       )}
       {error && (
         <p
-          id={`${compact ? 'header-' : ''}search-error`}
+          id={errorId}
           role="alert"
           className={
             compact
