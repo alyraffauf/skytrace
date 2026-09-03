@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { splitFacetedText } from '../src/components/FeedRow'
 import { InfiniteScroll } from '../src/components/InfiniteScroll'
@@ -14,6 +14,7 @@ import { LinkifiedText } from '../src/components/LinkifiedText'
 import { mergeFeedItems } from '../src/data/publicData'
 import { labelDefinitionsFromRecord, parseFacets } from '../src/data/recordParsers'
 import { normalizeActorInput } from '../src/lib/parse'
+import { ProfilePage } from '../src/pages/ProfilePage'
 import type { ActorIdentity, ActorProfile, FeedPost, LabelEvent } from '../src/types'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
@@ -62,6 +63,63 @@ describe('compact account references', () => {
     renderWithRouter(<MiniActor actor={profile} label="By" />)
     expect(screen.getByRole('link', { name: '@atproto.com' })).toBeVisible()
     expect(screen.queryByText('AT Protocol')).not.toBeInTheDocument()
+  })
+})
+
+describe('profile relationship counts', () => {
+  it('shows the independently loaded counts in their tab labels', async () => {
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.pathname.endsWith('resolveMiniDoc')) {
+          return new Response(
+            JSON.stringify({ did, handle: identity.handle, pds: identity.pds, signing_key: 'zQ3test' }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          )
+        }
+        if (url.pathname.endsWith('getRecordByUri')) {
+          return new Response(
+            JSON.stringify({
+              uri: `at://${did}/app.bsky.actor.profile/self`,
+              cid,
+              value: { $type: 'app.bsky.actor.profile', displayName: profile.displayName },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          )
+        }
+        if (url.hostname === 'pds.example') {
+          return new Response(JSON.stringify({ records: [{}, {}] }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+        }
+        if (url.pathname.endsWith('getBacklinksCount')) {
+          return new Response(JSON.stringify({ total: 3_000 }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/profile/atproto.com']}>
+          <Routes>
+            <Route path="profile/:actor" element={<ProfilePage />}>
+              <Route index element={<div>Feed content</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByRole('link', { name: 'Blocked (2)' })).toBeVisible()
+    expect(await screen.findByRole('link', { name: 'Blocked by (3,000)' })).toBeVisible()
   })
 })
 

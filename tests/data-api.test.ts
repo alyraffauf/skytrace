@@ -2,7 +2,14 @@ import { ClientResponseError } from '@atcute/client'
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { PublicDataService } from '../src/data/publicData'
-import { getBacklinks, listRecords, queryLabels, validateIdentity } from '../src/data/xrpc'
+import {
+  countRecords,
+  getBacklinks,
+  getBacklinksCount,
+  listRecords,
+  queryLabels,
+  validateIdentity,
+} from '../src/data/xrpc'
 import { CACHE_TTL_MS } from '../src/lib/cache'
 import { retryDelay, shouldRetry } from '../src/lib/http'
 import type { ActorIdentity } from '../src/types'
@@ -46,6 +53,44 @@ describe('atcute-backed API boundaries', () => {
     })
     const servicePage = await createTestService().blocking(identity)
     expect(servicePage.items[1]).toMatchObject({ kind: 'unavailable', reason: 'This repository record is malformed.' })
+  })
+
+  it('counts every page of a repository collection', async () => {
+    const requestedLimits: string[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(String(input))
+        requestedLimits.push(url.searchParams.get('limit') ?? '')
+        const cursor = url.searchParams.get('cursor')
+        return new Response(
+          JSON.stringify(
+            cursor ? { records: [{}, {}] } : { records: Array.from({ length: 100 }, () => ({})), cursor: 'next' },
+          ),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        )
+      }),
+    )
+
+    await expect(countRecords({ identity, collection: 'app.bsky.graph.block' })).resolves.toBe(102)
+    expect(requestedLimits).toEqual(['100', '100'])
+  })
+
+  it('stops a repository count after its request budget', async () => {
+    let requests = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        requests += 1
+        return new Response(JSON.stringify({ records: [], cursor: `page-${requests}` }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      }),
+    )
+
+    await expect(countRecords({ identity, collection: 'app.bsky.graph.block' })).rejects.toThrow('request budget')
+    expect(requests).toBe(25)
   })
 
   it('paginates labels and contains malformed events to one unavailable row', async () => {
@@ -220,6 +265,84 @@ describe('atcute-backed API boundaries', () => {
     const service = createTestService()
     await expect(service.blockedBy(did)).resolves.toEqual({ items: [], cursor: undefined })
     expect(requestedUrl?.searchParams.get('reverse')).toBe('false')
+  })
+
+  it('gets a block backlink count without loading backlink records', async () => {
+    let requestedUrl: URL | undefined
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        requestedUrl = new URL(input instanceof Request ? input.url : String(input))
+        return new Response(JSON.stringify({ total: 3_000 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      }),
+    )
+
+    await expect(getBacklinksCount({ subject: did, source: 'app.bsky.graph.block:subject' })).resolves.toBe(3_000)
+    expect(requestedUrl?.pathname).toMatch(/blue\.microcosm\.links\.getBacklinksCount$/)
+    expect(requestedUrl?.searchParams.get('subject')).toBe(did)
+    expect(requestedUrl?.searchParams.get('source')).toBe('app.bsky.graph.block:subject')
+    expect(requestedUrl?.searchParams.has('limit')).toBe(false)
+  })
+
+  it('loads each relationship count through its own query', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'pds.example') {
+          return new Response(JSON.stringify({ records: [{}, {}] }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+        }
+        if (url.pathname.endsWith('getBacklinksCount')) {
+          return new Response(JSON.stringify({ total: 3_000 }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const service = new PublicDataService(queryClient)
+
+    await expect(queryClient.fetchQuery(service.blockedCountQueryOptions(identity))).resolves.toBe(2)
+    await expect(queryClient.fetchQuery(service.blockedByCountQueryOptions(did))).resolves.toBe(3_000)
+  })
+
+  it('keeps a successful relationship count when the other source fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'pds.example') {
+          return new Response(JSON.stringify({ error: 'Unavailable' }), {
+            status: 503,
+            headers: { 'content-type': 'application/json' },
+          })
+        }
+        if (url.pathname.endsWith('getBacklinksCount')) {
+          return new Response(JSON.stringify({ total: 12 }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const service = new PublicDataService(queryClient)
+    const [blocked, blockedBy] = await Promise.allSettled([
+      queryClient.fetchQuery(service.blockedCountQueryOptions(identity)),
+      queryClient.fetchQuery(service.blockedByCountQueryOptions(did)),
+    ])
+
+    expect(blocked.status).toBe('rejected')
+    expect(blockedBy).toEqual({ status: 'fulfilled', value: 12 })
   })
 
   it('rejects malformed backlink subjects before making a request', async () => {

@@ -63,6 +63,14 @@ export class PublicDataService {
     return this.core.profile(identifier, signal)
   }
 
+  blockedCountQueryOptions(identity?: ActorIdentity) {
+    return this.core.blockedCountQueryOptions(identity)
+  }
+
+  blockedByCountQueryOptions(did?: ActorIdentity['did']) {
+    return this.core.blockedByCountQueryOptions(did)
+  }
+
   blocking(
     identity: ActorIdentity,
     cursor?: string,

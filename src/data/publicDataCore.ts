@@ -20,7 +20,9 @@ import { CACHE_TTL_MS } from '../lib/cache'
 import { queryKeys } from './queryKeys'
 import { labelDefinitionsFromRecord, profileFromRecord } from './recordParsers'
 import {
+  countRecords,
   getBacklinks,
+  getBacklinksCount,
   getPlcAccountDetails,
   getRecordByUri,
   listRecords,
@@ -84,6 +86,38 @@ export class PublicDataCore {
       queryKey: queryKeys.accountDetails(did),
       queryFn: ({ signal }) => this.loadAccountDetails(did, deadlineSignal(signal, this.requestTimeoutMs)),
       staleTime: CACHE_TTL_MS.identity,
+    })
+  }
+
+  blockedCountQueryOptions(identity?: ActorIdentity) {
+    return queryOptions({
+      queryKey: queryKeys.blockedCount(identity),
+      queryFn: ({ signal }) =>
+        identity
+          ? countRecords({
+              identity,
+              collection: 'app.bsky.graph.block',
+              signal: deadlineSignal(signal, this.requestTimeoutMs),
+            })
+          : Promise.resolve(undefined),
+      enabled: identity !== undefined,
+      staleTime: CACHE_TTL_MS.activity,
+    })
+  }
+
+  blockedByCountQueryOptions(did?: ActorIdentity['did']) {
+    return queryOptions({
+      queryKey: queryKeys.blockedByCount(did),
+      queryFn: ({ signal }) =>
+        did
+          ? getBacklinksCount({
+              subject: did,
+              source: 'app.bsky.graph.block:subject',
+              signal: deadlineSignal(signal, this.requestTimeoutMs),
+            })
+          : Promise.resolve(undefined),
+      enabled: did !== undefined,
+      staleTime: CACHE_TTL_MS.activity,
     })
   }
 

@@ -22,7 +22,7 @@ export const PROFILE_TABS: readonly ProfileTabDefinition[] = [
   { id: 'feed', label: 'Feed', path: null, component: FeedTab },
   { id: 'labels', label: 'Account labels', path: 'labels', component: LabelsTab },
   { id: 'labeled-posts', label: 'Labeled posts', path: 'labeled-posts', component: LabeledPostsTab },
-  { id: 'blocking', label: 'Blocking', path: 'blocking', component: BlockingTab },
+  { id: 'blocking', label: 'Blocked', path: 'blocking', component: BlockingTab },
   { id: 'blocked-by', label: 'Blocked by', path: 'blocked-by', component: BlockedByTab },
   { id: 'lists', label: 'Lists', path: 'lists', component: ListsTab },
   { id: 'listed-on', label: 'Listed on', path: 'listed-on', component: ListedOnTab },

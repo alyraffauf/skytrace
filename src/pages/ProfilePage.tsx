@@ -29,6 +29,8 @@ export function ProfilePage() {
   const profileQuery = useQuery({
     ...service.actorProfileQueryOptions(actor),
   })
+  const blockedCountQuery = useQuery(service.blockedCountQueryOptions(profileQuery.data?.identity))
+  const blockedByCountQuery = useQuery(service.blockedByCountQueryOptions(profileQuery.data?.identity.did))
 
   useLayoutEffect(() => {
     if (navigationType !== 'POP') window.scrollTo({ top: 0, left: 0 })
@@ -46,7 +48,7 @@ export function ProfilePage() {
         left: left - (tabList.clientWidth - activeTab.offsetWidth) / 2,
       })
     }
-  }, [location.pathname, profileQuery.isSuccess])
+  }, [blockedByCountQuery.data, blockedCountQuery.data, location.pathname, profileQuery.isSuccess])
 
   if (profileQuery.isPending) return <ProfileSkeleton />
   if (profileQuery.isError) return <ErrorState error={profileQuery.error} retry={() => void profileQuery.refetch()} />
@@ -65,18 +67,23 @@ export function ProfilePage() {
           className="sticky top-12 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
         >
           <div ref={tabListRef} className="tabs-scroll scrollbar-none flex gap-6 overflow-x-auto px-4 sm:px-6 lg:px-7">
-            {PROFILE_TABS.map(({ id, path, label }) => (
-              <NavLink
-                key={id}
-                to={path ? profileTabPath(actor, path) : profilePath(actor)}
-                end={!path}
-                className={({ isActive }) =>
-                  `flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-0.5 text-sm font-medium sm:min-h-0 sm:py-3 ${isActive ? 'border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-300' : 'border-transparent text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'}`
-                }
-              >
-                {label}
-              </NavLink>
-            ))}
+            {PROFILE_TABS.map(({ id, path, label }) => {
+              const count =
+                id === 'blocking' ? blockedCountQuery.data : id === 'blocked-by' ? blockedByCountQuery.data : undefined
+              return (
+                <NavLink
+                  key={id}
+                  to={path ? profileTabPath(actor, path) : profilePath(actor)}
+                  end={!path}
+                  className={({ isActive }) =>
+                    `flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-0.5 text-sm font-medium sm:min-h-0 sm:py-3 ${isActive ? 'border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-300' : 'border-transparent text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'}`
+                  }
+                >
+                  {label}
+                  {count !== undefined && ` (${count.toLocaleString()})`}
+                </NavLink>
+              )
+            })}
           </div>
         </nav>
         <section className="max-w-3xl px-4 sm:px-6 lg:px-7">

@@ -24,6 +24,8 @@ import { objectValue, stringValue } from './recordParsers'
 export class PublicDataValidationError extends Error {}
 
 const MAX_CLIENTS = 32
+const MAX_RECORD_COUNT_REQUESTS = 25
+const RECORD_COUNT_PAGE_SIZE = 100
 const clients = new Map<string, Client>()
 const backlinkSources = [
   'app.bsky.graph.block:subject',
@@ -249,22 +251,7 @@ export async function listRecords(options: {
   limit: number
   signal?: AbortSignal
 }): Promise<Page<RepositoryRecord>> {
-  const data = await paginationRequests.run(
-    () =>
-      ok(
-        clientFor(options.identity.pds).call(listRecordsSchema, {
-          params: {
-            repo: options.identity.did as ActorIdentifier,
-            collection: options.collection,
-            limit: options.limit,
-            reverse: false,
-            cursor: options.cursor,
-          },
-          signal: options.signal,
-        }),
-      ),
-    options.signal,
-  )
+  const data = await fetchRecordPage(options)
   const items = data.records.map((record, index) => {
     const envelope = v.safeParse(ComAtprotoRepoListRecords.recordSchema, record)
     if (envelope.ok) {
@@ -280,6 +267,52 @@ export async function listRecords(options: {
     }
   })
   return { items, cursor: data.cursor }
+}
+
+export async function countRecords(options: {
+  identity: ActorIdentity
+  collection: Nsid
+  signal?: AbortSignal
+}): Promise<number> {
+  let total = 0
+  let cursor: string | undefined
+  const seenCursors = new Set<string>()
+
+  for (let requestNumber = 0; requestNumber < MAX_RECORD_COUNT_REQUESTS; requestNumber += 1) {
+    const page = await fetchRecordPage({ ...options, cursor, limit: RECORD_COUNT_PAGE_SIZE })
+    total += page.records.length
+    if (!page.cursor) return total
+    if (seenCursors.has(page.cursor)) throw new PublicDataValidationError('The PDS repeated a pagination cursor.')
+    seenCursors.add(page.cursor)
+    cursor = page.cursor
+  }
+
+  throw new PublicDataValidationError('The PDS record count exceeded the request budget.')
+}
+
+function fetchRecordPage(options: {
+  identity: ActorIdentity
+  collection: Nsid
+  cursor?: string
+  limit: number
+  signal?: AbortSignal
+}) {
+  return paginationRequests.run(
+    () =>
+      ok(
+        clientFor(options.identity.pds).call(listRecordsSchema, {
+          params: {
+            repo: options.identity.did as ActorIdentifier,
+            collection: options.collection,
+            limit: options.limit,
+            reverse: false,
+            cursor: options.cursor,
+          },
+          signal: options.signal,
+        }),
+      ),
+    options.signal,
+  )
 }
 
 export async function getBacklinks(options: {
@@ -308,6 +341,29 @@ export async function getBacklinks(options: {
   )
   const items = data.records.map((record) => ({ uri: `at://${record.did}/${record.collection}/${record.rkey}` }))
   return { items: dedupeBy(items, (item) => item.uri), cursor: data.cursor ?? undefined }
+}
+
+export async function getBacklinksCount(options: {
+  subject: string
+  source: BacklinkSource
+  signal?: AbortSignal
+}): Promise<number> {
+  if (!isGenericUri(options.subject)) throw new Error('Cannot count backlinks for an invalid subject URI.')
+  if (!backlinkSources.includes(options.source)) throw new Error('Cannot count backlinks from an unsupported source.')
+  const data = await hydrationRequests.run(
+    () =>
+      ok(
+        clientFor(SERVICE_URLS.constellation).get('blue.microcosm.links.getBacklinksCount', {
+          params: {
+            subject: options.subject as GenericUri,
+            source: options.source,
+          },
+          signal: options.signal,
+        }),
+      ),
+    options.signal,
+  )
+  return data.total
 }
 
 export async function queryLabels(options: {

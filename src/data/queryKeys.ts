@@ -9,6 +9,8 @@ export const queryKeys = {
   listSummary: (uri: string | undefined) => ['listSummary', uri] as const,
   repositoryRecords: (identity: ActorIdentity, collection: string, cursor: string | undefined, limit: number) =>
     ['repositoryRecords', identity.pds, identity.did, collection, cursor ?? null, limit] as const,
+  blockedCount: (identity?: ActorIdentity) => ['blockedCount', identity?.pds ?? null, identity?.did ?? null] as const,
+  blockedByCount: (did?: string) => ['blockedByCount', did ?? null] as const,
   backlinks: (subject: string, source: string, cursor: string | undefined) =>
     ['backlinks', subject, source, cursor ?? null] as const,
   labelerEndpoint: (did: string) => ['labelerEndpoint', did] as const,
