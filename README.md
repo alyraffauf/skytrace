@@ -13,7 +13,7 @@ SkyTrace does not require a Bluesky login. SkyTrace is a static frontend and has
 
 ## Run the app locally
 
-Install [Bun 1.3.13](https://bun.sh/), then run:
+Install [Bun 1.3.14](https://bun.sh/), then run:
 
 ```sh
 bun install
