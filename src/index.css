@@ -1,0 +1,85 @@
+@import 'tailwindcss';
+
+@layer base {
+  html {
+    color-scheme: light dark;
+    background: #fff;
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    background: #fff;
+    color: #18181b;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  a,
+  summary {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 dark:focus-visible:ring-rose-400 dark:focus-visible:ring-offset-zinc-950;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  html,
+  body {
+    background: #09090b;
+    color: #f4f4f5;
+  }
+}
+
+@keyframes soft-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.skeleton {
+  animation: soft-pulse 1.5s ease-in-out infinite;
+  @apply bg-zinc-200 dark:bg-zinc-800;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+.tabs-scroll {
+  scroll-padding-inline: 2rem;
+  mask-image: linear-gradient(to right, transparent, black 1rem, black calc(100% - 1rem), transparent);
+}
+
+@media (min-width: 640px) {
+  .tabs-scroll {
+    mask-image: none;
+  }
+}
+
+.feed-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 15rem;
+}
+
+.media-image {
+  opacity: 0;
+  transition: opacity 160ms ease-out;
+}
+
+.media-image-loaded {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .animate-spin {
+    animation: none;
+  }
+
+  .media-image {
+    transition: none;
+  }
+}
