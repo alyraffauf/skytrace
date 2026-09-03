@@ -6,18 +6,14 @@ import { pdslsRecordUrl } from '../lib/links'
 
 const PDSLS_FAVICON = '/favicons/pdsls.ico'
 
-type RelatedRecord = { uri: string; label: string }
-
 export function RecordLinksMenu({
   recordUri,
   socialPath,
   label,
-  relatedRecords = [],
 }: {
   recordUri: string
   socialPath?: string
   label: string
-  relatedRecords?: RelatedRecord[]
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const popupId = useId()
@@ -124,18 +120,6 @@ export function RecordLinksMenu({
               favicon={PDSLS_FAVICON}
               close={() => setIsOpen(false)}
             />
-            {relatedRecords.map((record) => {
-              const url = pdslsRecordUrl(record.uri)
-              return url ? (
-                <MenuLink
-                  key={record.uri}
-                  href={url}
-                  label={record.label}
-                  favicon={PDSLS_FAVICON}
-                  close={() => setIsOpen(false)}
-                />
-              ) : null
-            })}
             {socialPath &&
               SOCIAL_APPS.map((app) => (
                 <MenuLink

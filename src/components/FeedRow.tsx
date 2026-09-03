@@ -213,12 +213,7 @@ function FeedRowContent({
               <span className="text-xs text-zinc-500 dark:text-zinc-400">{formatDateTime(post.createdAt)}</span>
             </div>
             <div className="absolute right-0 top-1/2 -translate-y-1/2">
-              <RecordLinksMenu
-                recordUri={post.uri}
-                socialPath={socialPath}
-                label="post"
-                relatedRecords={item.kind === 'repost' ? [{ uri: item.uri, label: 'Repost record' }] : undefined}
-              />
+              <RecordLinksMenu recordUri={post.uri} socialPath={socialPath} label="post" />
             </div>
           </div>
           <PostBody post={post} />
