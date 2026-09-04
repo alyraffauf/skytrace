@@ -4,12 +4,12 @@ import { ActorSearch } from '../components/ActorSearch'
 
 export function HomePage() {
   return (
-    <div className="home-hero relative isolate flex w-full flex-1 items-center justify-center overflow-hidden text-center">
-      <div className="pointer-events-none absolute inset-x-0 top-[10%] h-64 sm:top-[12%]" aria-hidden="true">
-        <CloudRain className="rain-cloud absolute left-1/2 top-0 size-40 -translate-x-1/2 stroke-[1.2] text-violet-500 dark:text-violet-400 sm:size-56" />
-      </div>
-
-      <div className="relative z-10 mx-auto w-full max-w-2xl pb-4 pt-28 sm:pt-32">
+    <div className="home-hero flex w-full flex-1 items-center justify-center overflow-hidden text-center">
+      <div className="mx-auto w-full max-w-2xl pb-4">
+        <CloudRain
+          className="rain-cloud pointer-events-none mx-auto mb-5 size-40 overflow-visible stroke-[1.2] text-violet-500 dark:text-violet-400 sm:size-56"
+          aria-hidden="true"
+        />
         <h1 className="mx-auto text-4xl font-semibold tracking-[-0.035em] text-zinc-950 dark:text-zinc-100 sm:text-6xl">
           SkyTrace
         </h1>
