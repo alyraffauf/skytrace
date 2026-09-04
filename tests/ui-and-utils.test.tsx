@@ -9,11 +9,13 @@ import { groupLabelHistory, LabelRow } from '../src/components/LabelRow'
 import { LabeledPostRow } from '../src/components/LabeledPostRow'
 import { labelDisplayName } from '../src/components/LabelValue'
 import { RelationshipRow } from '../src/components/RelationshipRow'
+import { RecordLinksMenu } from '../src/components/RecordLinksMenu'
 import { MiniActor } from '../src/components/ActorIdentity'
 import { LinkifiedText } from '../src/components/LinkifiedText'
 import { mergeFeedItems } from '../src/data/publicData'
 import { labelDefinitionsFromRecord, parseFacets } from '../src/data/recordParsers'
 import { normalizeActorInput } from '../src/lib/parse'
+import { skythreadPostUrl } from '../src/lib/links'
 import { ProfilePage } from '../src/pages/ProfilePage'
 import type { ActorIdentity, ActorProfile, FeedPost, LabelEvent } from '../src/types'
 
@@ -55,6 +57,23 @@ describe('plain text links', () => {
       'href',
       'https://example.com/read',
     )
+  })
+})
+
+describe('record links', () => {
+  const postUri = `at://${did}/app.bsky.feed.post/3example`
+
+  it('builds Skythread links only for posts', () => {
+    expect(skythreadPostUrl(postUri)).toBe(
+      `https://skythread.mackuba.eu/?author=${encodeURIComponent(did)}&post=3example`,
+    )
+    expect(skythreadPostUrl(`at://${did}/app.bsky.graph.block/3example`)).toBeUndefined()
+  })
+
+  it('offers Skythread in a post links menu', () => {
+    render(<RecordLinksMenu recordUri={postUri} label="post" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open links for post' }))
+    expect(screen.getByRole('link', { name: /Skythread/ })).toHaveAttribute('href', skythreadPostUrl(postUri))
   })
 })
 

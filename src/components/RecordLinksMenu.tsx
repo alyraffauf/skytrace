@@ -2,7 +2,7 @@ import { ArrowUpRightIcon, EllipsisHorizontalIcon } from '@heroicons/react/20/so
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SOCIAL_APPS } from '../config/socialApps'
-import { pdslsRecordUrl } from '../lib/links'
+import { pdslsRecordUrl, skythreadPostUrl } from '../lib/links'
 
 const PDSLS_FAVICON = '/favicons/pdsls.ico'
 
@@ -23,6 +23,7 @@ export function RecordLinksMenu({
   const firstLinkRef = useRef<HTMLAnchorElement>(null)
   const [popupPosition, setPopupPosition] = useState({ left: 0, top: 0, ready: false })
   const recordUrl = pdslsRecordUrl(recordUri)
+  const skythreadUrl = skythreadPostUrl(recordUri)
 
   const positionPopup = useCallback(() => {
     const button = buttonRef.current
@@ -130,6 +131,7 @@ export function RecordLinksMenu({
                   close={() => setIsOpen(false)}
                 />
               ))}
+            {skythreadUrl && <MenuLink href={skythreadUrl} label="Skythread" icon="🌤" close={() => setIsOpen(false)} />}
           </div>,
           document.body,
         )}
@@ -137,19 +139,14 @@ export function RecordLinksMenu({
   )
 }
 
-const MenuLink = ({
-  ref,
-  href,
-  label,
-  favicon,
-  close,
-}: {
+type MenuLinkProps = {
   ref?: React.Ref<HTMLAnchorElement>
   href: string
   label: string
-  favicon: string
   close: () => void
-}) => {
+} & ({ favicon: string; icon?: never } | { favicon?: never; icon: string })
+
+const MenuLink = ({ ref, href, label, favicon, icon, close }: MenuLinkProps) => {
   return (
     <a
       ref={ref}
@@ -160,14 +157,16 @@ const MenuLink = ({
       className="flex min-h-11 items-center gap-2 px-2.5 py-1.5 text-sm text-zinc-800 hover:bg-violet-50 hover:text-violet-900 dark:text-zinc-200 dark:hover:bg-violet-950/40 dark:hover:text-violet-200 sm:min-h-10"
     >
       <span className="grid size-4 shrink-0 place-items-center" aria-hidden="true">
-        <img
-          src={favicon}
-          alt=""
-          className="max-h-4 max-w-4 object-contain"
-          onError={(event) => {
-            event.currentTarget.hidden = true
-          }}
-        />
+        {icon ?? (
+          <img
+            src={favicon}
+            alt=""
+            className="max-h-4 max-w-4 object-contain"
+            onError={(event) => {
+              event.currentTarget.hidden = true
+            }}
+          />
+        )}
       </span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
       <ArrowUpRightIcon className="size-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />

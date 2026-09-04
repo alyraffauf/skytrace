@@ -4,6 +4,16 @@ export function pdslsRecordUrl(uri: string): string | undefined {
   return parseAtUri(uri) ? `https://pdsls.dev/${uri}` : undefined
 }
 
+export function skythreadPostUrl(uri: string): string | undefined {
+  const record = parseAtUri(uri)
+  if (record?.collection !== 'app.bsky.feed.post') return undefined
+
+  const url = new URL('https://skythread.mackuba.eu/')
+  url.searchParams.set('author', record.did)
+  url.searchParams.set('post', record.rkey)
+  return url.toString()
+}
+
 export function socialProfilePath(actor: string): string {
   return `/profile/${actor}`
 }
