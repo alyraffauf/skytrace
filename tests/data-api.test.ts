@@ -76,21 +76,22 @@ describe('atcute-backed API boundaries', () => {
     expect(requestedLimits).toEqual(['100', '100'])
   })
 
-  it('stops a repository count after its request budget', async () => {
+  it('counts collections beyond the former request budget', async () => {
     let requests = 0
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {
         requests += 1
-        return new Response(JSON.stringify({ records: [], cursor: `page-${requests}` }), {
+        const cursor = requests < 30 ? `page-${requests}` : undefined
+        return new Response(JSON.stringify({ records: [{}], cursor }), {
           status: 200,
           headers: { 'content-type': 'application/json' },
         })
       }),
     )
 
-    await expect(countRecords({ identity, collection: 'app.bsky.graph.block' })).rejects.toThrow('request budget')
-    expect(requests).toBe(25)
+    await expect(countRecords({ identity, collection: 'app.bsky.graph.block' })).resolves.toBe(30)
+    expect(requests).toBe(30)
   })
 
   it('paginates labels and contains malformed events to one unavailable row', async () => {

@@ -16,6 +16,7 @@ import type {
   UnavailableItem,
 } from '../types'
 import { SERVICE_URLS } from '../config/serviceUrls'
+import { deadlineSignal } from '../lib/abort'
 import { dedupeBy } from '../lib/collections'
 import { isDid, parseAtUri } from '../lib/parse'
 import { hydrationRequests, paginationRequests } from '../lib/requestScheduler'
@@ -24,7 +25,6 @@ import { objectValue, stringValue } from './recordParsers'
 export class PublicDataValidationError extends Error {}
 
 const MAX_CLIENTS = 32
-const MAX_RECORD_COUNT_REQUESTS = 25
 const RECORD_COUNT_PAGE_SIZE = 100
 const clients = new Map<string, Client>()
 const backlinkSources = [
@@ -273,21 +273,21 @@ export async function countRecords(options: {
   identity: ActorIdentity
   collection: Nsid
   signal?: AbortSignal
+  requestTimeoutMs?: number
 }): Promise<number> {
   let total = 0
   let cursor: string | undefined
   const seenCursors = new Set<string>()
 
-  for (let requestNumber = 0; requestNumber < MAX_RECORD_COUNT_REQUESTS; requestNumber += 1) {
-    const page = await fetchRecordPage({ ...options, cursor, limit: RECORD_COUNT_PAGE_SIZE })
+  while (true) {
+    const signal = options.requestTimeoutMs ? deadlineSignal(options.signal, options.requestTimeoutMs) : options.signal
+    const page = await fetchRecordPage({ ...options, cursor, limit: RECORD_COUNT_PAGE_SIZE, signal })
     total += page.records.length
     if (!page.cursor) return total
     if (seenCursors.has(page.cursor)) throw new PublicDataValidationError('The PDS repeated a pagination cursor.')
     seenCursors.add(page.cursor)
     cursor = page.cursor
   }
-
-  throw new PublicDataValidationError('The PDS record count exceeded the request budget.')
 }
 
 function fetchRecordPage(options: {

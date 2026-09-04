@@ -97,7 +97,8 @@ export class PublicDataCore {
           ? countRecords({
               identity,
               collection: 'app.bsky.graph.block',
-              signal: deadlineSignal(signal, this.requestTimeoutMs),
+              signal,
+              requestTimeoutMs: this.requestTimeoutMs,
             })
           : Promise.resolve(undefined),
       enabled: identity !== undefined,
