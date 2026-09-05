@@ -2,13 +2,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { isRecordKey } from '@atcute/lexicons/syntax'
 import { Link, useParams } from 'react-router-dom'
 import { MiniActor } from '../components/ActorIdentity'
-import { ImageWithFallback } from '../components/Images'
 import { InfiniteScroll } from '../components/InfiniteScroll'
+import { ListAvatar } from '../components/ListRow'
 import { RecordLinksMenu } from '../components/RecordLinksMenu'
 import { RelationshipRow } from '../components/RelationshipRow'
 import { RecordList } from '../components/RecordList'
 import { EmptyState, ErrorState, LoadingRows, UnavailableCard } from '../components/States'
-import { cdnImageUrl } from '../lib/cdn'
 import { formatDate } from '../lib/dates'
 import { publicDataServiceFor, type PublicDataService } from '../data/publicData'
 import { queryKeys } from '../data/queryKeys'
@@ -40,7 +39,7 @@ export function ListPage() {
   if (!listQuery.data) return <UnavailableListPage reason="This list is unavailable." />
   if (listQuery.data.kind === 'unavailable') return <UnavailableListPage reason={listQuery.data.reason} />
 
-  return <ResolvedListPage list={listQuery.data} listUri={listUri} service={service} />
+  return <ResolvedListPage list={listQuery.data} service={service} />
 }
 
 function UnavailableListPage({ reason }: { reason: string }) {
@@ -51,19 +50,11 @@ function UnavailableListPage({ reason }: { reason: string }) {
   )
 }
 
-function ResolvedListPage({
-  list,
-  listUri,
-  service,
-}: {
-  list: ListSummary
-  listUri: string
-  service: PublicDataService
-}) {
+function ResolvedListPage({ list, service }: { list: ListSummary; service: PublicDataService }) {
   const listRecord = parseAtUri(list.uri)!
   const membersQuery = usePagedRecords<RelationshipEntry | UnavailableItem>(
-    queryKeys.listMembers(listUri),
-    (cursor, signal) => service.listMembers(listUri, cursor, signal),
+    queryKeys.listMembers(list.uri),
+    (cursor, signal) => service.listMembers(list.uri, cursor, signal),
   )
   const members = newestFirst(membersQuery.data?.pages.flatMap((page) => page.items) ?? [])
   const paginationError = membersQuery.isFetchNextPageError ? membersQuery.error : undefined
@@ -71,14 +62,7 @@ function ResolvedListPage({
   return (
     <article className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
       <header className="grid grid-cols-[3rem_minmax(0,1fr)_auto] gap-3 border-b border-zinc-200 pb-5 dark:border-zinc-800">
-        <ImageWithFallback
-          src={list.avatarCid ? cdnImageUrl('avatar', listRecord.did, list.avatarCid) : undefined}
-          alt={`${list.name} list avatar`}
-          fallback="image"
-          fallbackClassName="size-12"
-          className="size-12 bg-zinc-100 object-cover dark:bg-zinc-900"
-          loading="eager"
-        />
+        <ListAvatar list={list} size="header" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-2">
             <h1 className="truncate text-xl font-semibold text-zinc-950 dark:text-zinc-100 sm:text-2xl">{list.name}</h1>

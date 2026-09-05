@@ -17,7 +17,6 @@ export function ListRow({ list, membership }: { list: ListSummary | UnavailableI
   }
 
   const parts = parseAtUri(list.uri)
-  const ownerDid = parts?.did ?? ''
   const socialPath = parts ? socialListPath(parts.did, parts.rkey) : undefined
   const internalPath = listPath(list.uri)
   const date = formatDate(membership?.createdAt ?? list.createdAt)
@@ -43,14 +42,7 @@ export function ListRow({ list, membership }: { list: ListSummary | UnavailableI
     <article
       className={`${compactRowClassName} group grid grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-0.5 sm:grid-cols-[2rem_minmax(0,1fr)_8rem_2rem]`}
     >
-      <ImageWithFallback
-        src={list.avatarCid ? cdnImageUrl('avatar', ownerDid, list.avatarCid) : undefined}
-        alt={`${list.name} list avatar`}
-        fallback="image"
-        fallbackClassName="mt-0.5 size-8 shrink-0"
-        className="mt-0.5 size-8 shrink-0 bg-zinc-100 object-cover dark:bg-zinc-900"
-        loading="lazy"
-      />
+      <ListAvatar list={list} size="row" />
       <div className="min-w-0">
         {internalPath ? (
           <Link to={internalPath} className="block rounded-sm hover:text-violet-700 dark:hover:text-violet-300">
@@ -73,5 +65,20 @@ export function ListRow({ list, membership }: { list: ListSummary | UnavailableI
         <RecordLinksMenu recordUri={membership?.uri ?? list.uri} socialPath={socialPath} label={list.name} />
       </div>
     </article>
+  )
+}
+
+export function ListAvatar({ list, size }: { list: ListSummary; size: 'row' | 'header' }) {
+  const ownerDid = parseAtUri(list.uri)?.did ?? ''
+  const sizeClass = size === 'row' ? 'mt-0.5 size-8 shrink-0' : 'size-12'
+  return (
+    <ImageWithFallback
+      src={list.avatarCid ? cdnImageUrl('avatar', ownerDid, list.avatarCid) : undefined}
+      alt={`${list.name} list avatar`}
+      fallback="image"
+      fallbackClassName={sizeClass}
+      className={`${sizeClass} bg-zinc-100 object-cover dark:bg-zinc-900`}
+      loading={size === 'header' ? 'eager' : 'lazy'}
+    />
   )
 }
