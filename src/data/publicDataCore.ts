@@ -224,31 +224,23 @@ export class PublicDataCore {
   }
 
   async repositoryRecords(options: Parameters<typeof listRecords>[0]): Promise<Page<RepositoryRecord>> {
-    const key = queryKeys.repositoryRecords(options.identity, options.collection, options.cursor, options.limit)
-    const page = await this.sharedQuery(
-      key,
-      CACHE_TTL_MS.activity,
-      (signal) => listRecords({ ...options, signal }),
-      options.signal,
-    )
-    throwIfAborted(options.signal)
-    if (options.cursor && page.cursor === options.cursor)
-      throw new PublicDataValidationError('The PDS repeated a pagination cursor.')
-    return page
+    return this.cachedPage({
+      key: queryKeys.repositoryRecords(options.identity, options.collection, options.cursor, options.limit),
+      cursor: options.cursor,
+      signal: options.signal,
+      load: (signal) => listRecords({ ...options, signal }),
+      repeatedCursorError: 'The PDS repeated a pagination cursor.',
+    })
   }
 
   async backlinks(options: Parameters<typeof getBacklinks>[0]): Promise<Page<{ uri: string }>> {
-    const key = queryKeys.backlinks(options.subject, options.source, options.cursor)
-    const page = await this.sharedQuery(
-      key,
-      CACHE_TTL_MS.activity,
-      (signal) => getBacklinks({ ...options, signal }),
-      options.signal,
-    )
-    throwIfAborted(options.signal)
-    if (options.cursor && page.cursor === options.cursor)
-      throw new PublicDataValidationError('Constellation repeated a pagination cursor.')
-    return page
+    return this.cachedPage({
+      key: queryKeys.backlinks(options.subject, options.source, options.cursor),
+      cursor: options.cursor,
+      signal: options.signal,
+      load: (signal) => getBacklinks({ ...options, signal }),
+      repeatedCursorError: 'Constellation repeated a pagination cursor.',
+    })
   }
 
   async labelRecords(
@@ -262,15 +254,27 @@ export class PublicDataCore {
       options.cursor,
       options.limit ?? 50,
     )
-    const page = await this.sharedQuery(
+    return this.cachedPage({
       key,
-      CACHE_TTL_MS.activity,
-      (signal) => queryLabels({ ...options, signal }),
-      options.signal,
-    )
+      cursor: options.cursor,
+      signal: options.signal,
+      load: (signal) => queryLabels({ ...options, signal }),
+      repeatedCursorError: 'The label service repeated a pagination cursor.',
+    })
+  }
+
+  private async cachedPage<T>(options: {
+    key: readonly unknown[]
+    cursor?: string
+    signal?: AbortSignal
+    load: (signal: AbortSignal) => Promise<Page<T>>
+    repeatedCursorError: string
+  }): Promise<Page<T>> {
+    const page = await this.sharedQuery(options.key, CACHE_TTL_MS.activity, options.load, options.signal)
     throwIfAborted(options.signal)
-    if (options.cursor && page.cursor === options.cursor)
-      throw new PublicDataValidationError('The label service repeated a pagination cursor.')
+    if (options.cursor && page.cursor === options.cursor) {
+      throw new PublicDataValidationError(options.repeatedCursorError)
+    }
     return page
   }
 
