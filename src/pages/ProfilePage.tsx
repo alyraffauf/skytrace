@@ -2,12 +2,10 @@ import { ChevronRightIcon, ServerStackIcon } from '@heroicons/react/24/outline'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigationType, useParams } from 'react-router-dom'
-import { ImageWithFallback } from '../components/Images'
 import { LinkifiedText } from '../components/LinkifiedText'
 import { RecordLinksMenu } from '../components/RecordLinksMenu'
-import { actorHandle, actorLabel } from '../components/ActorIdentity'
+import { ActorAvatar, actorHandle, actorLabel } from '../components/ActorIdentity'
 import { ErrorState } from '../components/States'
-import { cdnImageUrl } from '../lib/cdn'
 import { formatDate } from '../lib/dates'
 import { publicDataServiceFor, type PublicDataService } from '../data/publicData'
 import { socialProfilePath } from '../lib/links'
@@ -53,13 +51,11 @@ export function ProfilePage() {
   if (profileQuery.isPending) return <ProfileSkeleton />
   if (profileQuery.isError) return <ErrorState error={profileQuery.error} retry={() => void profileQuery.refetch()} />
   const profile = profileQuery.data
-  const { identity } = profile
-  const visibleHandle = actorHandle(identity)
 
   return (
     <article className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)]">
       <aside className="border-b border-zinc-200 dark:border-zinc-800 lg:sticky lg:top-12 lg:h-[calc(100vh-5.75rem)] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
-        <ProfileIdentity profile={profile} visibleHandle={visibleHandle} service={service} />
+        <ProfileIdentity profile={profile} service={service} />
       </aside>
       <div className="min-w-0">
         <nav
@@ -102,36 +98,18 @@ export function ProfilePage() {
   )
 }
 
-function ProfileIdentity({
-  profile,
-  visibleHandle,
-  service,
-}: {
-  profile: ActorProfile
-  visibleHandle: string
-  service: PublicDataService
-}) {
+function ProfileIdentity({ profile, service }: { profile: ActorProfile; service: PublicDataService }) {
   const { identity } = profile
+  const visibleHandle = actorHandle(identity)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const detailsQuery = useQuery({ ...service.accountDetailsQueryOptions(identity.did), enabled: detailsOpen })
   const hasValidHandle = identity.handle !== 'handle.invalid'
   const profileRecordUri = `at://${identity.did}/app.bsky.actor.profile/self`
-  const avatarClassName = 'size-16 shrink-0 rounded-full'
-  const avatar = (
-    <ImageWithFallback
-      src={profile.avatarCid ? cdnImageUrl('avatar', identity.did, profile.avatarCid) : undefined}
-      alt={`${actorLabel(profile)}'s avatar`}
-      fallback="avatar"
-      fallbackClassName={avatarClassName}
-      className={`${avatarClassName} bg-zinc-100 object-cover dark:bg-zinc-900`}
-      loading="eager"
-    />
-  )
 
   return (
     <div className="px-4 py-4 sm:px-6 lg:py-6">
       <header className="flex items-start gap-3.5">
-        {avatar}
+        <ActorAvatar profile={profile} size="profile" />
         <div className="min-w-0 flex-1 pt-0.5">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">

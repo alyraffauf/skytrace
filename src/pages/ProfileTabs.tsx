@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo } from 'react'
+import { Fragment, type ReactNode, useEffect, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { FeedRow } from '../components/FeedRow'
 import { InfiniteScroll } from '../components/InfiniteScroll'
@@ -23,32 +23,29 @@ import type {
   ListSummary,
   Page,
   RelationshipEntry,
-  SourceIssue,
   UnavailableItem,
 } from '../types'
 import type { ProfileOutletContext } from './ProfilePage'
 
 type DatedTabItem = LabelEvent | ListMembership | ListSummary | RelationshipEntry | UnavailableItem
 
-type PagedTabProps<T extends DatedTabItem, TCursor = string> = {
+type PagedTabBaseProps<T extends DatedTabItem, TCursor> = {
   queryKey: readonly unknown[]
   empty: string
   load: (cursor: TCursor | undefined, signal: AbortSignal) => Promise<Page<T, TCursor>>
-  render: (item: T) => React.ReactNode
   itemKey: (item: T) => string
   transformItems?: (items: T[]) => T[]
   prefetchNextPage?: boolean
 }
 
-function PagedTab<T extends DatedTabItem, TCursor = string>({
-  queryKey,
-  empty,
-  load,
-  render,
-  itemKey,
-  transformItems,
-  prefetchNextPage = false,
-}: PagedTabProps<T, TCursor>) {
+type PagedTabProps<T extends DatedTabItem, TCursor = string> = PagedTabBaseProps<T, TCursor> &
+  (
+    | { renderItem: (item: T) => ReactNode; renderItems?: never }
+    | { renderItem?: never; renderItems: (items: T[]) => ReactNode }
+  )
+
+function PagedTab<T extends DatedTabItem, TCursor = string>(props: PagedTabProps<T, TCursor>) {
+  const { queryKey, empty, load, itemKey, transformItems, prefetchNextPage = false } = props
   const query = usePagedRecords(queryKey, load)
   useEffect(() => {
     if (prefetchNextPage && query.data?.pages.length === 1 && query.hasNextPage && !query.isFetchingNextPage) {
@@ -68,9 +65,9 @@ function PagedTab<T extends DatedTabItem, TCursor = string>({
         <EmptyState title={empty} />
       ) : (
         <RecordList>
-          {items.map((item) => (
-            <Fragment key={itemKey(item)}>{render(item)}</Fragment>
-          ))}
+          {props.renderItems
+            ? props.renderItems(items)
+            : items.map((item) => <Fragment key={itemKey(item)}>{props.renderItem(item)}</Fragment>)}
         </RecordList>
       )}
       {issues.length > 0 && <SourceIssues issues={issues} retry={() => void query.fetchNextPage()} />}
@@ -94,21 +91,27 @@ export function LabelsTab() {
       itemKey={(item) => item.id}
       transformItems={groupLabelHistory}
       prefetchNextPage
-      render={(item) => <ResolvedLabelRow item={item} service={service} />}
+      renderItems={(items) => <ResolvedLabelRows items={items} service={service} />}
     />
   )
 }
 
-function ResolvedLabelRow({
-  item,
+function ResolvedLabelRows({
+  items,
   service,
 }: {
-  item: LabelHistoryEvent | UnavailableItem
+  items: Array<LabelHistoryEvent | UnavailableItem>
   service: ProfileOutletContext['service']
 }) {
-  const label = item.kind === 'labelEvent' ? item : undefined
-  const displayNames = useLabelDisplayNames(label ? [label] : [], service)
-  return <LabelRow label={item} displayName={label ? displayNames.get(label.id) : undefined} />
+  const labels = items.filter((item): item is LabelHistoryEvent => item.kind === 'labelEvent')
+  const displayNames = useLabelDisplayNames(labels, service)
+  return items.map((item) => (
+    <LabelRow
+      key={item.id}
+      label={item}
+      displayName={item.kind === 'labelEvent' ? displayNames.get(item.id) : undefined}
+    />
+  ))
 }
 
 function RelationshipTab({ direction }: { direction: 'blocking' | 'blockedBy' }) {
@@ -123,7 +126,7 @@ function RelationshipTab({ direction }: { direction: 'blocking' | 'blockedBy' })
           : service.blockedBy(profile.identity.did, cursor, signal)
       }
       itemKey={(item) => item.id}
-      render={(item) => <RelationshipRow entry={item} />}
+      renderItem={(item) => <RelationshipRow entry={item} />}
     />
   )
 }
@@ -143,7 +146,7 @@ export function ListsTab() {
       empty="No lists found"
       load={(cursor, signal) => service.lists(profile.identity, cursor, signal)}
       itemKey={(item) => (item.kind === 'unavailable' ? item.id : item.uri)}
-      render={(item) => <ListRow list={item} />}
+      renderItem={(item) => <ListRow list={item} />}
     />
   )
 }
@@ -156,7 +159,7 @@ export function ListedOnTab() {
       empty="Not on any lists"
       load={(cursor, signal) => service.listedOn(profile.identity.did, cursor, signal)}
       itemKey={(item) => (item.kind === 'unavailable' ? item.id : item.uri)}
-      render={(item) =>
+      renderItem={(item) =>
         item.kind === 'unavailable' ? (
           <UnavailableCard reason={item.reason} />
         ) : (
@@ -195,9 +198,7 @@ export function LabeledPostsTab() {
   return (
     <div>
       <RecordList>
-        {items.map((item) => (
-          <ResolvedLabeledPostRow key={item.uri} item={item} service={service} />
-        ))}
+        <ResolvedLabeledPostRows items={items} service={service} />
       </RecordList>
       {issues.length > 0 && <SourceIssues issues={issues} retry={() => void query.fetchNextPage()} />}
       <InfiniteScroll
@@ -210,37 +211,45 @@ export function LabeledPostsTab() {
   )
 }
 
-function ResolvedLabeledPostRow({ item, service }: { item: LabeledPost; service: ProfileOutletContext['service'] }) {
-  const displayNames = useLabelDisplayNames(item.labels, service)
-  return <LabeledPostRow item={item} displayNames={displayNames} />
+function ResolvedLabeledPostRows({
+  items,
+  service,
+}: {
+  items: LabeledPost[]
+  service: ProfileOutletContext['service']
+}) {
+  const displayNames = useLabelDisplayNames(
+    items.flatMap((item) => item.labels),
+    service,
+  )
+  return items.map((item) => <LabeledPostRow key={item.post.uri} item={item} displayNames={displayNames} />)
 }
 
 function mergeLabeledPosts(items: LabeledPost[]): LabeledPost[] {
   const posts = new Map<string, LabeledPost>()
   for (const item of items) {
-    const current = posts.get(item.uri)
+    const current = posts.get(item.post.uri)
     if (!current) {
-      posts.set(item.uri, item)
+      posts.set(item.post.uri, item)
       continue
     }
     const labels = Array.from(
       new Map([...current.labels, ...item.labels].map((label) => [label.id, label])).values(),
     ).sort((left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt))
-    posts.set(item.uri, {
+    posts.set(item.post.uri, {
       ...current,
-      post: current.post.kind === 'unavailable' ? item.post : current.post,
       labels,
     })
   }
   return [...posts.values()].sort((left, right) => {
-    const leftDate = timestampFor(left.post.kind === 'post' ? left.post.createdAt : left.labels[0]?.createdAt)
-    const rightDate = timestampFor(right.post.kind === 'post' ? right.post.createdAt : right.labels[0]?.createdAt)
-    return rightDate - leftDate || left.uri.localeCompare(right.uri)
+    const leftDate = timestampFor(left.post.createdAt)
+    const rightDate = timestampFor(right.post.createdAt)
+    return rightDate - leftDate || left.post.uri.localeCompare(right.post.uri)
   })
 }
 
-function SourceIssues({ issues, retry }: { issues: SourceIssue[]; retry: () => void }) {
-  const sources = new Set(issues.map((issue) => issue.source)).size
+function SourceIssues({ issues, retry }: { issues: string[]; retry: () => void }) {
+  const sources = new Set(issues).size
   return (
     <div
       role="status"

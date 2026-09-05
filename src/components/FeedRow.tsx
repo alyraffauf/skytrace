@@ -1,4 +1,4 @@
-import { ArrowPathRoundedSquareIcon, ListBulletIcon } from '@heroicons/react/24/outline'
+import { ArrowPathRoundedSquareIcon } from '@heroicons/react/24/outline'
 import { Fragment, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -15,7 +15,7 @@ import { RecordLinksMenu } from './RecordLinksMenu'
 import { cdnImageUrl, pdsBlobUrl } from '../lib/cdn'
 import { formatDateTime } from '../lib/dates'
 import { socialPathForAtUri, socialPostPath } from '../lib/links'
-import { isDid, parseAtUri, safeHttpUrl } from '../lib/parse'
+import { parseAtUri, safeHttpUrl } from '../lib/parse'
 import { profilePath } from '../lib/routes'
 import type { Actor, Facet, FeedItem, FeedPost, UnavailableItem } from '../types'
 
@@ -39,13 +39,9 @@ export function splitFacetedText(text: string, facets: Facet[]): TextPart[] {
   return parts
 }
 
-function RichText({ text, facets, className }: { text: string; facets: Facet[]; className?: string }) {
+function RichText({ text, facets, className }: { text: string; facets: Facet[]; className: string }) {
   return (
-    <p
-      className={
-        className ?? 'whitespace-pre-wrap break-words text-[15px] leading-[1.45] text-zinc-800 dark:text-zinc-200'
-      }
-    >
+    <p className={className}>
       {splitFacetedText(text, facets).map((part, index) => {
         const externalHref = part.facet?.href && safeHttpUrl(part.facet.href)
         const mentionPath = part.facet?.mentionDid ? profilePath(part.facet.mentionDid) : undefined
@@ -76,8 +72,7 @@ function RichText({ text, facets, className }: { text: string; facets: Facet[]; 
 }
 
 function PostBody({ post, quoted = false }: { post: FeedPost; quoted?: boolean }) {
-  const authorDid = post.author.kind === 'actorProfile' ? post.author.identity.did : (parseAtUri(post.uri)?.did ?? '')
-  const pds = post.repository?.pds ?? (post.author.kind === 'actorProfile' ? post.author.identity.pds : '')
+  const authorDid = parseAtUri(post.uri)?.did ?? ''
   return (
     <div className={quoted ? 'p-2.5' : ''}>
       <RichText
@@ -113,14 +108,17 @@ function PostBody({ post, quoted = false }: { post: FeedPost; quoted?: boolean }
           })}
         </div>
       )}
-      {post.video && pds && (
+      {post.video && post.repositoryPds && (
         <video
           className="mt-2 max-h-64 w-full bg-black"
           controls
           preload="none"
           aria-label={post.video.alt || 'Video attached to this post'}
         >
-          <source src={pdsBlobUrl(pds, authorDid, post.video.cid)} type={post.video.mimeType || 'video/mp4'} />
+          <source
+            src={pdsBlobUrl(post.repositoryPds, authorDid, post.video.cid)}
+            type={post.video.mimeType || 'video/mp4'}
+          />
           Your browser cannot play this video.
         </video>
       )}
@@ -169,14 +167,11 @@ export function FeedRow({ item, footer }: { item: FeedItem; footer?: ReactNode }
       </div>
     )
   }
-  if (post.author.kind === 'actorReference') {
-    return (
-      <HydratedActor actor={post.author}>
-        {(author) => <FeedRowContent item={item} post={post} author={author} footer={footer} />}
-      </HydratedActor>
-    )
-  }
-  return <FeedRowContent item={item} post={post} author={post.author} footer={footer} />
+  return (
+    <HydratedActor actor={post.author}>
+      {(author) => <FeedRowContent item={item} post={post} author={author} footer={footer} />}
+    </HydratedActor>
+  )
 }
 
 function FeedRowContent({
@@ -187,7 +182,7 @@ function FeedRowContent({
 }: {
   item: Exclude<FeedItem, UnavailableItem>
   post: FeedPost
-  author: FeedPost['author']
+  author: Actor
   footer?: ReactNode
 }) {
   const postParts = parseAtUri(post.uri)
@@ -199,12 +194,8 @@ function FeedRowContent({
       <div className="flex gap-3">
         {author.kind === 'actorProfile' ? (
           <ActorAvatar profile={author} size="row" decorative />
-        ) : author.kind === 'actorReference' ? (
-          <ActorReferenceAvatar actor={author} />
         ) : (
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-zinc-100 dark:bg-zinc-900">
-            <ListBulletIcon className="size-4 text-zinc-400 dark:text-zinc-500" />
-          </span>
+          <ActorReferenceAvatar actor={author} />
         )}
         <div className="min-w-0 flex-1">
           <div className="relative mb-1 min-w-0 pr-10">
@@ -225,14 +216,9 @@ function FeedRowContent({
 }
 
 function RepostByline({ item }: { item: Extract<FeedItem, { kind: 'repost' }> }) {
-  if (item.author.kind === 'actorReference') {
-    return (
-      <HydratedActor actor={item.author}>
-        {(author) => <RepostBylineContent item={item} author={author} />}
-      </HydratedActor>
-    )
-  }
-  return <RepostBylineContent item={item} author={item.author} />
+  return (
+    <HydratedActor actor={item.author}>{(author) => <RepostBylineContent item={item} author={author} />}</HydratedActor>
+  )
 }
 
 function RepostBylineContent({ item, author }: { item: Extract<FeedItem, { kind: 'repost' }>; author: Actor }) {
@@ -257,15 +243,7 @@ function ReplyByline({ recordUri }: { recordUri: string }) {
   )
 }
 
-function FeedAuthor({ author }: { author: FeedPost['author'] }) {
-  if (author.kind === 'unavailable') {
-    const did = isDid(author.id) ? author.id : undefined
-    return (
-      <span className="max-w-full truncate font-mono text-xs text-zinc-600 dark:text-zinc-400" title={did}>
-        {did ?? 'Account unavailable'}
-      </span>
-    )
-  }
+function FeedAuthor({ author }: { author: Actor }) {
   if (author.kind === 'actorReference') return <ActorReferenceText actor={author} />
 
   return <ActorIdentityText profile={author} inline />

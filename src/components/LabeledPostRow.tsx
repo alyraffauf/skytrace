@@ -12,7 +12,6 @@ export function LabeledPostRow({
   item: LabeledPost
   displayNames?: ReadonlyMap<string, string>
 }) {
-  if (item.post.kind === 'unavailable') return null
   return <FeedRow item={item.post} footer={<PostLabels labels={item.labels} displayNames={displayNames} />} />
 }
 

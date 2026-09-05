@@ -6,7 +6,7 @@ import { timestampFor } from '../lib/sorting'
 import { readLabelState, storeLabelState, type LabelPagingState } from './labelPaging'
 import { actorReference, type PublicDataCore } from './publicDataCore'
 
-export const LABEL_PAGE_SIZE = 250
+const LABEL_PAGE_SIZE = 250
 const OPTIONAL_LABELER_TIMEOUT_MS = 2_500
 
 export class LabelDataService {
@@ -72,7 +72,7 @@ export class LabelDataService {
         return {
           items: [],
           cursor: storeLabelState(state),
-          issues: failedProviders.map((failedProvider) => ({ source: failedProvider.did })),
+          issues: failedProviders.map((failedProvider) => failedProvider.did),
         }
       }
       try {

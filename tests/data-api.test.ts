@@ -13,11 +13,23 @@ import {
 import { CACHE_TTL_MS } from '../src/lib/cache'
 import { retryDelay, shouldRetry } from '../src/lib/http'
 import type { ActorIdentity } from '../src/types'
-import { createTestService } from './testUtils'
+import { createTestService, jsonResponse as response } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const cid = 'bafyreicdwixhubhirckrrt7mqcoiq4u47b7quxlm24r547qcth4bc2ubq4'
 const identity: ActorIdentity = { kind: 'actorIdentity', did, handle: 'atproto.com', pds: 'https://pds.example' }
+
+function stubProfileRecord(body: unknown, status = 200) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      return url.pathname.endsWith('resolveMiniDoc')
+        ? response({ did, handle: identity.handle, pds: identity.pds, signing_key: 'zQ3test' })
+        : response(body, status)
+    }),
+  )
+}
 
 describe('atcute-backed API boundaries', () => {
   it('paginates PDS records without inventing fake raw records', async () => {
@@ -26,20 +38,17 @@ describe('atcute-backed API boundaries', () => {
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(String(input))
         if (url.hostname === 'pds.example')
-          return new Response(
-            JSON.stringify({
-              records: [
-                {
-                  uri: `at://${did}/app.bsky.graph.block/3abc`,
-                  cid,
-                  value: { $type: 'app.bsky.graph.block', createdAt: '2026-01-01T00:00:00Z' },
-                },
-                { uri: 'not-an-at-uri', value: {} },
-              ],
-              cursor: 'next',
-            }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
+          return response({
+            records: [
+              {
+                uri: `at://${did}/app.bsky.graph.block/3abc`,
+                cid,
+                value: { $type: 'app.bsky.graph.block', createdAt: '2026-01-01T00:00:00Z' },
+              },
+              { uri: 'not-an-at-uri', value: {} },
+            ],
+            cursor: 'next',
+          })
         throw new Error(`Unexpected URL ${url}`)
       }),
     )
@@ -55,43 +64,23 @@ describe('atcute-backed API boundaries', () => {
     expect(servicePage.items[1]).toMatchObject({ kind: 'unavailable', reason: 'This repository record is malformed.' })
   })
 
-  it('counts every page of a repository collection', async () => {
+  it('counts every page beyond the former request budget', async () => {
     const requestedLimits: string[] = []
+    let requests = 0
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(String(input))
         requestedLimits.push(url.searchParams.get('limit') ?? '')
-        const cursor = url.searchParams.get('cursor')
-        return new Response(
-          JSON.stringify(
-            cursor ? { records: [{}, {}] } : { records: Array.from({ length: 100 }, () => ({})), cursor: 'next' },
-          ),
-          { status: 200, headers: { 'content-type': 'application/json' } },
-        )
-      }),
-    )
-
-    await expect(countRecords({ identity, collection: 'app.bsky.graph.block' })).resolves.toBe(102)
-    expect(requestedLimits).toEqual(['100', '100'])
-  })
-
-  it('counts collections beyond the former request budget', async () => {
-    let requests = 0
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
         requests += 1
         const cursor = requests < 30 ? `page-${requests}` : undefined
-        return new Response(JSON.stringify({ records: [{}], cursor }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        })
+        return response({ records: [{}], cursor })
       }),
     )
 
     await expect(countRecords({ identity, collection: 'app.bsky.graph.block' })).resolves.toBe(30)
     expect(requests).toBe(30)
+    expect(requestedLimits).toEqual(Array.from({ length: 30 }, () => '100'))
   })
 
   it('paginates labels and contains malformed events to one unavailable row', async () => {
@@ -101,24 +90,21 @@ describe('atcute-backed API boundaries', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         requestedUrl = new URL(input instanceof Request ? input.url : String(input))
-        return new Response(
-          JSON.stringify({
-            cursor: 'next-label',
-            labels: [
-              {
-                ver: 1,
-                src: sourceDid,
-                uri: did,
-                val: '!suspend',
-                neg: true,
-                cts: '2026-02-01T21:02:00.515Z',
-                sig: 'c2lnbmF0dXJl',
-              },
-              { src: 'not-a-did', uri: did },
-            ],
-          }),
-          { status: 200, headers: { 'content-type': 'application/json' } },
-        )
+        return response({
+          cursor: 'next-label',
+          labels: [
+            {
+              ver: 1,
+              src: sourceDid,
+              uri: did,
+              val: '!suspend',
+              neg: true,
+              cts: '2026-02-01T21:02:00.515Z',
+              sig: 'c2lnbmF0dXJl',
+            },
+            { src: 'not-a-did', uri: did },
+          ],
+        })
       }),
     )
 
@@ -154,63 +140,18 @@ describe('atcute-backed API boundaries', () => {
   })
 
   it('returns an identity-only profile when the profile record was deleted', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = new URL(String(input))
-        if (url.pathname.endsWith('resolveMiniDoc'))
-          return new Response(
-            JSON.stringify({ did, handle: 'atproto.com', pds: 'https://pds.example', signing_key: 'zQ3test' }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
-        return new Response(JSON.stringify({ error: 'NotFound', message: 'Deleted' }), {
-          status: 404,
-          headers: { 'content-type': 'application/json' },
-        })
-      }),
-    )
-    const service = createTestService()
-    await expect(service.profile('atproto.com')).resolves.toEqual({ kind: 'actorProfile', identity })
+    stubProfileRecord({ error: 'NotFound', message: 'Deleted' }, 404)
+    await expect(createTestService().profile('atproto.com')).resolves.toEqual({ kind: 'actorProfile', identity })
   })
 
   it('returns an identity-only profile for a malformed profile envelope', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = new URL(String(input))
-        if (url.pathname.endsWith('resolveMiniDoc'))
-          return new Response(
-            JSON.stringify({ did, handle: 'atproto.com', pds: 'https://pds.example', signing_key: 'zQ3test' }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
-        return new Response(JSON.stringify({ uri: 'not-an-at-uri', value: {} }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        })
-      }),
-    )
-    const service = createTestService()
-    await expect(service.profile('atproto.com')).resolves.toEqual({ kind: 'actorProfile', identity })
+    stubProfileRecord({ uri: 'not-an-at-uri', value: {} })
+    await expect(createTestService().profile('atproto.com')).resolves.toEqual({ kind: 'actorProfile', identity })
   })
 
   it('surfaces transient failures while loading the primary profile', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = new URL(String(input))
-        if (url.pathname.endsWith('resolveMiniDoc'))
-          return new Response(
-            JSON.stringify({ did, handle: 'atproto.com', pds: 'https://pds.example', signing_key: 'zQ3test' }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
-        return new Response(JSON.stringify({ error: 'UpstreamFailure', message: 'Try later' }), {
-          status: 503,
-          headers: { 'content-type': 'application/json' },
-        })
-      }),
-    )
-    const service = createTestService()
-    await expect(service.profile('atproto.com')).rejects.toMatchObject({ status: 503 })
+    stubProfileRecord({ error: 'UpstreamFailure', message: 'Try later' }, 503)
+    await expect(createTestService().profile('atproto.com')).rejects.toMatchObject({ status: 503 })
   })
 
   it('reuses identity and record reads until their TTL expires', async () => {
@@ -220,19 +161,13 @@ describe('atcute-backed API boundaries', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : String(input))
       if (url.pathname.endsWith('resolveMiniDoc')) {
-        return new Response(
-          JSON.stringify({ did, handle: 'atproto.com', pds: 'https://pds.example', signing_key: 'zQ3test' }),
-          { status: 200, headers: { 'content-type': 'application/json' } },
-        )
+        return response({ did, handle: 'atproto.com', pds: 'https://pds.example', signing_key: 'zQ3test' })
       }
-      return new Response(
-        JSON.stringify({
-          uri: recordUri,
-          cid,
-          value: { $type: 'app.bsky.feed.post', text: 'Cached', createdAt: '2026-01-01T00:00:00Z' },
-        }),
-        { status: 200, headers: { 'content-type': 'application/json' } },
-      )
+      return response({
+        uri: recordUri,
+        cid,
+        value: { $type: 'app.bsky.feed.post', text: 'Cached', createdAt: '2026-01-01T00:00:00Z' },
+      })
     })
     vi.stubGlobal('fetch', fetchMock)
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
@@ -256,10 +191,7 @@ describe('atcute-backed API boundaries', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         requestedUrl = new URL(input instanceof Request ? input.url : String(input))
-        return new Response(JSON.stringify({ total: 0, records: [] }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        })
+        return response({ total: 0, records: [] })
       }),
     )
 
@@ -274,10 +206,7 @@ describe('atcute-backed API boundaries', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         requestedUrl = new URL(input instanceof Request ? input.url : String(input))
-        return new Response(JSON.stringify({ total: 3_000 }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        })
+        return response({ total: 3_000 })
       }),
     )
 
@@ -294,16 +223,10 @@ describe('atcute-backed API boundaries', () => {
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
         if (url.hostname === 'pds.example') {
-          return new Response(JSON.stringify({ records: [{}, {}] }), {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          })
+          return response({ records: [{}, {}] })
         }
         if (url.pathname.endsWith('getBacklinksCount')) {
-          return new Response(JSON.stringify({ total: 3_000 }), {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          })
+          return response({ total: 3_000 })
         }
         throw new Error(`Unexpected URL ${url}`)
       }),
@@ -321,16 +244,10 @@ describe('atcute-backed API boundaries', () => {
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
         if (url.hostname === 'pds.example') {
-          return new Response(JSON.stringify({ error: 'Unavailable' }), {
-            status: 503,
-            headers: { 'content-type': 'application/json' },
-          })
+          return response({ error: 'Unavailable' }, 503)
         }
         if (url.pathname.endsWith('getBacklinksCount')) {
-          return new Response(JSON.stringify({ total: 12 }), {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          })
+          return response({ total: 12 })
         }
         throw new Error(`Unexpected URL ${url}`)
       }),
@@ -365,42 +282,30 @@ describe('atcute-backed API boundaries', () => {
         const url = new URL(input instanceof Request ? input.url : String(input))
         if (url.pathname.endsWith('getBacklinks')) {
           backlinkSubject = url.searchParams.get('subject')
-          return new Response(
-            JSON.stringify({ total: 1, records: [{ did, collection: 'app.bsky.graph.listitem', rkey: '3member' }] }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
+          return response({ total: 1, records: [{ did, collection: 'app.bsky.graph.listitem', rkey: '3member' }] })
         }
         if (url.pathname.endsWith('resolveMiniDoc')) {
-          return new Response(
-            JSON.stringify({
-              did: memberDid,
-              handle: 'member.example',
-              pds: 'https://pds.example',
-              signing_key: 'zQ3test',
-            }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
+          return response({
+            did: memberDid,
+            handle: 'member.example',
+            pds: 'https://pds.example',
+            signing_key: 'zQ3test',
+          })
         }
         const uri = url.searchParams.get('at_uri') || ''
         if (uri.includes('/app.bsky.graph.listitem/')) {
-          return new Response(
-            JSON.stringify({
-              uri,
-              cid,
-              value: {
-                $type: 'app.bsky.graph.listitem',
-                subject: memberDid,
-                list: listUri,
-                createdAt: '2026-01-05T00:00:00Z',
-              },
-            }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
+          return response({
+            uri,
+            cid,
+            value: {
+              $type: 'app.bsky.graph.listitem',
+              subject: memberDid,
+              list: listUri,
+              createdAt: '2026-01-05T00:00:00Z',
+            },
+          })
         }
-        return new Response(
-          JSON.stringify({ uri, cid, value: { $type: 'app.bsky.actor.profile', displayName: 'List Member' } }),
-          { status: 200, headers: { 'content-type': 'application/json' } },
-        )
+        return response({ uri, cid, value: { $type: 'app.bsky.actor.profile', displayName: 'List Member' } })
       }),
     )
 
@@ -440,7 +345,7 @@ describe('atcute-backed API boundaries', () => {
                 ],
                 cursor: 'older-posts',
               }
-          return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })
+          return response(body)
         }
         if (url.hostname === 'labelers.firehose.stream') {
           const subjects = url.searchParams.getAll('uriPatterns')
@@ -454,17 +359,11 @@ describe('atcute-backed API boundaries', () => {
                   { ver: 1, src: sourceDid, uri: newerUri, val: 'second-label', cts: '2026-04-04T00:00:00Z' },
                 ]
               : [{ ver: 1, src: sourceDid, uri: olderUri, val: 'older-label', cts: '2026-04-05T00:00:00Z' }]
-          return new Response(JSON.stringify({ labels }), {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          })
+          return response({ labels })
         }
         if (url.pathname.endsWith('resolveMiniDoc')) {
           identityRequests += 1
-          return new Response(
-            JSON.stringify({ did, handle: 'atproto.com', pds: 'https://pds.example', signing_key: 'zQ3test' }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
+          return response({ did, handle: 'atproto.com', pds: 'https://pds.example', signing_key: 'zQ3test' })
         }
         throw new Error(`Unexpected URL ${url}`)
       }),
@@ -476,11 +375,11 @@ describe('atcute-backed API boundaries', () => {
     expect(labelSubjects).toEqual(expect.arrayContaining([newerUri, olderUri]))
     expect(labelSubjects).toHaveLength(2)
     expect(page.cursor).toBeDefined()
-    expect(page.items.map((item) => item.uri)).toEqual([newerUri, olderUri])
+    expect(page.items.map((item) => item.post.uri)).toEqual([newerUri, olderUri])
     expect(page.items[0]?.labels.map((label) => label.value)).toEqual(['second-label', 'first-label'])
     expect(page.items[0]?.labels[0]?.source).toMatchObject({ kind: 'actorReference', did: sourceDid })
     expect(page.items[0]?.post).toMatchObject({ kind: 'post', author: { kind: 'actorReference', did } })
-    expect(page.items[0]?.post).toMatchObject({ repository: identity })
+    expect(page.items[0]?.post).toMatchObject({ repositoryPds: identity.pds })
     expect(identityRequests).toBe(0)
   })
 
@@ -494,52 +393,43 @@ describe('atcute-backed API boundaries', () => {
         const url = new URL(input instanceof Request ? input.url : String(input))
         if (url.hostname === 'pds.example') {
           if (!url.searchParams.has('cursor')) {
-            return new Response(
-              JSON.stringify({
-                records: [
-                  {
-                    uri: unlabeledUri,
-                    cid,
-                    value: { $type: 'app.bsky.feed.post', text: 'No labels here', createdAt: '2026-09-02T00:00:00Z' },
-                  },
-                ],
-                cursor: 'older-posts',
-              }),
-              { status: 200, headers: { 'content-type': 'application/json' } },
-            )
-          }
-          return new Response(
-            JSON.stringify({
+            return response({
               records: [
                 {
-                  uri: labeledUri,
+                  uri: unlabeledUri,
                   cid,
-                  value: { $type: 'app.bsky.feed.post', text: 'Found later', createdAt: '2026-09-01T00:00:00Z' },
+                  value: { $type: 'app.bsky.feed.post', text: 'No labels here', createdAt: '2026-09-02T00:00:00Z' },
                 },
               ],
-            }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
+              cursor: 'older-posts',
+            })
+          }
+          return response({
+            records: [
+              {
+                uri: labeledUri,
+                cid,
+                value: { $type: 'app.bsky.feed.post', text: 'Found later', createdAt: '2026-09-01T00:00:00Z' },
+              },
+            ],
+          })
         }
         if (url.hostname === 'labelers.firehose.stream') {
           const subject = url.searchParams.get('uriPatterns')
-          return new Response(
-            JSON.stringify({
-              labels:
-                subject === labeledUri
-                  ? [
-                      {
-                        ver: 1,
-                        src: sourceDid,
-                        uri: labeledUri,
-                        val: 'graphic-media',
-                        cts: '2026-09-02T12:00:00Z',
-                      },
-                    ]
-                  : [],
-            }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
+          return response({
+            labels:
+              subject === labeledUri
+                ? [
+                    {
+                      ver: 1,
+                      src: sourceDid,
+                      uri: labeledUri,
+                      val: 'graphic-media',
+                      cts: '2026-09-02T12:00:00Z',
+                    },
+                  ]
+                : [],
+          })
         }
         throw new Error(`Unexpected URL ${url}`)
       }),
@@ -553,12 +443,88 @@ describe('atcute-backed API boundaries', () => {
     const secondPage = await service.labeledPosts(identity, firstPage.cursor)
     expect(secondPage.items).toMatchObject([
       {
-        uri: labeledUri,
-        post: { kind: 'post', text: 'Found later' },
+        post: { kind: 'post', uri: labeledUri, text: 'Found later' },
         labels: [{ value: 'graphic-media' }],
       },
     ])
     expect(secondPage.cursor).toBeUndefined()
+  })
+
+  it('omits malformed labeled posts without dropping the next repository page', async () => {
+    const sourceDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
+    const malformedUri = `at://${did}/app.bsky.feed.post/3malformed`
+    const validUri = `at://${did}/app.bsky.feed.post/3valid`
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'pds.example') {
+          return url.searchParams.has('cursor')
+            ? response({
+                records: [
+                  {
+                    uri: validUri,
+                    cid,
+                    value: { $type: 'app.bsky.feed.post', text: 'Still reachable', createdAt: '2026-08-01T00:00:00Z' },
+                  },
+                ],
+              })
+            : response({
+                records: [{ uri: malformedUri, cid, value: { $type: 'app.bsky.feed.post', text: 42 } }],
+                cursor: 'older-posts',
+              })
+        }
+        if (url.hostname === 'labelers.firehose.stream') {
+          const subject = url.searchParams.get('uriPatterns')!
+          return response({
+            labels: [{ ver: 1, src: sourceDid, uri: subject, val: 'test-label', cts: '2026-08-02T00:00:00Z' }],
+          })
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+
+    const publicData = createTestService()
+    const malformedPage = await publicData.labeledPosts(identity)
+    expect(malformedPage.items).toEqual([])
+    expect(malformedPage.cursor).toBeDefined()
+
+    const validPage = await publicData.labeledPosts(identity, malformedPage.cursor)
+    expect(validPage.items).toMatchObject([{ post: { uri: validUri, text: 'Still reachable' } }])
+  })
+
+  it('emits only valid posts from a mixed labeled-post page', async () => {
+    const sourceDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
+    const validUri = `at://${did}/app.bsky.feed.post/3valid`
+    const malformedUri = `at://${did}/app.bsky.feed.post/3malformed`
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'pds.example') {
+          return response({
+            records: [
+              {
+                uri: validUri,
+                cid,
+                value: { $type: 'app.bsky.feed.post', text: 'Visible', createdAt: '2026-08-01T00:00:00Z' },
+              },
+              { uri: malformedUri, cid, value: { $type: 'app.bsky.feed.post' } },
+            ],
+          })
+        }
+        if (url.hostname === 'labelers.firehose.stream') {
+          const subject = url.searchParams.get('uriPatterns')!
+          return response({
+            labels: [{ ver: 1, src: sourceDid, uri: subject, val: 'test-label', cts: '2026-08-02T00:00:00Z' }],
+          })
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+
+    const page = await createTestService().labeledPosts(identity)
+    expect(page.items.map((item) => item.post.uri)).toEqual([validUri])
   })
 
   it('caches raw repository pages independently of their hydrated rows', async () => {
@@ -568,35 +534,26 @@ describe('atcute-backed API boundaries', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : String(input))
       if (url.hostname === 'pds.example') {
-        return new Response(
-          JSON.stringify({
-            records: [
-              {
-                uri: `at://${did}/app.bsky.graph.block/cached`,
-                cid,
-                value: { $type: 'app.bsky.graph.block', subject: blockedDid, createdAt: '2026-01-01T00:00:00Z' },
-              },
-            ],
-          }),
-          { status: 200, headers: { 'content-type': 'application/json' } },
-        )
+        return response({
+          records: [
+            {
+              uri: `at://${did}/app.bsky.graph.block/cached`,
+              cid,
+              value: { $type: 'app.bsky.graph.block', subject: blockedDid, createdAt: '2026-01-01T00:00:00Z' },
+            },
+          ],
+        })
       }
       if (url.pathname.endsWith('resolveMiniDoc')) {
-        return new Response(
-          JSON.stringify({
-            did: blockedDid,
-            handle: 'blocked.example',
-            pds: 'https://pds.example',
-            signing_key: 'zQ3test',
-          }),
-          { status: 200, headers: { 'content-type': 'application/json' } },
-        )
+        return response({
+          did: blockedDid,
+          handle: 'blocked.example',
+          pds: 'https://pds.example',
+          signing_key: 'zQ3test',
+        })
       }
       const uri = url.searchParams.get('at_uri') ?? ''
-      return new Response(
-        JSON.stringify({ uri, cid, value: { $type: 'app.bsky.actor.profile', displayName: 'Blocked account' } }),
-        { status: 200, headers: { 'content-type': 'application/json' } },
-      )
+      return response({ uri, cid, value: { $type: 'app.bsky.actor.profile', displayName: 'Blocked account' } })
     })
     vi.stubGlobal('fetch', fetchMock)
     const service = createTestService()
@@ -615,18 +572,15 @@ describe('atcute-backed API boundaries', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : String(input))
       if (url.hostname === 'pds.example') {
-        return new Response(
-          JSON.stringify({
-            records: [
-              {
-                uri: `at://${did}/app.bsky.graph.block/3abc`,
-                cid,
-                value: { $type: 'app.bsky.graph.block', subject: blockedDid, createdAt: '2026-01-01T00:00:00Z' },
-              },
-            ],
-          }),
-          { status: 200, headers: { 'content-type': 'application/json' } },
-        )
+        return response({
+          records: [
+            {
+              uri: `at://${did}/app.bsky.graph.block/3abc`,
+              cid,
+              value: { $type: 'app.bsky.graph.block', subject: blockedDid, createdAt: '2026-01-01T00:00:00Z' },
+            },
+          ],
+        })
       }
       throw new Error(`Unexpected profile request: ${url}`)
     })

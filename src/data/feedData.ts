@@ -55,17 +55,20 @@ export class FeedDataService {
       signal,
     )
     const labelsByPost = groupLabelsByPost(labels)
-    const items = await Promise.all(
+    const parsedItems = await Promise.all(
       records
         .filter((record) => labelsByPost.has(record.uri))
-        .map(async (record): Promise<LabeledPost> => ({
-          kind: 'labeledPost',
-          uri: record.uri,
+        .map(async (record) => ({
           post: await this.postFromRecord({ record, repository: identity, signal }),
           labels: labelsByPost.get(record.uri)!,
         })),
     )
-    items.sort((left, right) => labeledPostDate(right) - labeledPostDate(left) || left.uri.localeCompare(right.uri))
+    const items: LabeledPost[] = parsedItems
+      .filter((item): item is { post: FeedPost; labels: LabelEvent[] } => item.post.kind === 'post')
+      .map((item) => ({ kind: 'labeledPost', ...item }))
+    items.sort(
+      (left, right) => labeledPostDate(right) - labeledPostDate(left) || left.post.uri.localeCompare(right.post.uri),
+    )
     if (!postsPage.cursor) return { items }
     const seenCursors = new Set(cursor?.seenRepositoryCursors ?? [])
     if (seenCursors.has(postsPage.cursor))
@@ -113,8 +116,10 @@ export class FeedDataService {
     const rawReplyTo = stringValue(objectValue(reply?.parent)?.uri)
     const replyTo = rawReplyTo && parseAtUri(rawReplyTo) ? (rawReplyTo as FeedPost['uri']) : undefined
     const author = actorReference(authorDid as ActorIdentity['did'])
-    const repositoryPromise =
-      repository?.did === authorDid ? Promise.resolve(repository) : this.core.optionalIdentity(authorDid, signal)
+    const repositoryPdsPromise =
+      repository?.did === authorDid
+        ? Promise.resolve(repository.pds)
+        : this.core.optionalIdentity(authorDid, signal).then((identity) => identity?.pds)
     let quote: FeedPost | UnavailableItem | undefined
     if (hydrateQuote && quoteUri) {
       const quoteRecord = await this.core.optionalRecord(quoteUri, signal)
@@ -126,7 +131,7 @@ export class FeedDataService {
       kind: 'post',
       uri: record.uri,
       author,
-      repository: await repositoryPromise,
+      repositoryPds: await repositoryPdsPromise,
       createdAt: value.createdAt,
       text: value.text,
       facets: parseFacets(value.text, value.facets),
@@ -229,7 +234,7 @@ function groupLabelsByPost(labels: LabelEvent[]): Map<string, LabelEvent[]> {
 }
 
 function labeledPostDate(item: LabeledPost): number {
-  return timestampFor(item.post.kind === 'post' ? item.post.createdAt : item.labels[0]?.createdAt)
+  return timestampFor(item.post.createdAt)
 }
 
 function rawRecordDate(record: RepositoryRecord): number {

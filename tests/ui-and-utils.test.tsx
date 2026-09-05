@@ -13,19 +13,28 @@ import { RecordLinksMenu } from '../src/components/RecordLinksMenu'
 import { MiniActor } from '../src/components/ActorIdentity'
 import { LinkifiedText } from '../src/components/LinkifiedText'
 import { mergeFeedItems } from '../src/data/publicData'
+import { queryKeys } from '../src/data/queryKeys'
 import { labelDefinitionsFromRecord, parseFacets } from '../src/data/recordParsers'
 import { normalizeActorInput } from '../src/lib/parse'
 import { skythreadPostUrl } from '../src/lib/links'
 import { ProfilePage } from '../src/pages/ProfilePage'
 import type { ActorIdentity, ActorProfile, FeedPost, LabelEvent } from '../src/types'
+import { createTestQueryClient, jsonResponse as response } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const cid = 'bafyreicdwixhubhirckrrt7mqcoiq4u47b7quxlm24r547qcth4bc2ubq4'
 const identity: ActorIdentity = { kind: 'actorIdentity', did, handle: 'atproto.com', pds: 'https://pds.example' }
 const profile: ActorProfile = { kind: 'actorProfile', identity, displayName: 'AT Protocol' }
+const actorReference = { kind: 'actorReference' as const, did: identity.did }
 
 function renderWithRouter(element: React.ReactNode) {
-  return render(<MemoryRouter>{element}</MemoryRouter>)
+  const queryClient = createTestQueryClient()
+  queryClient.setQueryData(queryKeys.profileView(did), profile)
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{element}</MemoryRouter>
+    </QueryClientProvider>,
+  )
 }
 
 describe('actor input normalization', () => {
@@ -93,32 +102,20 @@ describe('profile relationship counts', () => {
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
         if (url.pathname.endsWith('resolveMiniDoc')) {
-          return new Response(
-            JSON.stringify({ did, handle: identity.handle, pds: identity.pds, signing_key: 'zQ3test' }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
+          return response({ did, handle: identity.handle, pds: identity.pds, signing_key: 'zQ3test' })
         }
         if (url.pathname.endsWith('getRecordByUri')) {
-          return new Response(
-            JSON.stringify({
-              uri: `at://${did}/app.bsky.actor.profile/self`,
-              cid,
-              value: { $type: 'app.bsky.actor.profile', displayName: profile.displayName },
-            }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          )
+          return response({
+            uri: `at://${did}/app.bsky.actor.profile/self`,
+            cid,
+            value: { $type: 'app.bsky.actor.profile', displayName: profile.displayName },
+          })
         }
         if (url.hostname === 'pds.example') {
-          return new Response(JSON.stringify({ records: [{}, {}] }), {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          })
+          return response({ records: [{}, {}] })
         }
         if (url.pathname.endsWith('getBacklinksCount')) {
-          return new Response(JSON.stringify({ total: 3_000 }), {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          })
+          return response({ total: 3_000 })
         }
         throw new Error(`Unexpected URL ${url}`)
       }),
@@ -216,7 +213,7 @@ describe('feed merging', () => {
   const post = (uri: FeedPost['uri'], createdAt: string, extra: Partial<FeedPost> = {}): FeedPost => ({
     kind: 'post',
     uri,
-    author: profile,
+    author: actorReference,
     createdAt,
     text: 'hello',
     facets: [],
@@ -235,13 +232,7 @@ describe('feed merging', () => {
 describe('relationship rendering', () => {
   it('keeps the DID and external links when profile hydration fails', async () => {
     const unresolvedDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
-    const fetchMock = vi.fn(
-      async () =>
-        new Response(JSON.stringify({ error: 'UpstreamFailure' }), {
-          status: 503,
-          headers: { 'content-type': 'application/json' },
-        }),
-    )
+    const fetchMock = vi.fn(async () => response({ error: 'UpstreamFailure' }, 503))
     vi.stubGlobal('fetch', fetchMock)
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
@@ -327,7 +318,7 @@ describe('account labels', () => {
     const label: LabelEvent = {
       kind: 'labelEvent',
       id: 'label-event',
-      source: { kind: 'unavailable', id: sourceDid, reason: 'Profile unavailable.' },
+      source: { kind: 'actorReference', did: sourceDid },
       sourceDid,
       subject: did,
       value: '!suspend',
@@ -344,7 +335,7 @@ describe('account labels', () => {
     const label: LabelEvent = {
       kind: 'labelEvent',
       id: 'named-label',
-      source: profile,
+      source: actorReference,
       sourceDid: did,
       subject: did,
       value: 'many-replies',
@@ -357,7 +348,7 @@ describe('account labels', () => {
   })
 
   it('uses active state and past tense for expired labels', () => {
-    const source = { ...profile, displayName: 'Labeler' }
+    const source = actorReference
     const label = (expiresAt: string): LabelEvent => ({
       kind: 'labelEvent',
       id: expiresAt,
@@ -382,7 +373,7 @@ describe('account labels', () => {
   })
 
   it('pairs an applied label with its removal date', () => {
-    const source = { ...profile, displayName: 'Labeler' }
+    const source = actorReference
     const added: LabelEvent = {
       kind: 'labelEvent',
       id: 'added',
@@ -408,7 +399,7 @@ describe('account labels', () => {
   })
 
   it('treats a newer application as the current state instead of showing an expired renewal', () => {
-    const source = { ...profile, displayName: 'Labeler' }
+    const source = actorReference
     const expired: LabelEvent = {
       kind: 'labelEvent',
       id: 'expired-application',
@@ -437,7 +428,7 @@ describe('account labels', () => {
 describe('labeled post previews', () => {
   it('uses the compact feed row with its author, media, and every label', () => {
     const postUri = `at://${did}/app.bsky.feed.post/labeled` as const
-    const author = { ...profile, avatarCid: cid }
+    const author = actorReference
     const post: FeedPost = {
       kind: 'post',
       uri: postUri,
@@ -460,7 +451,7 @@ describe('labeled post previews', () => {
     })
     renderWithRouter(
       <LabeledPostRow
-        item={{ kind: 'labeledPost', uri: postUri, post, labels: [label('graphic-media'), label('photography')] }}
+        item={{ kind: 'labeledPost', post, labels: [label('graphic-media'), label('photography')] }}
         displayNames={new Map([['graphic-media', 'Graphic Media']])}
       />,
     )

@@ -1,6 +1,5 @@
 import { ImageWithFallback } from './Images'
 import { cdnImageUrl } from '../lib/cdn'
-import { isDid } from '../lib/parse'
 import { profilePath } from '../lib/routes'
 import type { ActorIdentity, ActorProfile } from '../types'
 import { Link } from 'react-router-dom'
@@ -16,6 +15,14 @@ export function actorLabel(profile: ActorProfile): string {
 
 export function actorHandle(identity: ActorIdentity): string {
   return identity.handle === 'handle.invalid' ? identity.did : `@${identity.handle}`
+}
+
+type ActorAvatarSize = 'small' | 'row' | 'profile'
+
+const actorAvatarSizeClass: Record<ActorAvatarSize, string> = {
+  small: 'size-6',
+  row: 'size-8',
+  profile: 'size-16',
 }
 
 export function ActorIdentityText({ profile, inline = false }: { profile: ActorProfile; inline?: boolean }) {
@@ -37,14 +44,14 @@ export function ActorIdentityText({ profile, inline = false }: { profile: ActorP
 
 export function ActorAvatar({
   profile,
-  size = 'medium',
+  size,
   decorative = false,
 }: {
   profile: ActorProfile
-  size?: 'small' | 'row' | 'medium' | 'large'
+  size: ActorAvatarSize
   decorative?: boolean
 }) {
-  const sizeClass = size === 'small' ? 'size-6' : size === 'row' ? 'size-8' : size === 'large' ? 'size-24' : 'size-10'
+  const sizeClass = actorAvatarSizeClass[size]
   return (
     <ImageWithFallback
       src={profile.avatarCid ? cdnImageUrl('avatar', profile.identity.did, profile.avatarCid) : undefined}
@@ -52,7 +59,7 @@ export function ActorAvatar({
       fallback="avatar"
       fallbackClassName={`${sizeClass} shrink-0 rounded-full`}
       className={`${sizeClass} shrink-0 rounded-full bg-zinc-100 object-cover dark:bg-zinc-900`}
-      loading={size === 'large' ? 'eager' : 'lazy'}
+      loading={size === 'profile' ? 'eager' : 'lazy'}
     />
   )
 }
@@ -98,17 +105,8 @@ export function ActorReferenceText({ actor }: { actor: ActorReference }) {
 }
 
 export function ActorHandle({ actor, compact = false }: { actor: Actor; compact?: boolean }) {
-  if (actor.kind === 'unavailable')
-    return <span className="truncate text-xs text-zinc-600 dark:text-zinc-400">Account unavailable</span>
   if (actor.kind === 'actorReference') {
-    return (
-      <Link
-        to={profilePath(actor.did)}
-        className="truncate rounded-sm font-mono text-xs text-zinc-700 hover:text-violet-700 hover:underline dark:text-zinc-300 dark:hover:text-violet-300"
-      >
-        {actor.did}
-      </Link>
-    )
+    return <ActorReferenceText actor={actor} />
   }
   const handle = actorHandle(actor.identity)
   return (
@@ -133,25 +131,6 @@ export function MiniActor({ actor, label }: { actor: Actor; label?: string }) {
 }
 
 function MiniActorView({ actor, label }: { actor: Actor; label?: string }) {
-  if (actor.kind === 'unavailable') {
-    const did = isDid(actor.id) ? actor.id : undefined
-    return (
-      <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-        {label && <span>{label}</span>}
-        {did ? (
-          <Link
-            to={profilePath(did)}
-            className="truncate rounded-sm font-mono text-[11px] text-zinc-600 hover:text-violet-700 hover:underline dark:text-zinc-400 dark:hover:text-violet-300"
-            title={did}
-          >
-            {did}
-          </Link>
-        ) : (
-          <span>Account unavailable</span>
-        )}
-      </span>
-    )
-  }
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
       {label && <span>{label}</span>}

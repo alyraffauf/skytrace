@@ -33,7 +33,7 @@ export type ActorReference = {
   did: Did
 }
 
-export type Actor = ActorProfile | ActorReference | UnavailableItem
+export type Actor = ActorProfile | ActorReference
 
 export type UnavailableItem = {
   kind: 'unavailable'
@@ -44,7 +44,7 @@ export type UnavailableItem = {
 export type RelationshipEntry = {
   kind: 'relationship'
   id: string
-  actor: ActorProfile | ActorReference
+  actor: ActorReference
   createdAt?: string
 }
 
@@ -56,7 +56,7 @@ export type ListSummary = {
   purpose: string
   avatarCid?: Cid
   createdAt?: string
-  owner: Actor
+  owner: ActorReference
 }
 
 export type ListMembership = {
@@ -69,7 +69,7 @@ export type ListMembership = {
 export type LabelEvent = {
   kind: 'labelEvent'
   id: string
-  source: Actor
+  source: ActorReference
   sourceDid: Did
   subject: GenericUri
   value: string
@@ -89,8 +89,7 @@ export type LabelValueDefinition = {
 
 export type LabeledPost = {
   kind: 'labeledPost'
-  uri: CanonicalResourceUri
-  post: FeedPost | UnavailableItem
+  post: FeedPost
   labels: LabelEvent[]
 }
 
@@ -107,8 +106,8 @@ export type FeedImage = { cid: Cid; alt: string }
 export type FeedPost = {
   kind: 'post'
   uri: CanonicalResourceUri
-  author: Actor
-  repository?: ActorIdentity
+  author: ActorReference
+  repositoryPds?: GenericUri
   createdAt: string
   text: string
   facets: Facet[]
@@ -122,20 +121,16 @@ type FeedRepost = {
   kind: 'repost'
   uri: CanonicalResourceUri
   createdAt: string
-  author: Actor
+  author: ActorReference
   target: FeedPost | UnavailableItem
 }
 
 export type FeedItem = FeedPost | FeedRepost | UnavailableItem
 
-export type SourceIssue = {
-  source: string
-}
-
 export type Page<T, TCursor = string> = {
   items: T[]
   cursor?: TCursor
-  issues?: SourceIssue[]
+  issues?: string[]
 }
 
 export type RawRecord = {
