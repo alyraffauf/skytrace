@@ -1,0 +1,9 @@
+.git
+node_modules
+dist
+artifacts
+coverage
+test-results
+.env*
+*.tsbuildinfo
+.DS_Store
