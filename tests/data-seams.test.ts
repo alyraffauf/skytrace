@@ -9,10 +9,6 @@ const memberDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
 const cid = 'bafyreicdwixhubhirckrrt7mqcoiq4u47b7quxlm24r547qcth4bc2ubq4'
 const identity: ActorIdentity = { kind: 'actorIdentity', did, handle: 'atproto.com', pds: 'https://pds.example' }
 
-function service() {
-  return createTestService()
-}
-
 describe('public data seams', () => {
   it('backfills account-label events directly from discovered labelers', async () => {
     const labelerDid = memberDid
@@ -51,7 +47,7 @@ describe('public data seams', () => {
       }),
     )
 
-    const publicData = service()
+    const publicData = createTestService()
     const relayPage = await publicData.labels(did)
     expect(relayPage.items).toHaveLength(1)
     expect(relayPage.cursor).toMatchObject({ kind: 'labels', did })
@@ -66,7 +62,7 @@ describe('public data seams', () => {
       'fetch',
       vi.fn(async () => response({ records: [], cursor: 'same' })),
     )
-    await expect(service().blocking(identity, 'same')).rejects.toThrow('repeated a pagination cursor')
+    await expect(createTestService().blocking(identity, 'same')).rejects.toThrow('repeated a pagination cursor')
   })
 
   it('continues direct-provider pagination past 250 events and filters forged sources', async () => {
@@ -120,7 +116,7 @@ describe('public data seams', () => {
       }),
     )
 
-    const publicData = service()
+    const publicData = createTestService()
     const relay = await publicData.labels(did)
     const firstDirect = await publicData.labels(did, relay.cursor)
     const secondDirect = await publicData.labels(did, firstDirect.cursor)
@@ -167,7 +163,7 @@ describe('public data seams', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    const publicData = service()
+    const publicData = createTestService()
     const relay = await publicData.labels(did)
     const direct = await publicData.labels(did, relay.cursor)
     const requestedHosts = fetchMock.mock.calls.map(
@@ -209,7 +205,7 @@ describe('public data seams', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    const publicData = service()
+    const publicData = createTestService()
     const relay = await publicData.labels(did)
     const fallback = await publicData.labels(did, relay.cursor)
     expect(fallback.items).toEqual([
@@ -252,7 +248,7 @@ describe('public data seams', () => {
       }),
     )
 
-    const publicData = service()
+    const publicData = createTestService()
     const relay = await publicData.labels(did)
     const first = await publicData.labels(did, relay.cursor)
     const second = await publicData.labels(did, first.cursor)
@@ -285,7 +281,7 @@ describe('public data seams', () => {
         return response({ id: memberDid })
       }),
     )
-    const publicData = service()
+    const publicData = createTestService()
     const malformed = await publicData.labels(did)
     const recovered = await publicData.labels(did, malformed.cursor)
     expect(malformed.cursor).toBeDefined()
@@ -305,7 +301,7 @@ describe('public data seams', () => {
       }),
     )
     const controller = new AbortController()
-    const pending = service().record(uri, controller.signal)
+    const pending = createTestService().record(uri, controller.signal)
     await vi.waitFor(() => expect(fetchSignal).toBeDefined())
     controller.abort()
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
@@ -333,7 +329,7 @@ describe('public data seams', () => {
       }),
     )
 
-    const publicData = service()
+    const publicData = createTestService()
     const controller = new AbortController()
     const abandoned = publicData.record(uri, controller.signal)
     await vi.waitFor(() => expect(requests).toBe(1))
@@ -481,7 +477,7 @@ describe('feed paging', () => {
       }),
     )
 
-    const publicData = service()
+    const publicData = createTestService()
     const emitted = []
     let cursor
     do {
@@ -504,29 +500,38 @@ describe('feed paging', () => {
   })
 
   it('caps empty source advances when a PDS keeps changing cursors', async () => {
-    let requests = 0
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
-        requests += 1
-        return response({ records: [], cursor: `empty-${requests}` })
-      }),
-    )
-    const page = await service().feed(identity)
-    expect(page.items).toEqual([])
-    expect(page.cursor).toBeDefined()
-    expect(requests).toBeGreaterThan(0)
-    expect(requests).toBeLessThanOrEqual(8)
-  })
-
-  it('keeps the empty-source cap for the whole emitted feed page', async () => {
-    let requests = 0
+    const requestsByCollection = new Map<string, number>()
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
-        requests += 1
         const url = new URL(input instanceof Request ? input.url : String(input))
-        if (url.searchParams.get('collection') === 'app.bsky.feed.repost') {
+        const collection = url.searchParams.get('collection') ?? ''
+        const requests = (requestsByCollection.get(collection) ?? 0) + 1
+        requestsByCollection.set(collection, requests)
+        return response({ records: [], cursor: `empty-${collection}-${requests}` })
+      }),
+    )
+    const page = await createTestService().feed(identity)
+    expect(page.items).toEqual([])
+    expect(page.cursor).toBeDefined()
+    expect(requestsByCollection).toEqual(
+      new Map([
+        ['app.bsky.feed.post', 4],
+        ['app.bsky.feed.repost', 4],
+      ]),
+    )
+  })
+
+  it('keeps the empty-source cap for the whole emitted feed page', async () => {
+    const requestsByCollection = new Map<string, number>()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        const collection = url.searchParams.get('collection') ?? ''
+        const requests = (requestsByCollection.get(collection) ?? 0) + 1
+        requestsByCollection.set(collection, requests)
+        if (collection === 'app.bsky.feed.repost') {
           return response({ records: [], cursor: `empty-reposts-${requests}` })
         }
         return response({
@@ -543,9 +548,14 @@ describe('feed paging', () => {
       }),
     )
 
-    const page = await service().feed(identity)
+    const page = await createTestService().feed(identity)
     expect(page.items).toHaveLength(12)
-    expect(requests).toBe(5)
+    expect(requestsByCollection).toEqual(
+      new Map([
+        ['app.bsky.feed.post', 1],
+        ['app.bsky.feed.repost', 4],
+      ]),
+    )
     expect(page.cursor).toBeDefined()
   })
 })

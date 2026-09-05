@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parsePlcAccountDetails, searchActorsTypeahead } from '../src/data/xrpc'
+import { jsonResponse as response } from './testUtils'
 
 describe('actor typeahead', () => {
   it('queries typeahead.waow.tech and returns compact actor suggestions', async () => {
@@ -8,20 +9,17 @@ describe('actor typeahead', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       requestedUrl = String(input)
       requestHeaders = new Headers(init?.headers)
-      return new Response(
-        JSON.stringify({
-          actors: [
-            {
-              did: 'did:plc:ewvi7nxzyoun6zhxrhs64oiz',
-              handle: 'atproto.com',
-              displayName: 'AT Protocol Developers',
-              avatar: 'https://cdn.bsky.app/avatar.jpg',
-              labels: [],
-            },
-          ],
-        }),
-        { status: 200, headers: { 'content-type': 'application/json' } },
-      )
+      return response({
+        actors: [
+          {
+            did: 'did:plc:ewvi7nxzyoun6zhxrhs64oiz',
+            handle: 'atproto.com',
+            displayName: 'AT Protocol Developers',
+            avatar: 'https://cdn.bsky.app/avatar.jpg',
+            labels: [],
+          },
+        ],
+      })
     })
     vi.stubGlobal('fetch', fetchMock)
 
