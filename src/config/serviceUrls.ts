@@ -4,6 +4,6 @@ export const SERVICE_URLS = {
   constellation: 'https://constellation.microcosm.blue',
   labelRelay: 'https://labelers.firehose.stream',
   plcDirectory: 'https://plc.directory',
-  slingshot: 'https://slingshot.cute.haus',
+  slingshot: 'https://slingshot.aly.town',
   typeahead: 'https://typeahead.waow.tech',
 } as const
