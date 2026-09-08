@@ -163,6 +163,16 @@ describe('atcute-backed API boundaries', () => {
     })
   })
 
+  it('reads pronouns from the profile record', async () => {
+    stubProfileRecord({
+      uri: `at://${did}/app.bsky.actor.profile/self`,
+      cid,
+      value: { $type: 'app.bsky.actor.profile', pronouns: 'they/them' },
+    })
+
+    await expect(createTestService().profile('atproto.com')).resolves.toMatchObject({ pronouns: 'they/them' })
+  })
+
   it('returns an identity-only profile when the profile record was deleted', async () => {
     stubProfileRecord({ error: 'NotFound', message: 'Deleted' }, 404)
     await expect(createTestService().profile('atproto.com')).resolves.toEqual({

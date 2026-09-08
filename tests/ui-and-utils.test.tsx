@@ -31,6 +31,7 @@ const profile: ActorProfile = {
   identity,
   hasNoUnauthenticatedSelfLabel: false,
   displayName: 'AT Protocol',
+  pronouns: 'they/them',
 }
 const actorReference = { kind: 'actorReference' as const, did: identity.did }
 
@@ -134,7 +135,11 @@ describe('profile relationship counts', () => {
           return response({
             uri: `at://${did}/app.bsky.actor.profile/self`,
             cid,
-            value: { $type: 'app.bsky.actor.profile', displayName: profile.displayName },
+            value: {
+              $type: 'app.bsky.actor.profile',
+              displayName: profile.displayName,
+              pronouns: profile.pronouns,
+            },
           })
         }
         if (url.hostname === 'pds.example') {
@@ -162,6 +167,7 @@ describe('profile relationship counts', () => {
 
     expect(await screen.findByRole('link', { name: 'Blocked (2)' })).toBeVisible()
     expect(await screen.findByRole('link', { name: 'Blocked by (3,000)' })).toBeVisible()
+    expect(screen.getByText('they/them')).toBeVisible()
     const pdsLink = screen.getByRole('link', { name: 'pds.example', hidden: true })
     expect(pdsLink).toHaveAttribute('href', identity.pds)
     const pdsFavicon = pdsLink.querySelector('img')

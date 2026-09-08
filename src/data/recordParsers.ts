@@ -34,6 +34,7 @@ export function profileFromRecord(identity: ActorIdentity, record?: RawRecord): 
     hasNoUnauthenticatedSelfLabel:
       value?.labels?.values.some((label) => label.val === NO_UNAUTHENTICATED_SELF_LABEL) ?? false,
     displayName: stringValue(value?.displayName),
+    pronouns: stringValue(value?.pronouns),
     description: stringValue(value?.description),
     avatarCid: blobCid(value?.avatar),
   }

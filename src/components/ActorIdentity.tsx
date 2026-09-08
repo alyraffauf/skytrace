@@ -22,7 +22,7 @@ type ActorAvatarSize = 'small' | 'row' | 'profile'
 const actorAvatarSizeClass: Record<ActorAvatarSize, string> = {
   small: 'size-6',
   row: 'size-8',
-  profile: 'size-16',
+  profile: 'size-20',
 }
 
 export function ActorIdentityText({ profile, inline = false }: { profile: ActorProfile; inline?: boolean }) {

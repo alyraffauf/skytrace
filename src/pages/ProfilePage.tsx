@@ -69,8 +69,8 @@ export function ProfilePage() {
   const profile = profileQuery.data
 
   return (
-    <article className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)]">
-      <aside className="border-b border-zinc-200 dark:border-zinc-800 lg:sticky lg:top-12 lg:h-[calc(100vh-5.75rem)] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
+    <article className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
+      <aside className="border-b border-zinc-200 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-950 lg:sticky lg:top-12 lg:h-[calc(100vh-5.75rem)] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
         <ProfileIdentity profile={profile} service={service} />
       </aside>
       <div className="min-w-0">
@@ -98,7 +98,7 @@ export function ProfilePage() {
             })}
           </div>
         </nav>
-        <section className="max-w-3xl px-4 sm:px-6 lg:px-7">
+        <section className="px-4 sm:px-6 lg:px-8">
           <Suspense
             fallback={
               <div className="py-6">
@@ -137,53 +137,51 @@ function ProfileIdentity({ profile, service }: { profile: ActorProfile; service:
   const pdsUrl = new URL(identity.pds)
 
   return (
-    <div className="px-4 py-4 sm:px-6 lg:py-6">
-      <header className="flex items-start gap-3.5">
+    <div className="px-6 py-6 sm:px-8 lg:px-8 lg:py-8">
+      <header className="relative flex items-center gap-4">
         <ActorAvatar profile={profile} size="profile" />
-        <div className="min-w-0 flex-1 pt-0.5">
-          <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <h1 className="break-words text-xl font-semibold leading-tight text-zinc-950 dark:text-zinc-100">
-                {profile.displayName || visibleHandle}
-              </h1>
-              <p
-                className={`mt-1 text-zinc-500 [overflow-wrap:anywhere] dark:text-zinc-400 ${hasValidHandle ? 'text-sm' : 'font-mono text-[11px] leading-4'}`}
-              >
-                {visibleHandle}
-              </p>
-            </div>
-            <RecordLinksMenu
-              recordUri={profileRecordUri}
-              socialPath={socialProfilePath(identity.did)}
-              label={actorLabel(profile)}
-            />
-          </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="break-words text-xl font-semibold leading-tight tracking-[-0.02em] text-zinc-950 dark:text-zinc-100">
+            {profile.displayName || visibleHandle}
+          </h1>
+          <p
+            className={`mt-1 text-zinc-500 [overflow-wrap:anywhere] dark:text-zinc-400 ${hasValidHandle ? 'text-sm' : 'font-mono text-xs leading-5'}`}
+          >
+            {visibleHandle}
+          </p>
+          {profile.pronouns && (
+            <p className="mt-0.5 text-sm text-zinc-500 [overflow-wrap:anywhere] dark:text-zinc-400">
+              {profile.pronouns}
+            </p>
+          )}
         </div>
+        <RecordLinksMenu
+          recordUri={profileRecordUri}
+          socialPath={socialProfilePath(identity.did)}
+          label={actorLabel(profile)}
+        />
       </header>
 
       {profile.description && (
         <LinkifiedText
           text={profile.description}
-          className="mt-4 hidden whitespace-pre-wrap text-sm leading-5 text-zinc-600 [overflow-wrap:anywhere] dark:text-zinc-400 lg:block"
+          className="mt-4 max-w-sm whitespace-pre-wrap text-sm leading-5 text-zinc-700 [overflow-wrap:anywhere] dark:text-zinc-300"
         />
       )}
 
       <details
         onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
-        className="group mt-5 border-t border-zinc-200 pt-3.5 dark:border-zinc-800"
+        className="group mt-5 border-t border-zinc-200 pt-4 dark:border-zinc-800"
       >
-        <summary className="flex min-h-8 cursor-pointer list-none items-center gap-2 text-xs font-medium text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100">
-          <ChevronRightIcon className="size-3.5 group-open:rotate-90" aria-hidden="true" />
-          Account details
+        <summary className="flex min-h-9 cursor-pointer list-none items-start gap-2.5 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100">
+          <ChevronRightIcon className="mt-0.5 size-4 shrink-0 group-open:rotate-90" aria-hidden="true" />
+          <span>
+            <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">Account details</span>
+            <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-500">
+              DID, PDS, and identity history
+            </span>
+          </span>
         </summary>
-        <div className="lg:hidden">
-          {profile.description && (
-            <LinkifiedText
-              text={profile.description}
-              className="mb-4 whitespace-pre-wrap text-sm leading-5 text-zinc-600 [overflow-wrap:anywhere] dark:text-zinc-400"
-            />
-          )}
-        </div>
         <dl className="mt-4 grid gap-3 text-xs text-zinc-500 dark:text-zinc-400">
           {detailsQuery.data?.createdAt && (
             <Detail label="Created" value={formatDate(detailsQuery.data.createdAt) ?? detailsQuery.data.createdAt} />
@@ -192,10 +190,7 @@ function ProfileIdentity({ profile, service }: { profile: ActorProfile; service:
             <DetailList label="Aliases" values={detailsQuery.data.aliases.map(formatAlias)} />
           ) : null}
           {detailsQuery.data?.formerHandles.length ? (
-            <DetailList
-              label="Former handles"
-              values={detailsQuery.data.formerHandles.map((handle) => `@${handle}`)}
-            />
+            <DetailList label="Former handles" values={detailsQuery.data.formerHandles.map((handle) => `@${handle}`)} />
           ) : null}
           <div className="min-w-0">
             <dt className="font-medium text-zinc-700 dark:text-zinc-300">Decentralized Identifier</dt>
@@ -266,16 +261,21 @@ function formatAlias(alias: string): string {
 
 function ProfileSkeleton() {
   return (
-    <div aria-label="Loading profile" className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)]">
-      <div className="border-b border-zinc-200 px-6 py-6 dark:border-zinc-800 lg:border-b-0 lg:border-r">
-        <div className="flex items-start gap-3.5">
-          <div className="skeleton size-16 shrink-0 rounded-full" />
-          <div className="min-w-0 flex-1 pt-1">
-            <div className="skeleton h-6 w-28" />
-            <div className="skeleton mt-2 h-4 w-24" />
+    <div
+      aria-label="Loading profile"
+      className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]"
+    >
+      <div className="border-b border-zinc-200 bg-zinc-50/50 px-6 py-6 dark:border-zinc-800 dark:bg-zinc-950 sm:px-8 lg:border-b-0 lg:border-r lg:px-8 lg:py-8">
+        <div className="flex items-center gap-4">
+          <div className="skeleton size-20 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1">
+            <div className="skeleton h-6 w-full max-w-48" />
+            <div className="skeleton mt-2 h-4 w-28" />
           </div>
+          <div className="skeleton size-8 shrink-0 rounded" />
         </div>
         <div className="skeleton mt-5 h-24 w-full" />
+        <div className="skeleton mt-5 h-12 w-full" />
       </div>
       <div className="px-5 py-8 sm:px-8">
         <div className="skeleton h-10 w-full max-w-lg" />

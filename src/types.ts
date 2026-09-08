@@ -25,6 +25,7 @@ export type ActorProfile = {
   identity: ActorIdentity
   hasNoUnauthenticatedSelfLabel: boolean
   displayName?: string
+  pronouns?: string
   description?: string
   avatarCid?: Cid
 }
