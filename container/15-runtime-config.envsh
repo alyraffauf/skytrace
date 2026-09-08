@@ -5,3 +5,9 @@ if [ "${SKYTRACE_IGNORE_NO_UNAUTHENTICATED:-}" = "true" ]; then
 else
   export SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE=false
 fi
+
+if printf '%s' "${SKYTRACE_BLOCK_TARGET_DID:-}" | grep -Eq '^did:[a-z0-9]+:[A-Za-z0-9._:%-]+(:[A-Za-z0-9._:%-]+)*$'; then
+  export SKYTRACE_BLOCK_TARGET_DID_VALUE="\"${SKYTRACE_BLOCK_TARGET_DID}\""
+else
+  export SKYTRACE_BLOCK_TARGET_DID_VALUE=null
+fi

@@ -232,6 +232,37 @@ describe('atcute-backed API boundaries', () => {
     expect(requestedUrl?.searchParams.get('reverse')).toBe('false')
   })
 
+  it('finds an account blocking the configured account across Constellation pages', async () => {
+    const blockTargetDid = 'did:plc:jwxdvd2mdtdq7la7toiy2rjc'
+    const otherDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
+    const requestedUrls: URL[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        requestedUrls.push(url)
+        if (!url.searchParams.has('cursor')) {
+          return response({
+            total: 2,
+            records: [{ did: otherDid, collection: 'app.bsky.graph.block', rkey: '3other' }],
+            cursor: 'next',
+          })
+        }
+        return response({
+          total: 2,
+          records: [{ did, collection: 'app.bsky.graph.block', rkey: '3skytrace' }],
+          cursor: null,
+        })
+      }),
+    )
+
+    await expect(createTestService().actorBlocksConfiguredAccount(did, blockTargetDid)).resolves.toBe(true)
+    expect(requestedUrls).toHaveLength(2)
+    expect(requestedUrls[0]?.searchParams.get('subject')).toBe(blockTargetDid)
+    expect(requestedUrls[0]?.searchParams.get('source')).toBe('app.bsky.graph.block:subject')
+    expect(requestedUrls[1]?.searchParams.get('cursor')).toBe('next')
+  })
+
   it('gets a block backlink count without loading backlink records', async () => {
     let requestedUrl: URL | undefined
     vi.stubGlobal(

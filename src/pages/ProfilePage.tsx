@@ -12,6 +12,7 @@ import { socialProfilePath } from '../lib/links'
 import { profilePath, profileTabPath } from '../lib/routes'
 import type { ActorProfile } from '../types'
 import { PROFILE_TABS } from '../profileTabRoutes'
+import { blockTargetDid } from '../config/privacy'
 
 export type ProfileOutletContext = {
   profile: ActorProfile
@@ -24,11 +25,17 @@ export function ProfilePage() {
   const location = useLocation()
   const navigationType = useNavigationType()
   const tabListRef = useRef<HTMLDivElement>(null)
+  const configuredBlockTargetDid = blockTargetDid()
   const profileQuery = useQuery({
     ...service.actorProfileQueryOptions(actor),
   })
-  const blockedCountQuery = useQuery(service.blockedCountQueryOptions(profileQuery.data?.identity))
-  const blockedByCountQuery = useQuery(service.blockedByCountQueryOptions(profileQuery.data?.identity.did))
+  const actorBlocksConfiguredAccountQuery = useQuery(
+    service.actorBlocksConfiguredAccountQueryOptions(profileQuery.data?.identity.did, configuredBlockTargetDid),
+  )
+  const blockCheckFinished = configuredBlockTargetDid === undefined || actorBlocksConfiguredAccountQuery.data === false
+  const visibleIdentity = blockCheckFinished ? profileQuery.data?.identity : undefined
+  const blockedCountQuery = useQuery(service.blockedCountQueryOptions(visibleIdentity))
+  const blockedByCountQuery = useQuery(service.blockedByCountQueryOptions(visibleIdentity?.did))
 
   useLayoutEffect(() => {
     if (navigationType !== 'POP') window.scrollTo({ top: 0, left: 0 })
@@ -50,6 +57,15 @@ export function ProfilePage() {
 
   if (profileQuery.isPending) return <ProfileSkeleton />
   if (profileQuery.isError) return <ErrorState error={profileQuery.error} retry={() => void profileQuery.refetch()} />
+  if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.isPending) return <ProfileSkeleton />
+  if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.isError)
+    return (
+      <ErrorState
+        error={actorBlocksConfiguredAccountQuery.error}
+        retry={() => void actorBlocksConfiguredAccountQuery.refetch()}
+      />
+    )
+  if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.data) return <BlockedProfileState />
   const profile = profileQuery.data
 
   return (
@@ -95,6 +111,19 @@ export function ProfilePage() {
         </section>
       </div>
     </article>
+  )
+}
+
+function BlockedProfileState() {
+  return (
+    <main className="grid min-h-[calc(100vh-3rem)] place-items-center px-6 py-12 text-center">
+      <div className="max-w-md">
+        <h1 className="text-xl font-semibold text-zinc-950 dark:text-zinc-100">Profile unavailable</h1>
+        <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+          This account blocks this SkyTrace instance on Bluesky, so its profile and public records are not shown here.
+        </p>
+      </div>
+    </main>
   )
 }
 

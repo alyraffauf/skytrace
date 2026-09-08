@@ -121,10 +121,12 @@ describe('compact account references', () => {
 describe('profile relationship counts', () => {
   it('shows the independently loaded counts in their tab labels', async () => {
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    const requestedUrls: URL[] = []
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
+        requestedUrls.push(url)
         if (url.pathname.endsWith('resolveMiniDoc')) {
           return response({ did, handle: identity.handle, pds: identity.pds, signing_key: 'zQ3test' })
         }
@@ -160,6 +162,64 @@ describe('profile relationship counts', () => {
 
     expect(await screen.findByRole('link', { name: 'Blocked (2)' })).toBeVisible()
     expect(await screen.findByRole('link', { name: 'Blocked by (3,000)' })).toBeVisible()
+    expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinks'))).toBe(false)
+  })
+
+  it('explains why the profile is unavailable when the account blocks the configured account', async () => {
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    vi.stubGlobal('__SKYTRACE_CONFIG__', {
+      ignoreNoUnauthenticated: false,
+      blockTargetDid: 'did:plc:jwxdvd2mdtdq7la7toiy2rjc',
+    })
+    const requestedUrls: URL[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        requestedUrls.push(url)
+        if (url.pathname.endsWith('resolveMiniDoc')) {
+          return response({ did, handle: identity.handle, pds: identity.pds, signing_key: 'zQ3test' })
+        }
+        if (url.pathname.endsWith('getRecordByUri')) {
+          return response({
+            uri: `at://${did}/app.bsky.actor.profile/self`,
+            cid,
+            value: { $type: 'app.bsky.actor.profile', displayName: profile.displayName },
+          })
+        }
+        if (url.pathname.endsWith('getBacklinks')) {
+          return response({
+            total: 1,
+            records: [{ did, collection: 'app.bsky.graph.block', rkey: '3skytrace' }],
+            cursor: null,
+          })
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/profile/atproto.com']}>
+          <Routes>
+            <Route path="profile/:actor" element={<ProfilePage />}>
+              <Route index element={<div>Feed content</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Profile unavailable' })).toBeVisible()
+    expect(
+      screen.getByText(
+        'This account blocks this SkyTrace instance on Bluesky, so its profile and public records are not shown here.',
+      ),
+    ).toBeVisible()
+    expect(view.queryByText('Feed content')).not.toBeInTheDocument()
+    expect(requestedUrls.some((url) => url.hostname === 'pds.example')).toBe(false)
+    expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinksCount'))).toBe(false)
   })
 })
 

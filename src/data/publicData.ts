@@ -71,6 +71,18 @@ export class PublicDataService {
     return this.core.blockedByCountQueryOptions(did)
   }
 
+  actorBlocksConfiguredAccountQueryOptions(did?: ActorIdentity['did'], targetDid?: ActorIdentity['did']) {
+    return this.graph.actorBlocksConfiguredAccountQueryOptions(did, targetDid)
+  }
+
+  actorBlocksConfiguredAccount(
+    did: ActorIdentity['did'],
+    targetDid: ActorIdentity['did'],
+    signal?: AbortSignal,
+  ): Promise<boolean> {
+    return this.graph.actorBlocksConfiguredAccount(did, targetDid, signal)
+  }
+
   blocking(
     identity: ActorIdentity,
     cursor?: string,

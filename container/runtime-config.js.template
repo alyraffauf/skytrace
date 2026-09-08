@@ -1,3 +1,4 @@
 window.__SKYTRACE_CONFIG__ = {
   ignoreNoUnauthenticated: ${SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE},
+  blockTargetDid: ${SKYTRACE_BLOCK_TARGET_DID_VALUE},
 }

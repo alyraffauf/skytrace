@@ -19,6 +19,39 @@ import { throwIfAborted } from '../lib/abort'
 export class GraphDataService {
   constructor(private readonly core: PublicDataCore) {}
 
+  actorBlocksConfiguredAccountQueryOptions(did?: ActorIdentity['did'], targetDid?: ActorIdentity['did']) {
+    return queryOptions({
+      queryKey: queryKeys.actorBlocksConfiguredAccount(did, targetDid),
+      queryFn: ({ signal }) =>
+        did && targetDid ? this.actorBlocksConfiguredAccount(did, targetDid, signal) : Promise.resolve(false),
+      enabled: did !== undefined && targetDid !== undefined,
+      staleTime: CACHE_TTL_MS.activity,
+    })
+  }
+
+  async actorBlocksConfiguredAccount(
+    did: ActorIdentity['did'],
+    targetDid: ActorIdentity['did'],
+    signal?: AbortSignal,
+  ): Promise<boolean> {
+    let cursor: string | undefined
+    const seenCursors = new Set<string>()
+
+    while (true) {
+      const page = await this.core.backlinks({
+        subject: targetDid,
+        source: 'app.bsky.graph.block:subject',
+        cursor,
+        signal,
+      })
+      if (page.items.some((reference) => actorFromAtUri(reference.uri) === did)) return true
+      if (!page.cursor) return false
+      if (seenCursors.has(page.cursor)) throw new Error('Constellation repeated a pagination cursor.')
+      seenCursors.add(page.cursor)
+      cursor = page.cursor
+    }
+  }
+
   async blocking(
     identity: ActorIdentity,
     cursor?: string,
