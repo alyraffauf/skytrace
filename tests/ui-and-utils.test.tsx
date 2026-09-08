@@ -162,6 +162,12 @@ describe('profile relationship counts', () => {
 
     expect(await screen.findByRole('link', { name: 'Blocked (2)' })).toBeVisible()
     expect(await screen.findByRole('link', { name: 'Blocked by (3,000)' })).toBeVisible()
+    const pdsLink = screen.getByRole('link', { name: 'pds.example', hidden: true })
+    expect(pdsLink).toHaveAttribute('href', identity.pds)
+    const pdsFavicon = pdsLink.querySelector('img')
+    expect(pdsFavicon).toHaveAttribute('src', 'https://pds.example/favicon.ico')
+    fireEvent.error(pdsFavicon as HTMLImageElement)
+    expect(pdsFavicon).not.toBeVisible()
     expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinks'))).toBe(false)
   })
 

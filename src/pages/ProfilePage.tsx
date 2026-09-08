@@ -1,4 +1,4 @@
-import { ChevronRightIcon, ServerStackIcon } from '@heroicons/react/24/outline'
+import { ChevronRightIcon } from '@heroicons/react/24/outline'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigationType, useParams } from 'react-router-dom'
@@ -134,6 +134,7 @@ function ProfileIdentity({ profile, service }: { profile: ActorProfile; service:
   const detailsQuery = useQuery({ ...service.accountDetailsQueryOptions(identity.did), enabled: detailsOpen })
   const hasValidHandle = identity.handle !== 'handle.invalid'
   const profileRecordUri = `at://${identity.did}/app.bsky.actor.profile/self`
+  const pdsUrl = new URL(identity.pds)
 
   return (
     <div className="px-4 py-4 sm:px-6 lg:py-6">
@@ -192,19 +193,34 @@ function ProfileIdentity({ profile, service }: { profile: ActorProfile; service:
           ) : null}
           {detailsQuery.data?.formerHandles.length ? (
             <DetailList
-              label="Former usernames"
+              label="Former handles"
               values={detailsQuery.data.formerHandles.map((handle) => `@${handle}`)}
             />
           ) : null}
           <div className="min-w-0">
-            <dt className="font-medium text-zinc-700 dark:text-zinc-300">DID</dt>
+            <dt className="font-medium text-zinc-700 dark:text-zinc-300">Decentralized Identifier</dt>
             <dd className="mt-1 break-all font-mono text-[11px]">{identity.did}</dd>
           </div>
           <div className="min-w-0">
-            <dt className="flex items-center gap-1 font-medium text-zinc-700 dark:text-zinc-300">
-              <ServerStackIcon className="size-3.5" aria-hidden="true" /> PDS host
-            </dt>
-            <dd className="mt-1 break-all font-mono text-[11px]">{new URL(identity.pds).host}</dd>
+            <dt className="font-medium text-zinc-700 dark:text-zinc-300">Personal Data Server</dt>
+            <dd className="mt-1 break-all font-mono text-[11px]">
+              <a
+                href={identity.pds}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-violet-700 hover:underline dark:text-violet-300"
+              >
+                <img
+                  src={new URL('/favicon.ico', pdsUrl).toString()}
+                  alt=""
+                  className="size-3.5 shrink-0 object-contain"
+                  onError={(event) => {
+                    event.currentTarget.hidden = true
+                  }}
+                />
+                {pdsUrl.host}
+              </a>
+            </dd>
           </div>
           {detailsOpen && detailsQuery.isPending && (
             <div className="text-zinc-500 dark:text-zinc-400">Loading identity history...</div>
