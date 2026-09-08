@@ -9,6 +9,7 @@ import { ListRow } from '../components/ListRow'
 import { RecordList } from '../components/RecordList'
 import { RelationshipRow } from '../components/RelationshipRow'
 import { EmptyState, ErrorState, LoadingRows, UnavailableCard } from '../components/States'
+import { shouldHideProfilePosts } from '../config/privacy'
 import { mergeFeedItems, type LabeledPostsCursor } from '../data/publicData'
 import type { FeedPagingState } from '../data/feedPaging'
 import type { LabelPagingState } from '../data/labelPaging'
@@ -171,6 +172,12 @@ export function ListedOnTab() {
 }
 
 export function LabeledPostsTab() {
+  const { profile } = useOutletContext<ProfileOutletContext>()
+  if (shouldHideProfilePosts(profile)) return <UnavailablePostsNotice />
+  return <LabeledPostsQuery />
+}
+
+function LabeledPostsQuery() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
   const query = usePagedRecords<LabeledPost, LabeledPostsCursor>(
     queryKeys.labeledPosts(profile.identity.did),
@@ -270,6 +277,12 @@ function SourceIssues({ issues, retry }: { issues: string[]; retry: () => void }
 }
 
 export function FeedTab() {
+  const { profile } = useOutletContext<ProfileOutletContext>()
+  if (shouldHideProfilePosts(profile)) return <UnavailablePostsNotice />
+  return <FeedQuery />
+}
+
+function FeedQuery() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
   const query = usePagedRecords<FeedItem, FeedPagingState>(queryKeys.feed(profile.identity.did), (cursor, signal) =>
     service.feed(profile.identity, cursor, signal),
@@ -298,5 +311,13 @@ export function FeedTab() {
         load={() => void query.fetchNextPage()}
       />
     </div>
+  )
+}
+
+function UnavailablePostsNotice() {
+  return (
+    <EmptyState className="mt-8 border-none py-12 sm:mt-12" title="Posts aren't available here">
+      This account has chosen not to show its posts on public sites like SkyTrace.
+    </EmptyState>
   )
 }

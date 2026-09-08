@@ -93,6 +93,14 @@ The repository includes `public/_redirects` with this rule:
 
 Vite copies the rule into `dist` during the build. If your host does not support `_redirects`, configure the same fallback in the host settings.
 
+SkyTrace respects the `!no-unauthenticated` profile self-label by default and does not load that account's Feed or Labeled posts tabs. To ignore the label in the container, set `SKYTRACE_IGNORE_NO_UNAUTHENTICATED` when you start it:
+
+```sh
+docker run -e SKYTRACE_IGNORE_NO_UNAUTHENTICATED=true ghcr.io/alyraffauf/skytrace:latest
+```
+
+Only the exact value `true` enables the override. The nginx entrypoint writes the setting to `runtime-config.js` before it starts the server. Restart the container after you change the variable. Non-container static deployments use the checked-in default, which keeps the override disabled.
+
 ## License
 
 SkyTrace is licensed under the [GNU Affero General Public License, version 3 only](./LICENSE.md).

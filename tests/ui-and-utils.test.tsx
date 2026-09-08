@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { splitFacetedText } from '../src/components/FeedRow'
 import { InfiniteScroll } from '../src/components/InfiniteScroll'
@@ -18,13 +18,20 @@ import { labelDefinitionsFromRecord, parseFacets } from '../src/data/recordParse
 import { normalizeActorInput } from '../src/lib/parse'
 import { skythreadPostUrl } from '../src/lib/links'
 import { ProfilePage } from '../src/pages/ProfilePage'
+import { FeedTab, LabeledPostsTab, LabelsTab } from '../src/pages/ProfileTabs'
+import { PublicDataService } from '../src/data/publicData'
 import type { ActorIdentity, ActorProfile, FeedPost, LabelEvent } from '../src/types'
 import { createTestQueryClient, jsonResponse as response } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const cid = 'bafyreicdwixhubhirckrrt7mqcoiq4u47b7quxlm24r547qcth4bc2ubq4'
 const identity: ActorIdentity = { kind: 'actorIdentity', did, handle: 'atproto.com', pds: 'https://pds.example' }
-const profile: ActorProfile = { kind: 'actorProfile', identity, displayName: 'AT Protocol' }
+const profile: ActorProfile = {
+  kind: 'actorProfile',
+  identity,
+  hasNoUnauthenticatedSelfLabel: false,
+  displayName: 'AT Protocol',
+}
 const actorReference = { kind: 'actorReference' as const, did: identity.did }
 
 function renderWithRouter(element: React.ReactNode) {
@@ -35,6 +42,23 @@ function renderWithRouter(element: React.ReactNode) {
       <MemoryRouter>{element}</MemoryRouter>
     </QueryClientProvider>,
   )
+}
+
+function renderProfileTab(element: React.ReactElement, selectedProfile: ActorProfile) {
+  const queryClient = createTestQueryClient()
+  const service = new PublicDataService(queryClient)
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <Routes>
+          <Route element={<Outlet context={{ profile: selectedProfile, service }} />}>
+            <Route index element={element} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+  return view
 }
 
 describe('actor input normalization', () => {
@@ -136,6 +160,61 @@ describe('profile relationship counts', () => {
 
     expect(await screen.findByRole('link', { name: 'Blocked (2)' })).toBeVisible()
     expect(await screen.findByRole('link', { name: 'Blocked by (3,000)' })).toBeVisible()
+  })
+})
+
+describe('profile post privacy', () => {
+  const restrictedProfile: ActorProfile = { ...profile, hasNoUnauthenticatedSelfLabel: true }
+  const unavailableExplanation = 'This account has chosen not to show its posts on public sites like SkyTrace.'
+
+  it('shows the privacy notice without requesting the feed', () => {
+    const fetchMock = vi.fn()
+    const feed = vi.spyOn(PublicDataService.prototype, 'feed')
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderProfileTab(<FeedTab />, restrictedProfile)
+
+    expect(screen.getByRole('heading', { name: "Posts aren't available here" })).toBeVisible()
+    expect(screen.getByText(unavailableExplanation)).toBeVisible()
+    expect(feed).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('shows the privacy notice without requesting repositories or label relays', () => {
+    const fetchMock = vi.fn()
+    const labeledPosts = vi.spyOn(PublicDataService.prototype, 'labeledPosts')
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderProfileTab(<LabeledPostsTab />, restrictedProfile)
+
+    expect(screen.getByRole('heading', { name: "Posts aren't available here" })).toBeVisible()
+    expect(screen.getByText(unavailableExplanation)).toBeVisible()
+    expect(labeledPosts).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps Account labels available for the same profile', async () => {
+    const labels = vi.spyOn(PublicDataService.prototype, 'labels').mockResolvedValue({ items: [] })
+
+    renderProfileTab(<LabelsTab />, restrictedProfile)
+
+    expect(await screen.findByRole('heading', { name: 'No account labels found' })).toBeVisible()
+    expect(labels).toHaveBeenCalledOnce()
+  })
+
+  it('loads both post tabs when the runtime override is enabled', async () => {
+    vi.stubGlobal('__SKYTRACE_CONFIG__', { ignoreNoUnauthenticated: true })
+    const feed = vi.spyOn(PublicDataService.prototype, 'feed').mockResolvedValue({ items: [] })
+    const labeledPosts = vi.spyOn(PublicDataService.prototype, 'labeledPosts').mockResolvedValue({ items: [] })
+
+    const feedView = renderProfileTab(<FeedTab />, restrictedProfile)
+    expect(await screen.findByRole('heading', { name: 'No posts or reposts found' })).toBeVisible()
+    expect(feed).toHaveBeenCalledOnce()
+    feedView.unmount()
+
+    renderProfileTab(<LabeledPostsTab />, restrictedProfile)
+    expect(await screen.findByRole('heading', { name: 'No labeled posts found' })).toBeVisible()
+    expect(labeledPosts).toHaveBeenCalledOnce()
   })
 })
 

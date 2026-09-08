@@ -6,6 +6,8 @@ import { isDid } from '../lib/parse'
 
 type RecordValue = Record<string, unknown>
 
+const NO_UNAUTHENTICATED_SELF_LABEL = '!no-unauthenticated'
+
 export function objectValue(value: unknown): RecordValue | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as RecordValue) : undefined
 }
@@ -29,6 +31,8 @@ export function profileFromRecord(identity: ActorIdentity, record?: RawRecord): 
   return {
     kind: 'actorProfile',
     identity,
+    hasNoUnauthenticatedSelfLabel:
+      value?.labels?.values.some((label) => label.val === NO_UNAUTHENTICATED_SELF_LABEL) ?? false,
     displayName: stringValue(value?.displayName),
     description: stringValue(value?.description),
     avatarCid: blobCid(value?.avatar),

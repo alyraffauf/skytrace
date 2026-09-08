@@ -139,14 +139,46 @@ describe('atcute-backed API boundaries', () => {
     expect(() => validateIdentity({ did, handle: 'atproto.com', pds: 'ftp://localhost' })).toThrow('unsafe PDS')
   })
 
+  it.each([
+    ['the exact privacy self-label', [{ val: '!no-unauthenticated' }], true],
+    ['unrelated self-labels', [{ val: 'porn' }, { val: '!NO-UNAUTHENTICATED' }], false],
+    ['no self-labels', undefined, false],
+  ])('reads %s from the profile record', async (_description, labels, expected) => {
+    stubProfileRecord({
+      uri: `at://${did}/app.bsky.actor.profile/self`,
+      cid,
+      value: {
+        $type: 'app.bsky.actor.profile',
+        ...(labels && {
+          labels: {
+            $type: 'com.atproto.label.defs#selfLabels',
+            values: labels,
+          },
+        }),
+      },
+    })
+
+    await expect(createTestService().profile('atproto.com')).resolves.toMatchObject({
+      hasNoUnauthenticatedSelfLabel: expected,
+    })
+  })
+
   it('returns an identity-only profile when the profile record was deleted', async () => {
     stubProfileRecord({ error: 'NotFound', message: 'Deleted' }, 404)
-    await expect(createTestService().profile('atproto.com')).resolves.toEqual({ kind: 'actorProfile', identity })
+    await expect(createTestService().profile('atproto.com')).resolves.toEqual({
+      kind: 'actorProfile',
+      identity,
+      hasNoUnauthenticatedSelfLabel: false,
+    })
   })
 
   it('returns an identity-only profile for a malformed profile envelope', async () => {
     stubProfileRecord({ uri: 'not-an-at-uri', value: {} })
-    await expect(createTestService().profile('atproto.com')).resolves.toEqual({ kind: 'actorProfile', identity })
+    await expect(createTestService().profile('atproto.com')).resolves.toEqual({
+      kind: 'actorProfile',
+      identity,
+      hasNoUnauthenticatedSelfLabel: false,
+    })
   })
 
   it('surfaces transient failures while loading the primary profile', async () => {

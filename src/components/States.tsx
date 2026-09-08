@@ -25,9 +25,17 @@ export function LoadingRows({ count = 3 }: { count?: number }) {
   )
 }
 
-export function EmptyState({ title, children }: { title: string; children?: React.ReactNode }) {
+export function EmptyState({
+  title,
+  children,
+  className = '',
+}: {
+  title: string
+  children?: React.ReactNode
+  className?: string
+}) {
   return (
-    <section className="border-b border-zinc-200 px-6 py-8 text-center dark:border-zinc-800">
+    <section className={`border-b border-zinc-200 px-6 py-8 text-center dark:border-zinc-800 ${className}`}>
       <InboxIcon className="mx-auto size-6 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
       <h2 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
       {children && (

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ "${SKYTRACE_IGNORE_NO_UNAUTHENTICATED:-}" = "true" ]; then
+  export SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE=true
+else
+  export SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE=false
+fi

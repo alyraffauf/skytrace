@@ -23,6 +23,7 @@ export type AccountDetails = {
 export type ActorProfile = {
   kind: 'actorProfile'
   identity: ActorIdentity
+  hasNoUnauthenticatedSelfLabel: boolean
   displayName?: string
   description?: string
   avatarCid?: Cid

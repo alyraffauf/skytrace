@@ -1,0 +1,3 @@
+window.__SKYTRACE_CONFIG__ = {
+  ignoreNoUnauthenticated: ${SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE},
+}
