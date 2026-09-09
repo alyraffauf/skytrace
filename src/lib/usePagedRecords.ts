@@ -5,6 +5,7 @@ import { CACHE_TTL_MS } from './cache'
 export function usePagedRecords<T, TCursor = string>(
   queryKey: readonly unknown[],
   load: (cursor: TCursor | undefined, signal: AbortSignal) => Promise<Page<T, TCursor>>,
+  options: { retry?: false } = {},
 ) {
   return useInfiniteQuery<
     Page<T, TCursor>,
@@ -14,9 +15,10 @@ export function usePagedRecords<T, TCursor = string>(
     TCursor | undefined
   >({
     queryKey,
+    initialPageParam: undefined,
     queryFn: ({ pageParam, signal }) => load(pageParam as TCursor | undefined, signal),
-    initialPageParam: undefined as TCursor | undefined,
     getNextPageParam: (page) => page.cursor,
     staleTime: CACHE_TTL_MS.activity,
+    ...options,
   })
 }

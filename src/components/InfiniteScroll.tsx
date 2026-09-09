@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 type InfiniteScrollProps = {
   hasMore: boolean
   loading: boolean
+  disabled?: boolean
   error?: Error | null
   load: () => void
 }
 
-export function InfiniteScroll({ hasMore, loading, error, load }: InfiniteScrollProps) {
+export function InfiniteScroll({ hasMore, loading, disabled = false, error, load }: InfiniteScrollProps) {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadRef = useRef(load)
   loadRef.current = load
@@ -16,7 +17,7 @@ export function InfiniteScroll({ hasMore, loading, error, load }: InfiniteScroll
 
   useEffect(() => {
     const sentinel = sentinelRef.current
-    if (!sentinel || !hasMore || loading || error) return
+    if (!sentinel || !hasMore || loading || disabled || error) return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -29,7 +30,7 @@ export function InfiniteScroll({ hasMore, loading, error, load }: InfiniteScroll
 
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [error, hasMore, loading])
+  }, [disabled, error, hasMore, loading])
 
   if (!hasMore) return null
   return (
@@ -47,7 +48,12 @@ export function InfiniteScroll({ hasMore, loading, error, load }: InfiniteScroll
       {error && (
         <span role="alert" className="text-xs text-red-700 dark:text-red-400">
           Couldn&apos;t load more.{' '}
-          <button type="button" onClick={load} className="font-medium underline underline-offset-2">
+          <button
+            type="button"
+            onClick={load}
+            disabled={disabled}
+            className="font-medium underline underline-offset-2 disabled:opacity-50"
+          >
             Retry
           </button>
         </span>

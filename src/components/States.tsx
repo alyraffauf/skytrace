@@ -28,10 +28,12 @@ export function LoadingRows({ count = 3 }: { count?: number }) {
 export function EmptyState({
   title,
   children,
+  action,
   className = '',
 }: {
   title: string
   children?: React.ReactNode
+  action?: React.ReactNode
   className?: string
 }) {
   return (
@@ -41,6 +43,7 @@ export function EmptyState({
       {children && (
         <p className="mx-auto mt-1 max-w-md text-sm leading-5 text-zinc-600 dark:text-zinc-400">{children}</p>
       )}
+      {action && <div className="mt-4">{action}</div>}
     </section>
   )
 }
