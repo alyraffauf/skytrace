@@ -18,8 +18,21 @@ import type { FeedItem, LabeledPost, ListMembership, ListSummary, RelationshipEn
 import type { ProfileOutletContext } from './ProfilePage'
 import { RecordTab } from './RecordTab'
 
-export { BlockingTab } from './BlockingTab'
 export { LabelsTab } from './LabelsTab'
+
+export function BlockingTab() {
+  const { profile, service } = useOutletContext<ProfileOutletContext>()
+  return (
+    <RecordTab
+      queryKey={queryKeys.profileTab(profile.identity.did, 'blocking')}
+      resourceLabel="blocked accounts"
+      emptyTitle="No blocked accounts found"
+      load={(cursor, signal) => service.blocking(profile.identity, cursor, signal)}
+      itemKey={(item) => item.id}
+      renderItem={(item) => <RelationshipRow entry={item} />}
+    />
+  )
+}
 
 export function BlockedByTab() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
@@ -27,7 +40,7 @@ export function BlockedByTab() {
     <RecordTab<RelationshipEntry | UnavailableItem>
       queryKey={queryKeys.profileTab(profile.identity.did, 'blockedBy')}
       resourceLabel="accounts blocking this profile"
-      empty="No accounts blocking this profile"
+      emptyTitle="No accounts blocking this profile"
       load={(cursor, signal) => service.blockedBy(profile.identity.did, cursor, signal)}
       itemKey={(item) => item.id}
       renderItem={(item) => <RelationshipRow entry={item} />}
@@ -41,7 +54,7 @@ export function ListsTab() {
     <RecordTab<ListSummary | UnavailableItem>
       queryKey={queryKeys.profileTab(profile.identity.did, 'lists')}
       resourceLabel="lists"
-      empty="No lists found"
+      emptyTitle="No lists found"
       load={(cursor, signal) => service.lists(profile.identity, cursor, signal)}
       itemKey={(item) => (item.kind === 'unavailable' ? item.id : item.uri)}
       renderItem={(item) => <ListRow list={item} />}
@@ -55,7 +68,7 @@ export function ListedOnTab() {
     <RecordTab<ListMembership | UnavailableItem>
       queryKey={queryKeys.profileTab(profile.identity.did, 'listedOn')}
       resourceLabel="list memberships"
-      empty="Not on any lists"
+      emptyTitle="Not on any lists"
       load={(cursor, signal) => service.listedOn(profile.identity.did, cursor, signal)}
       itemKey={(item) => (item.kind === 'unavailable' ? item.id : item.uri)}
       renderItem={(item) =>

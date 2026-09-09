@@ -11,14 +11,14 @@ type TabRecord = ListMembership | ListSummary | RelationshipEntry | UnavailableI
 export function RecordTab<T extends TabRecord>({
   queryKey,
   resourceLabel,
-  empty,
+  emptyTitle,
   load,
   itemKey,
   renderItem,
 }: {
   queryKey: readonly unknown[]
   resourceLabel: string
-  empty: string
+  emptyTitle: string
   load: (cursor: string | undefined, signal: AbortSignal) => Promise<Page<T>>
   itemKey: (item: T) => string
   renderItem: (item: T) => ReactNode
@@ -32,7 +32,7 @@ export function RecordTab<T extends TabRecord>({
   return (
     <PagedQueryView query={query} resourceLabel={resourceLabel}>
       {items.length === 0 ? (
-        <EmptyState title={empty} />
+        <EmptyState title={emptyTitle} />
       ) : (
         <RecordList>
           {items.map((item) => (
