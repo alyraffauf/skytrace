@@ -18,9 +18,9 @@ import { labelDefinitionsFromRecord, parseFacets } from '../src/data/recordParse
 import { normalizeActorInput } from '../src/lib/parse'
 import { skythreadPostUrl } from '../src/lib/links'
 import { ProfilePage } from '../src/pages/ProfilePage'
-import { FeedTab, LabeledPostsTab, LabelsTab } from '../src/pages/ProfileTabs'
+import { FeedTab, LabeledPostsTab, LabelsTab, mergeLabeledPosts } from '../src/pages/ProfileTabs'
 import { PublicDataService } from '../src/data/publicData'
-import type { ActorIdentity, ActorProfile, FeedPost, LabelEvent } from '../src/types'
+import type { ActorIdentity, ActorProfile, FeedPost, LabeledPost, LabelEvent } from '../src/types'
 import { createTestQueryClient, jsonResponse as response } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
@@ -577,6 +577,34 @@ describe('account labels', () => {
 })
 
 describe('labeled post previews', () => {
+  it('merges labels from duplicate posts in newest-first order', () => {
+    const post: FeedPost = {
+      kind: 'post',
+      uri: `at://${did}/app.bsky.feed.post/labeled-merge`,
+      author: actorReference,
+      createdAt: '2026-04-01T00:00:00Z',
+      text: 'A labeled post',
+      facets: [],
+    }
+    const olderLabel: LabelEvent = {
+      kind: 'labelEvent',
+      id: 'older-label',
+      source: actorReference,
+      sourceDid: did,
+      subject: post.uri,
+      value: 'old',
+      createdAt: '2026-04-02T00:00:00Z',
+      negated: false,
+    }
+    const newerLabel: LabelEvent = { ...olderLabel, id: 'newer-label', value: 'new', createdAt: '2026-04-03T00:00:00Z' }
+    const items: LabeledPost[] = [
+      { kind: 'labeledPost', post, labels: [olderLabel] },
+      { kind: 'labeledPost', post, labels: [olderLabel, newerLabel] },
+    ]
+
+    expect(mergeLabeledPosts(items)).toEqual([expect.objectContaining({ post, labels: [newerLabel, olderLabel] })])
+  })
+
   it('uses the compact feed row with its author, media, and every label', () => {
     const postUri = `at://${did}/app.bsky.feed.post/labeled` as const
     const author = actorReference
@@ -603,7 +631,7 @@ describe('labeled post previews', () => {
     renderWithRouter(
       <LabeledPostRow
         item={{ kind: 'labeledPost', post, labels: [label('graphic-media'), label('photography')] }}
-        displayNameFor={(label) => (label.value === 'graphic-media' ? 'Graphic Media' : undefined)}
+        displayNames={new Map([['graphic-media', 'Graphic Media']])}
       />,
     )
 

@@ -130,16 +130,15 @@ function ResolvedLabeledPostRows({
   items: LabeledPost[]
   service: ProfileOutletContext['service']
 }) {
-  const displayNameFor = useLabelDisplayNames(
+  const displayNames = useLabelDisplayNames(
     items.flatMap((item) => item.labels),
     service,
   )
-  return items.map((item) => <LabeledPostRow key={item.post.uri} item={item} displayNameFor={displayNameFor} />)
+  return items.map((item) => <LabeledPostRow key={item.post.uri} item={item} displayNames={displayNames} />)
 }
 
-// Keep the first-seen LabeledPost object when a duplicate page carries no new
-// labels so memoized rows can skip re-rendering.
-function mergeLabeledPosts(items: LabeledPost[]): LabeledPost[] {
+// Keep the first-seen post when a later page adds no labels.
+export function mergeLabeledPosts(items: LabeledPost[]): LabeledPost[] {
   const posts = new Map<string, LabeledPost>()
   for (const item of items) {
     const current = posts.get(item.post.uri)
