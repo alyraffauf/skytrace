@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { MiniActor } from './ActorIdentity'
 import { ImageWithFallback } from './Images'
 import { RecordLinksMenu } from './RecordLinksMenu'
@@ -11,7 +12,13 @@ import type { ListMembership, ListSummary, UnavailableItem } from '../types'
 import { Link } from 'react-router-dom'
 import { compactRowClassName, UnavailableRow } from './RecordList'
 
-export function ListRow({ list, membership }: { list: ListSummary | UnavailableItem; membership?: ListMembership }) {
+export const ListRow = memo(function ListRow({
+  list,
+  membership,
+}: {
+  list: ListSummary | UnavailableItem
+  membership?: ListMembership
+}) {
   if (list.kind === 'unavailable') {
     return <UnavailableRow reason={list.reason} />
   }
@@ -66,7 +73,7 @@ export function ListRow({ list, membership }: { list: ListSummary | UnavailableI
       </div>
     </article>
   )
-}
+})
 
 export function ListAvatar({ list, size }: { list: ListSummary; size: 'row' | 'header' }) {
   const ownerDid = parseAtUri(list.uri)?.did ?? ''

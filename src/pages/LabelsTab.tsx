@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { InfiniteScroll } from '../components/InfiniteScroll'
 import { groupLabelHistory, LabelRow, type LabelHistoryEvent } from '../components/LabelRow'
@@ -19,6 +19,12 @@ export function LabelsTab() {
     queryKeys.profileTab(profile.identity.did, 'labels'),
     (cursor, signal) => service.labels(profile.identity.did, cursor, signal),
   )
+  const entries = useMemo(() => {
+    if (!query.data) return []
+    const entriesById = new Map(query.data.pages.flatMap((page) => page.items).map((entry) => [entry.id, entry]))
+    return Array.from(entriesById.values())
+  }, [query.data])
+  const items = useMemo(() => groupLabelHistory(newestFirst(entries)), [entries])
   useEffect(() => {
     if (query.data?.pages.length === 1 && query.hasNextPage && !query.isFetchingNextPage) {
       void query.fetchNextPage()
@@ -26,9 +32,6 @@ export function LabelsTab() {
   }, [query.data?.pages.length, query.fetchNextPage, query.hasNextPage, query.isFetchingNextPage])
   if (query.isPending) return <LoadingRows />
   if (!query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />
-  const entries = query.data.pages.flatMap((page) => page.items)
-  const entriesById = new Map(entries.map((entry) => [entry.id, entry]))
-  const items = groupLabelHistory(newestFirst(Array.from(entriesById.values())))
   const issues = query.data.pages.at(-1)?.issues ?? []
   return (
     <div>
@@ -58,12 +61,8 @@ function ResolvedLabelRows({
   service: ProfileOutletContext['service']
 }) {
   const labels = items.filter((item): item is LabelHistoryEvent => item.kind === 'labelEvent')
-  const displayNames = useLabelDisplayNames(labels, service)
+  const displayNameFor = useLabelDisplayNames(labels, service)
   return items.map((item) => (
-    <LabelRow
-      key={item.id}
-      label={item}
-      displayName={item.kind === 'labelEvent' ? displayNames.get(item.id) : undefined}
-    />
+    <LabelRow key={item.id} label={item} displayName={item.kind === 'labelEvent' ? displayNameFor(item) : undefined} />
   ))
 }

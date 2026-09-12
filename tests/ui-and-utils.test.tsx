@@ -603,7 +603,7 @@ describe('labeled post previews', () => {
     renderWithRouter(
       <LabeledPostRow
         item={{ kind: 'labeledPost', post, labels: [label('graphic-media'), label('photography')] }}
-        displayNames={new Map([['graphic-media', 'Graphic Media']])}
+        displayNameFor={(label) => (label.value === 'graphic-media' ? 'Graphic Media' : undefined)}
       />,
     )
 

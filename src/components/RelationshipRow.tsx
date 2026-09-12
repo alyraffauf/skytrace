@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { ActorAvatar, ActorHandle, ActorReferenceAvatar, actorLabel, HydratedActor } from './ActorIdentity'
 import { RecordLinksMenu } from './RecordLinksMenu'
 import { formatDate } from '../lib/dates'
@@ -5,7 +6,11 @@ import { socialProfilePath } from '../lib/links'
 import type { ActorProfile, ActorReference, RelationshipEntry, UnavailableItem } from '../types'
 import { compactRowClassName, UnavailableRow } from './RecordList'
 
-export function RelationshipRow({ entry }: { entry: RelationshipEntry | UnavailableItem }) {
+export const RelationshipRow = memo(function RelationshipRow({
+  entry,
+}: {
+  entry: RelationshipEntry | UnavailableItem
+}) {
   if (entry.kind === 'unavailable') {
     return <UnavailableRow reason={entry.reason} />
   }
@@ -17,7 +22,7 @@ export function RelationshipRow({ entry }: { entry: RelationshipEntry | Unavaila
     )
   }
   return <RelationshipRowContent entry={entry} actor={entry.actor} />
-}
+})
 
 function RelationshipRowContent({ entry, actor }: { entry: RelationshipEntry; actor: ActorProfile | ActorReference }) {
   const date = formatDate(entry.createdAt)

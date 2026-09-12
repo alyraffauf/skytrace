@@ -14,7 +14,15 @@ import type { FeedPagingState } from '../data/feedPaging'
 import { queryKeys } from '../data/queryKeys'
 import { timestampFor } from '../lib/sorting'
 import { usePagedRecords } from '../lib/usePagedRecords'
-import type { FeedItem, LabeledPost, ListMembership, ListSummary, RelationshipEntry, UnavailableItem } from '../types'
+import type {
+  FeedItem,
+  LabelEvent,
+  LabeledPost,
+  ListMembership,
+  ListSummary,
+  RelationshipEntry,
+  UnavailableItem,
+} from '../types'
 import type { ProfileOutletContext } from './ProfilePage'
 import { RecordTab } from './RecordTab'
 
@@ -122,13 +130,15 @@ function ResolvedLabeledPostRows({
   items: LabeledPost[]
   service: ProfileOutletContext['service']
 }) {
-  const displayNames = useLabelDisplayNames(
+  const displayNameFor = useLabelDisplayNames(
     items.flatMap((item) => item.labels),
     service,
   )
-  return items.map((item) => <LabeledPostRow key={item.post.uri} item={item} displayNames={displayNames} />)
+  return items.map((item) => <LabeledPostRow key={item.post.uri} item={item} displayNameFor={displayNameFor} />)
 }
 
+// Keep the first-seen LabeledPost object when a duplicate page carries no new
+// labels so memoized rows can skip re-rendering.
 function mergeLabeledPosts(items: LabeledPost[]): LabeledPost[] {
   const posts = new Map<string, LabeledPost>()
   for (const item of items) {
@@ -137,12 +147,12 @@ function mergeLabeledPosts(items: LabeledPost[]): LabeledPost[] {
       posts.set(item.post.uri, item)
       continue
     }
-    const labels = Array.from(
-      new Map([...current.labels, ...item.labels].map((label) => [label.id, label])).values(),
-    ).sort((left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt))
+    const labels = new Map<string, LabelEvent>()
+    for (const label of [...current.labels, ...item.labels]) labels.set(label.id, label)
+    if (labels.size === current.labels.length) continue
     posts.set(item.post.uri, {
       ...current,
-      labels,
+      labels: [...labels.values()].sort((left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt)),
     })
   }
   return [...posts.values()].sort((left, right) => {

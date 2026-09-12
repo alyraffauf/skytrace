@@ -1,5 +1,5 @@
 import { ArrowPathRoundedSquareIcon } from '@heroicons/react/24/outline'
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, memo, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ActorAvatar,
@@ -148,7 +148,7 @@ function QuotedPost({ post }: { post: FeedPost | UnavailableItem }) {
   )
 }
 
-export function FeedRow({ item, footer }: { item: FeedItem; footer?: ReactNode }) {
+export const FeedRow = memo(function FeedRow({ item, footer }: { item: FeedItem; footer?: ReactNode }) {
   if (item.kind === 'unavailable') return <UnavailableFeedItem item={item} />
   const post = item.kind === 'repost' ? item.target : item
   if (post.kind === 'unavailable') {
@@ -172,7 +172,7 @@ export function FeedRow({ item, footer }: { item: FeedItem; footer?: ReactNode }
       {(author) => <FeedRowContent item={item} post={post} author={author} footer={footer} />}
     </HydratedActor>
   )
-}
+})
 
 function FeedRowContent({
   item,

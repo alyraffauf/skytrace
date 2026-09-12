@@ -1,26 +1,29 @@
+import { memo } from 'react'
 import { MiniActor } from './ActorIdentity'
 import { FeedRow } from './FeedRow'
 import { labelState } from './LabelRow'
 import { formatDate } from '../lib/dates'
-import type { LabeledPost } from '../types'
+import type { LabelEvent, LabeledPost } from '../types'
 import { LabelValue } from './LabelValue'
 
-export function LabeledPostRow({
+export type LabelDisplayNameFor = (label: LabelEvent) => string | undefined
+
+export const LabeledPostRow = memo(function LabeledPostRow({
   item,
-  displayNames,
+  displayNameFor,
 }: {
   item: LabeledPost
-  displayNames?: ReadonlyMap<string, string>
+  displayNameFor?: LabelDisplayNameFor
 }) {
-  return <FeedRow item={item.post} footer={<PostLabels labels={item.labels} displayNames={displayNames} />} />
-}
+  return <FeedRow item={item.post} footer={<PostLabels labels={item.labels} displayNameFor={displayNameFor} />} />
+})
 
 function PostLabels({
   labels,
-  displayNames,
+  displayNameFor,
 }: {
   labels: LabeledPost['labels']
-  displayNames?: ReadonlyMap<string, string>
+  displayNameFor?: LabelDisplayNameFor
 }) {
   return (
     <section aria-label="Post labels" className="mt-2 border-l-2 border-violet-200 pl-2.5 dark:border-violet-900">
@@ -33,7 +36,7 @@ function PostLabels({
               <div className="flex min-w-0 items-center gap-2">
                 <LabelValue
                   value={label.value}
-                  displayName={displayNames?.get(label.id)}
+                  displayName={displayNameFor?.(label)}
                   className="truncate font-semibold text-zinc-900 dark:text-zinc-100"
                 />
                 {state !== 'Active' && (

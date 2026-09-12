@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { MiniActor } from './ActorIdentity'
 import { formatDate } from '../lib/dates'
 import type { LabelEvent, UnavailableItem } from '../types'
@@ -50,7 +51,13 @@ export function groupLabelHistory(
   return [...history, ...unavailable]
 }
 
-export function LabelRow({ label, displayName }: { label: LabelHistoryEvent | UnavailableItem; displayName?: string }) {
+export const LabelRow = memo(function LabelRow({
+  label,
+  displayName,
+}: {
+  label: LabelHistoryEvent | UnavailableItem
+  displayName?: string
+}) {
   if (label.kind === 'unavailable') {
     return <UnavailableRow reason={label.reason} />
   }
@@ -102,4 +109,4 @@ export function LabelRow({ label, displayName }: { label: LabelHistoryEvent | Un
       </div>
     </article>
   )
-}
+})
