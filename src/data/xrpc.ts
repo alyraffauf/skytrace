@@ -330,7 +330,7 @@ export async function getBacklinks(options: {
           params: {
             subject: options.subject as GenericUri,
             source: options.source,
-            limit: 25,
+            limit: 100,
             reverse: false,
             cursor: options.cursor,
           },
