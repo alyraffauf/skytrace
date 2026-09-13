@@ -19,7 +19,7 @@ export function AppLayout() {
       {!isHomeRoute && (
         <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <div className="mx-auto flex h-12 max-w-[1440px] items-center gap-5 px-4 sm:px-6 lg:px-8">
-            <Link to="/" className="group flex shrink-0 items-center gap-2.5 text-zinc-950 dark:text-zinc-100">
+            <Link to="/" className="flex shrink-0 items-center gap-2.5 text-zinc-950 dark:text-zinc-100">
               <CloudRain
                 className="rain-cloud size-5 shrink-0 stroke-[1.8] text-violet-600 dark:text-violet-400"
                 aria-hidden="true"
@@ -48,15 +48,11 @@ export function AppLayout() {
       <main
         id="main-content"
         tabIndex={-1}
-        className={
-          isExplorerRoute
-            ? 'mx-auto w-full max-w-[1440px] flex-1'
-            : 'mx-auto flex w-full max-w-[1440px] flex-1 px-5 sm:px-8'
-        }
+        className={`mx-auto w-full max-w-[1440px] flex-1 ${isExplorerRoute ? '' : 'flex px-5 sm:px-8'}`}
       >
         <Outlet />
       </main>
-      <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)] text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-500">
+      <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)] text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto grid min-h-11 max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6 lg:px-8">
           <a
             href="https://bsky.app/profile/skytrace.aly.town"

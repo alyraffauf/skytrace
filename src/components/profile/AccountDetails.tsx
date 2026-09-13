@@ -24,7 +24,7 @@ export function AccountDetails({
         <ChevronRightIcon className="mt-0.5 size-4 shrink-0 group-open:rotate-90" aria-hidden="true" />
         <span>
           <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">Account details</span>
-          <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-500">DID, PDS, and identity history</span>
+          <span className="mt-0.5 block text-xs text-zinc-500">DID, PDS, and identity history</span>
         </span>
       </summary>
       <dl className="mt-4 grid gap-3 text-xs text-zinc-500 dark:text-zinc-400">

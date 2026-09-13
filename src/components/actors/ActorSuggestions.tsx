@@ -17,9 +17,9 @@ export function ActorSuggestions({
   onSelect: (suggestion: ActorSuggestion) => void
 }) {
   return (
-    <div className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-50 overflow-hidden rounded-sm border border-zinc-300 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="absolute inset-x-0 top-[calc(100%+0.35rem)] z-50 overflow-hidden rounded-sm border border-zinc-300 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
       {isFetching && suggestions.length === 0 ? (
-        <p role="status" className="px-3 py-3 text-sm text-zinc-500 dark:text-zinc-400">
+        <p role="status" className="p-3 text-sm text-zinc-500 dark:text-zinc-400">
           Searching...
         </p>
       ) : suggestions.length > 0 ? (
@@ -61,7 +61,7 @@ export function ActorSuggestions({
           ))}
         </ul>
       ) : (
-        <p role="status" className="px-3 py-3 text-sm text-zinc-500 dark:text-zinc-400">
+        <p role="status" className="p-3 text-sm text-zinc-500 dark:text-zinc-400">
           No matching accounts
         </p>
       )}

@@ -6,6 +6,9 @@ import { parseAtUri, safeHttpUrl } from '../../lib/parse'
 import { profilePath } from '../../routes/paths'
 import type { Facet, FeedPost } from '../../types'
 
+const richTextLinkClassName =
+  'rounded text-violet-700 underline decoration-violet-200 underline-offset-2 hover:text-violet-900 dark:text-violet-300 dark:decoration-violet-900 dark:hover:text-violet-200'
+
 type TextPart = { text: string; facet?: Facet }
 
 export function splitFacetedText(text: string, facets: Facet[]): TextPart[] {
@@ -33,21 +36,11 @@ function RichText({ text, facets, className }: { text: string; facets: Facet[]; 
         const externalHref = part.facet?.href && safeHttpUrl(part.facet.href)
         const mentionPath = part.facet?.mentionDid ? profilePath(part.facet.mentionDid) : undefined
         return mentionPath ? (
-          <Link
-            key={index}
-            to={mentionPath}
-            className="rounded text-violet-700 underline decoration-violet-200 underline-offset-2 hover:text-violet-900 dark:text-violet-300 dark:decoration-violet-900 dark:hover:text-violet-200"
-          >
+          <Link key={index} to={mentionPath} className={richTextLinkClassName}>
             {part.text}
           </Link>
         ) : externalHref ? (
-          <a
-            key={index}
-            href={externalHref}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded text-violet-700 underline decoration-violet-200 underline-offset-2 hover:text-violet-900 dark:text-violet-300 dark:decoration-violet-900 dark:hover:text-violet-200"
-          >
+          <a key={index} href={externalHref} target="_blank" rel="noreferrer" className={richTextLinkClassName}>
             {part.text}
           </a>
         ) : (

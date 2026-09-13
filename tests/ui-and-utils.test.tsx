@@ -222,16 +222,19 @@ describe('profile relationship counts', () => {
     const view = render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/profile/atproto.com']}>
-          <Routes>
-            <Route path="profile/:actor" element={<ProfileLayout />}>
-              <Route index element={<div>Feed content</div>} />
-            </Route>
-          </Routes>
+          <main>
+            <Routes>
+              <Route path="profile/:actor" element={<ProfileLayout />}>
+                <Route index element={<div>Feed content</div>} />
+              </Route>
+            </Routes>
+          </main>
         </MemoryRouter>
       </QueryClientProvider>,
     )
 
     expect(await screen.findByRole('heading', { name: 'Profile unavailable' })).toBeVisible()
+    expect(screen.getAllByRole('main')).toHaveLength(1)
     expect(
       screen.getByText(
         'This account blocks this SkyTrace instance on Bluesky, so its profile and public records are not shown here.',

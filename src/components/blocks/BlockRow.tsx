@@ -18,7 +18,7 @@ function BlockRowContent({ entry, actor }: { entry: RelationshipEntry; actor: Ac
   const did = actor.kind === 'actorReference' ? actor.did : actor.identity.did
   return (
     <article
-      className={`${compactRowClassName} group grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-0.5 sm:grid-cols-[2rem_minmax(0,1fr)_8rem_2rem]`}
+      className={`${compactRowClassName} grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-0.5 sm:grid-cols-[2rem_minmax(0,1fr)_8rem_2rem]`}
     >
       <DecorativeActorAvatar actor={actor} size="row" />
       <ActorHandle actor={actor} />
