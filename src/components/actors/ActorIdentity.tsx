@@ -27,10 +27,7 @@ const actorAvatarSizeClass: Record<ActorAvatarSize, string> = {
 export function ActorIdentityText({ profile }: { profile: ActorProfile }) {
   const handle = actorHandle(profile.identity)
   return (
-    <Link
-      to={profilePath(profile.identity.did)}
-      className="group/actor min-w-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 flex items-baseline gap-2"
-    >
+    <Link to={profilePath(profile.identity.did)} className="group/actor min-w-0 rounded-sm flex items-baseline gap-2">
       <p className="truncate text-sm font-semibold tracking-[-0.01em] text-zinc-950 dark:text-zinc-100">
         {actorLabel(profile)}
       </p>
