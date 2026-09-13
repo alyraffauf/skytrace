@@ -1,3 +1,4 @@
+import { LoadingRowContents } from './LoadingRowContents'
 import { ArrowPathIcon, ExclamationTriangleIcon, InboxIcon } from '@heroicons/react/24/outline'
 import { ClientResponseError } from '@atcute/client'
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router-dom'
@@ -14,11 +15,7 @@ export function LoadingRows({ count = 3 }: { count?: number }) {
       </span>
       {Array.from({ length: count }, (_, index) => (
         <div key={index} className="flex min-h-14 items-center gap-2.5 py-2">
-          <div className="skeleton size-8 shrink-0 rounded-full" />
-          <div className="flex-1 space-y-1.5">
-            <div className="skeleton h-3.5 w-36" />
-            <div className="skeleton h-3 w-24" />
-          </div>
+          <LoadingRowContents />
         </div>
       ))}
     </div>
