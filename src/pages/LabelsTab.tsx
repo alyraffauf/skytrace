@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { PagedQueryPagination, PagedQueryRefreshNotice } from '../components/PagedQuery'
 import { LabelRow } from '../components/LabelRow'
@@ -7,23 +6,13 @@ import { useLabelDisplayNames } from '../components/LabelValue'
 import { RecordList } from '../components/RecordList'
 import { SourceIssues } from '../components/SourceIssues'
 import { EmptyState, ErrorState, LoadingRows } from '../components/States'
-import type { LabelPagingState } from '../data/labelPaging'
-import { queryKeys } from '../data/queryKeys'
-import { usePagedRecords } from '../lib/usePagedRecords'
-import type { LabelEvent, UnavailableItem } from '../types'
+import { useAccountLabels } from '../lib/useAccountLabels'
+import type { UnavailableItem } from '../types'
 import type { ProfileOutletContext } from './ProfilePage'
 
 export function LabelsTab() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
-  const query = usePagedRecords<LabelEvent | UnavailableItem, LabelPagingState>(
-    queryKeys.profileTab(profile.identity.did, 'labels'),
-    (cursor, signal) => service.labels.labels(profile.identity.did, cursor, signal),
-  )
-  useEffect(() => {
-    if (query.data?.pages.length === 1 && query.hasNextPage && !query.isFetching && !query.isError) {
-      void query.fetchNextPage()
-    }
-  }, [query.data?.pages.length, query.fetchNextPage, query.hasNextPage, query.isFetching, query.isError])
+  const query = useAccountLabels(profile.identity.did, service.labels)
   if (query.isPending) return <LoadingRows />
   if (!query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />
   const entriesById = new Map(query.data.pages.flatMap((page) => page.items).map((entry) => [entry.id, entry]))
