@@ -1,13 +1,11 @@
+import { ActorSuggestions } from './ActorSuggestions'
+import { useActorSuggestions } from './useActorSuggestions'
 import { ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import { useQuery } from '@tanstack/react-query'
 import { type FormEvent, type KeyboardEvent, useEffect, useId, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { queryKeys } from '../data/queryKeys'
-import { searchActorsTypeahead } from '../data/xrpc'
 import { normalizeActorInput } from '../lib/parse'
 import { profilePath } from '../lib/routes'
 import type { ActorSuggestion } from '../types'
-import { ImageWithFallback } from './Images'
 
 type ActorSearchProps = {
   autoFocus?: boolean
@@ -24,30 +22,8 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
   const [hasFocus, setHasFocus] = useState(false)
   const [isDismissed, setIsDismissed] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
-  const [debouncedInput, setDebouncedInput] = useState('')
-
-  const typeaheadQuery = input.trim().replace(/^@/, '')
-  const canSuggest =
-    typeaheadQuery.length >= 2 && !typeaheadQuery.startsWith('did:') && !/^https?:\/\//i.test(typeaheadQuery)
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedInput(canSuggest ? typeaheadQuery : ''), 180)
-    return () => window.clearTimeout(timer)
-  }, [canSuggest, typeaheadQuery])
-
-  const suggestionsQuery = useQuery({
-    queryKey: queryKeys.actorSuggestions(debouncedInput),
-    queryFn: ({ signal }) => searchActorsTypeahead(debouncedInput, signal),
-    enabled: hasFocus && debouncedInput.length >= 2,
-    staleTime: 5 * 60_000,
-  })
-  const suggestions = suggestionsQuery.data ?? []
-  const showSuggestions =
-    hasFocus &&
-    !isDismissed &&
-    canSuggest &&
-    debouncedInput === typeaheadQuery &&
-    (suggestionsQuery.isFetching || suggestionsQuery.isSuccess)
+  const { suggestions, isFetching, canShowSuggestions } = useActorSuggestions({ input, hasFocus })
+  const showSuggestions = canShowSuggestions && !isDismissed
 
   useEffect(() => {
     setActiveIndex((current) => (current >= suggestions.length ? suggestions.length - 1 : current))
@@ -140,60 +116,14 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
         </button>
       </div>
       {showSuggestions && (
-        <div className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-50 overflow-hidden rounded-sm border border-zinc-300 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-          {suggestionsQuery.isFetching && suggestions.length === 0 ? (
-            <p role="status" className="px-3 py-3 text-sm text-zinc-500 dark:text-zinc-400">
-              Searching...
-            </p>
-          ) : suggestions.length > 0 ? (
-            <ul
-              id={listboxId}
-              role="listbox"
-              aria-label="Account suggestions"
-              className="max-h-80 overflow-y-auto py-1"
-            >
-              {suggestions.map((suggestion, index) => (
-                <li key={suggestion.did} role="none">
-                  <button
-                    id={`${listboxId}-${index}`}
-                    type="button"
-                    role="option"
-                    aria-selected={activeIndex === index}
-                    tabIndex={-1}
-                    onPointerDown={(event) => event.preventDefault()}
-                    onPointerMove={() => setActiveIndex(index)}
-                    onClick={() => selectSuggestion(suggestion)}
-                    className={`flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-left ${activeIndex === index ? 'bg-violet-50 dark:bg-violet-950/40' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
-                  >
-                    <ImageWithFallback
-                      src={suggestion.avatar}
-                      alt=""
-                      fallback="avatar"
-                      fallbackClassName="size-8 shrink-0 rounded-full"
-                      className="size-8 shrink-0 rounded-full object-cover"
-                    />
-                    <span className="min-w-0">
-                      {suggestion.displayName && (
-                        <span className="block truncate text-sm font-medium text-zinc-950 dark:text-zinc-100">
-                          {suggestion.displayName}
-                        </span>
-                      )}
-                      <span
-                        className={`block truncate text-sm ${suggestion.displayName ? 'text-zinc-600 dark:text-zinc-400' : 'font-medium text-zinc-950 dark:text-zinc-100'}`}
-                      >
-                        @{suggestion.handle}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p role="status" className="px-3 py-3 text-sm text-zinc-500 dark:text-zinc-400">
-              No matching accounts
-            </p>
-          )}
-        </div>
+        <ActorSuggestions
+          listboxId={listboxId}
+          suggestions={suggestions}
+          isFetching={isFetching}
+          activeIndex={activeIndex}
+          onActiveIndexChange={setActiveIndex}
+          onSelect={selectSuggestion}
+        />
       )}
       {error && (
         <p
