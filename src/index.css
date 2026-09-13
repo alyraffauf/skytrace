@@ -101,15 +101,12 @@
   @apply bg-zinc-200 dark:bg-zinc-800;
 }
 
-.scrollbar-none {
-  scrollbar-width: none;
-}
-
-.scrollbar-none::-webkit-scrollbar {
+.tabs-scroll::-webkit-scrollbar {
   display: none;
 }
 
 .tabs-scroll {
+  scrollbar-width: none;
   scroll-padding-inline: 2rem;
   mask-image: linear-gradient(to right, transparent, black 1rem, black calc(100% - 1rem), transparent);
 }

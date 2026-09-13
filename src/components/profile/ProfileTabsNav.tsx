@@ -33,7 +33,7 @@ export function ProfileTabsNav({
       aria-label="Profile sections"
       className="sticky top-12 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
     >
-      <div ref={tabListRef} className="tabs-scroll scrollbar-none flex gap-6 overflow-x-auto px-4 sm:px-6 lg:px-7">
+      <div ref={tabListRef} className="tabs-scroll flex gap-6 overflow-x-auto px-4 sm:px-6 lg:px-7">
         {PROFILE_TABS.map(({ id, path, label }) => {
           const count = id === 'blocking' ? blockedCount : id === 'blocked-by' ? blockedByCount : undefined
           return (
