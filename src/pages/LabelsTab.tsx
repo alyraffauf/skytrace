@@ -1,14 +1,14 @@
 import { useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { InfiniteScroll } from '../components/InfiniteScroll'
-import { groupLabelHistory, LabelRow, type LabelHistoryEvent } from '../components/LabelRow'
+import { LabelRow } from '../components/LabelRow'
+import { groupLabelHistory, type LabelHistoryEvent } from '../lib/labelHistory'
 import { useLabelDisplayNames } from '../components/LabelValue'
 import { RecordList } from '../components/RecordList'
 import { SourceIssues } from '../components/SourceIssues'
 import { EmptyState, ErrorState, LoadingRows } from '../components/States'
 import type { LabelPagingState } from '../data/labelPaging'
 import { queryKeys } from '../data/queryKeys'
-import { newestFirst } from '../lib/sorting'
 import { usePagedRecords } from '../lib/usePagedRecords'
 import type { LabelEvent, UnavailableItem } from '../types'
 import type { ProfileOutletContext } from './ProfilePage'
@@ -27,7 +27,7 @@ export function LabelsTab() {
   if (query.isPending) return <LoadingRows />
   if (!query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />
   const entriesById = new Map(query.data.pages.flatMap((page) => page.items).map((entry) => [entry.id, entry]))
-  const items = groupLabelHistory(newestFirst(Array.from(entriesById.values())))
+  const items = groupLabelHistory(Array.from(entriesById.values()))
   const issues = query.data.pages.at(-1)?.issues ?? []
   return (
     <div>

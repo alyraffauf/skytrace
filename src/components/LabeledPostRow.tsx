@@ -1,6 +1,6 @@
 import { MiniActor } from './ActorIdentity'
 import { FeedRow } from './FeedRow'
-import { labelState } from './LabelRow'
+import { labelState } from '../lib/labelHistory'
 import { formatDate } from '../lib/dates'
 import type { LabeledPost } from '../types'
 import { LabelValue } from './LabelValue'

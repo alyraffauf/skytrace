@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FeedRow, splitFacetedText } from '../src/components/FeedRow'
 import { InfiniteScroll } from '../src/components/InfiniteScroll'
 import { ImageWithFallback } from '../src/components/Images'
-import { groupLabelHistory, LabelRow } from '../src/components/LabelRow'
+import { LabelRow } from '../src/components/LabelRow'
+import { groupLabelHistory } from '../src/lib/labelHistory'
 import { LabeledPostRow } from '../src/components/LabeledPostRow'
 import { labelDisplayName } from '../src/components/LabelValue'
 import { RelationshipRow } from '../src/components/RelationshipRow'
@@ -531,8 +532,9 @@ describe('repost rendering', () => {
       identity: { ...identity, did: originalDid, handle: 'original.example' },
     })
     const service = new PublicDataService(queryClient)
+    const postOptions = service.feedPostQueryOptions.bind(service)
     const load = vi.spyOn(service, 'feedPostQueryOptions').mockImplementation((uri) => ({
-      queryKey: queryKeys.feedPost(uri),
+      ...postOptions(uri),
       queryFn: async () =>
         uri === post.uri
           ? post
@@ -572,8 +574,9 @@ describe('repost rendering', () => {
   it('keeps both record menus when the repost target is unavailable', async () => {
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
+    const postOptions = service.feedPostQueryOptions(post.uri)
     vi.spyOn(service, 'feedPostQueryOptions').mockReturnValue({
-      queryKey: queryKeys.feedPost(post.uri),
+      ...postOptions,
       queryFn: async () => ({ kind: 'unavailable', id: post.uri, reason: 'Target deleted' }),
     })
     render(
