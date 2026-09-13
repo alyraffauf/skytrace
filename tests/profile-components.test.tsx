@@ -1,3 +1,5 @@
+import { HomePage } from '../src/pages/HomePage'
+import { queryKeys } from '../src/data/queryKeys'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
@@ -101,10 +103,45 @@ it('resets page scroll for pushes but leaves back and forward restoration alone'
       </MemoryRouter>
     </QueryClientProvider>,
   )
+  expect(document.title).toBe('Profile — SkyTrace')
   expect(scroll).not.toHaveBeenCalled()
   fireEvent.click(screen.getByText('Push'))
   expect(scroll).toHaveBeenCalledExactlyOnceWith({ top: 0, left: 0 })
   fireEvent.click(screen.getByText('Back'))
   fireEvent.click(screen.getByText('Forward'))
   expect(scroll).toHaveBeenCalledTimes(1)
+})
+
+it('updates the browser title between profile tabs and restores it on the homepage', () => {
+  vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => new Promise(() => {})),
+  )
+  const client = createTestQueryClient()
+  client.setQueryData(queryKeys.profileView('example.com'), {
+    kind: 'actorProfile',
+    identity: { kind: 'actorIdentity', did: 'did:plc:example', handle: 'example.com', pds: 'https://pds.example' },
+    hasNoUnauthenticatedSelfLabel: false,
+  })
+  function Navigation() {
+    const navigate = useNavigate()
+    return <button onClick={() => navigate('/')}>Home</button>
+  }
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={['/profile/example.com']}>
+        <Navigation />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/profile/:actor/*" element={<ProfileLayout />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+  expect(document.title).toBe('@example.com — Feed — SkyTrace')
+  fireEvent.click(screen.getByRole('link', { name: 'Account labels' }))
+  expect(document.title).toBe('@example.com — Account labels — SkyTrace')
+  fireEvent.click(screen.getByText('Home'))
+  expect(document.title).toBe('SkyTrace — Explore Bluesky blocks, labels, lists, and posts')
 })

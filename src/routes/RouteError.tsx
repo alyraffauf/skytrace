@@ -9,6 +9,7 @@ export function RouteError() {
       : 'This page could not be opened.'
   return (
     <main className="grid min-h-screen place-items-center bg-white px-4 dark:bg-zinc-950 dark:text-zinc-100">
+      <title>Page not found — SkyTrace</title>
       <div className="max-w-md text-center">
         <h1 className="text-2xl font-semibold">That route went missing</h1>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">{message}</p>

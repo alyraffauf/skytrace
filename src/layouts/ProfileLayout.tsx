@@ -1,3 +1,4 @@
+import { PROFILE_TABS } from '../routes/profileTabs'
 import type { ProfileOutletContext } from './profileContext'
 import { AccountDetails } from '../components/profile/AccountDetails'
 import { ProfileTabsNav } from '../components/profile/ProfileTabsNav'
@@ -34,39 +35,60 @@ export function ProfileLayout() {
     if (navigationType !== 'POP') window.scrollTo({ top: 0, left: 0 })
   }, [location.pathname, location.search, navigationType])
 
-  if (profileQuery.isPending) return <ProfileSkeleton />
-  if (profileQuery.isError) return <ErrorState error={profileQuery.error} retry={() => void profileQuery.refetch()} />
-  if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.isPending) return <ProfileSkeleton />
-  if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.isError)
-    return (
+  let content
+  let title = 'Profile — SkyTrace'
+  if (profileQuery.isPending) content = <ProfileSkeleton />
+  else if (profileQuery.isError) {
+    title = 'Profile unavailable — SkyTrace'
+    content = <ErrorState error={profileQuery.error} retry={() => void profileQuery.refetch()} />
+  } else if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.isPending) content = <ProfileSkeleton />
+  else if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.isError) {
+    title = 'Profile unavailable — SkyTrace'
+    content = (
       <ErrorState
         error={actorBlocksConfiguredAccountQuery.error}
         retry={() => void actorBlocksConfiguredAccountQuery.refetch()}
       />
     )
-  if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.data) return <BlockedProfileState />
-  const profile = profileQuery.data
-
+  } else if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.data) {
+    title = 'Profile unavailable — SkyTrace'
+    content = <BlockedProfileState />
+  } else {
+    const profile = profileQuery.data
+    const tabPath = location.pathname.replace(/\/$/, '').split('/')[3]
+    const tab = PROFILE_TABS.find((tab) => tab.path === (tabPath || null)) ?? PROFILE_TABS[0]
+    title = `${actorHandle(profile.identity)} — ${tab.label} — SkyTrace`
+    content = (
+      <article className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <aside className="border-b border-zinc-200 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-950 lg:sticky lg:top-12 lg:h-[calc(100vh-5.75rem)] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
+          <ProfileIdentity profile={profile} service={service} />
+        </aside>
+        <div className="min-w-0">
+          <ProfileTabsNav
+            actor={actor}
+            blockedCount={blockedCountQuery.data}
+            blockedByCount={blockedByCountQuery.data}
+          />
+          <section className="px-4 sm:px-6 lg:px-8">
+            <Suspense
+              fallback={
+                <div className="py-6">
+                  <div className="skeleton h-16 w-full" />
+                </div>
+              }
+            >
+              <Outlet context={{ profile, service } satisfies ProfileOutletContext} />
+            </Suspense>
+          </section>
+        </div>
+      </article>
+    )
+  }
   return (
-    <article className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
-      <aside className="border-b border-zinc-200 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-950 lg:sticky lg:top-12 lg:h-[calc(100vh-5.75rem)] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
-        <ProfileIdentity profile={profile} service={service} />
-      </aside>
-      <div className="min-w-0">
-        <ProfileTabsNav actor={actor} blockedCount={blockedCountQuery.data} blockedByCount={blockedByCountQuery.data} />
-        <section className="px-4 sm:px-6 lg:px-8">
-          <Suspense
-            fallback={
-              <div className="py-6">
-                <div className="skeleton h-16 w-full" />
-              </div>
-            }
-          >
-            <Outlet context={{ profile, service } satisfies ProfileOutletContext} />
-          </Suspense>
-        </section>
-      </div>
-    </article>
+    <>
+      <title>{title}</title>
+      {content}
+    </>
   )
 }
 

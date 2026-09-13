@@ -27,16 +27,26 @@ export function ListPage() {
     enabled: Boolean(listUri),
   })
 
+  let content
+  let title = 'List — SkyTrace'
   if (identityQuery.isError)
-    return <ErrorState error={identityQuery.error} retry={() => void identityQuery.refetch()} />
-  if (identityQuery.isPending) return <ListPageSkeleton />
-  if (!listUri) return <UnavailableListPage reason="This list address is invalid." />
-  if (listQuery.isError) return <ErrorState error={listQuery.error} retry={() => void listQuery.refetch()} />
-  if (listQuery.isPending) return <ListPageSkeleton />
-  if (!listQuery.data) return <UnavailableListPage reason="This list is unavailable." />
-  if (listQuery.data.kind === 'unavailable') return <UnavailableListPage reason={listQuery.data.reason} />
-
-  return <ResolvedListPage list={listQuery.data} service={service} />
+    content = <ErrorState error={identityQuery.error} retry={() => void identityQuery.refetch()} />
+  else if (identityQuery.isPending) content = <ListPageSkeleton />
+  else if (!listUri) content = <UnavailableListPage reason="This list address is invalid." />
+  else if (listQuery.isError) content = <ErrorState error={listQuery.error} retry={() => void listQuery.refetch()} />
+  else if (listQuery.isPending) content = <ListPageSkeleton />
+  else if (!listQuery.data) content = <UnavailableListPage reason="This list is unavailable." />
+  else if (listQuery.data.kind === 'unavailable') content = <UnavailableListPage reason={listQuery.data.reason} />
+  else {
+    title = `${listQuery.data.name} — SkyTrace`
+    content = <ResolvedListPage list={listQuery.data} service={service} />
+  }
+  return (
+    <>
+      <title>{title}</title>
+      {content}
+    </>
+  )
 }
 
 function UnavailableListPage({ reason }: { reason: string }) {

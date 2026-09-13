@@ -234,6 +234,7 @@ describe('profile relationship counts', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Profile unavailable' })).toBeVisible()
+    expect(document.title).toBe('Profile unavailable — SkyTrace')
     expect(screen.getAllByRole('main')).toHaveLength(1)
     expect(
       screen.getByText(
@@ -284,6 +285,7 @@ describe('list block count', () => {
     )
 
     expect(await screen.findByText('12 accounts block this moderation list')).toBeVisible()
+    expect(document.title).toBe('Test list — SkyTrace')
     expect(screen.getByText('Date added')).toBeVisible()
     expect(countRequest?.searchParams.get('subject')).toBe(listUri)
     expect(countRequest?.searchParams.get('source')).toBe('app.bsky.graph.listblock:subject')
