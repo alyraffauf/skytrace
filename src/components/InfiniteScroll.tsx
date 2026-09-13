@@ -37,7 +37,7 @@ export function InfiniteScroll({ hasMore, loading, disabled = false, error, load
     <div
       ref={sentinelRef}
       data-infinite-scroll
-      className={`min-h-px text-center ${loadingIndicatorVisible || error ? 'border-b border-zinc-200 py-2 dark:border-zinc-800' : ''}`}
+      className={`min-h-px text-center ${loadingIndicatorVisible || error ? 'py-2' : ''}`}
       aria-live="polite"
     >
       {loadingIndicatorVisible && (

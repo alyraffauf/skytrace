@@ -114,7 +114,7 @@ function LabeledPostsQuery() {
       query={query}
       resourceLabel="labeled posts"
       loadingCount={4}
-      paginationClassName={isSearching ? 'border-b border-zinc-200 py-3 dark:border-zinc-800' : undefined}
+      paginationClassName={isSearching ? 'py-3' : undefined}
     >
       {items.length > 0 && (
         <RecordList>
