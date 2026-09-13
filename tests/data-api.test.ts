@@ -13,7 +13,7 @@ import {
 import { CACHE_TTL_MS } from '../src/lib/cache'
 import { retryDelay, shouldRetry } from '../src/lib/http'
 import type { ActorIdentity } from '../src/types'
-import { createTestService, jsonResponse as response } from './testUtils'
+import { createTestQueryClient, createTestService, jsonResponse as response } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const cid = 'bafyreicdwixhubhirckrrt7mqcoiq4u47b7quxlm24r547qcth4bc2ubq4'
@@ -158,7 +158,9 @@ describe('atcute-backed API boundaries', () => {
       },
     })
 
-    await expect(createTestService().profile('atproto.com')).resolves.toMatchObject({
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    await expect(queryClient.fetchQuery(service.actorProfileQueryOptions('atproto.com'))).resolves.toMatchObject({
       hasNoUnauthenticatedSelfLabel: expected,
     })
   })
@@ -170,12 +172,18 @@ describe('atcute-backed API boundaries', () => {
       value: { $type: 'app.bsky.actor.profile', pronouns: 'they/them' },
     })
 
-    await expect(createTestService().profile('atproto.com')).resolves.toMatchObject({ pronouns: 'they/them' })
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    await expect(queryClient.fetchQuery(service.actorProfileQueryOptions('atproto.com'))).resolves.toMatchObject({
+      pronouns: 'they/them',
+    })
   })
 
   it('returns an identity-only profile when the profile record was deleted', async () => {
     stubProfileRecord({ error: 'NotFound', message: 'Deleted' }, 404)
-    await expect(createTestService().profile('atproto.com')).resolves.toEqual({
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    await expect(queryClient.fetchQuery(service.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
       kind: 'actorProfile',
       identity,
       hasNoUnauthenticatedSelfLabel: false,
@@ -184,7 +192,9 @@ describe('atcute-backed API boundaries', () => {
 
   it('returns an identity-only profile for a malformed profile envelope', async () => {
     stubProfileRecord({ uri: 'not-an-at-uri', value: {} })
-    await expect(createTestService().profile('atproto.com')).resolves.toEqual({
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    await expect(queryClient.fetchQuery(service.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
       kind: 'actorProfile',
       identity,
       hasNoUnauthenticatedSelfLabel: false,
@@ -193,7 +203,11 @@ describe('atcute-backed API boundaries', () => {
 
   it('surfaces transient failures while loading the primary profile', async () => {
     stubProfileRecord({ error: 'UpstreamFailure', message: 'Try later' }, 503)
-    await expect(createTestService().profile('atproto.com')).rejects.toMatchObject({ status: 503 })
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    await expect(queryClient.fetchQuery(service.actorProfileQueryOptions('atproto.com'))).rejects.toMatchObject({
+      status: 503,
+    })
   })
 
   it('reuses identity and record reads until their TTL expires', async () => {

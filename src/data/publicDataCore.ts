@@ -191,15 +191,6 @@ export class PublicDataCore {
     })
   }
 
-  async profile(identifier: string, signal?: AbortSignal): Promise<ActorProfile> {
-    return this.sharedQuery(
-      queryKeys.profileView(identifier),
-      CACHE_TTL_MS.profile,
-      (requestSignal) => this.loadProfile(identifier, requestSignal),
-      signal,
-    )
-  }
-
   private async loadProfile(identifier: string, signal?: AbortSignal): Promise<ActorProfile> {
     const identity = await this.identity(identifier, signal)
     const uri = `at://${identity.did}/app.bsky.actor.profile/self`

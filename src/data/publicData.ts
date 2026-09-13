@@ -1,7 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type {
   ActorIdentity,
-  ActorProfile,
   FeedItem,
   LabeledPost,
   LabelEvent,
@@ -56,10 +55,6 @@ export class PublicDataService {
 
   labelDefinitionsQueryOptions(did: ActorIdentity['did']) {
     return this.core.labelDefinitionsQueryOptions(did)
-  }
-
-  profile(identifier: string, signal?: AbortSignal): Promise<ActorProfile> {
-    return this.core.profile(identifier, signal)
   }
 
   blockedCountQueryOptions(identity?: ActorIdentity) {
