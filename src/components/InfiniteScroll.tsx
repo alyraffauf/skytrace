@@ -1,5 +1,6 @@
+import { useDelayedFlag } from '../hooks/useDelayedFlag'
 import { ArrowPathIcon } from '@heroicons/react/24/outline'
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef } from 'react'
 
 type InfiniteScrollProps = {
   hasMore: boolean
@@ -61,13 +62,4 @@ export function InfiniteScroll({ hasMore, loading, disabled = false, error, load
       )}
     </div>
   )
-}
-
-function useDelayedFlag(active: boolean, showDelayMs = 350, hideDelayMs = 500): boolean {
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    const timeout = window.setTimeout(() => setVisible(active), active ? showDelayMs : hideDelayMs)
-    return () => window.clearTimeout(timeout)
-  }, [active, hideDelayMs, showDelayMs])
-  return visible
 }

@@ -3,7 +3,7 @@ import { expect, it, vi } from 'vitest'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryKeys } from '../src/data/queryKeys'
-import { ActorSearch } from '../src/components/ActorSearch'
+import { ActorSearch } from '../src/components/actors/ActorSearch'
 import { createTestQueryClient, jsonResponse } from './testUtils'
 
 const actors = [

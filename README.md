@@ -45,6 +45,20 @@ Use the narrower commands while you work:
 | `bun run build`        | Type-check the app and write the production build to `dist`.       |
 | `bun run preview`      | Serve the production build locally.                                |
 
+## Source organization
+
+- `src/main.tsx` mounts React and installs application providers.
+- `src/routes/` defines routes, lazy page loading, route errors, and internal URL helpers.
+- `src/layouts/` contains the shared application shell.
+- `src/pages/` contains route screens; profile screens and their outlet context live under `pages/profile/`.
+- `src/components/` contains reusable rendering. Feature components are grouped by actors, profile, feed, labels, lists, and relationships; shared UI stays at the directory root.
+- `src/hooks/` contains custom React hooks for queries, timers, and interaction behavior.
+- `src/data/` owns service access, parsing, pagination, query keys, and the query client.
+- `src/lib/` contains non-React utilities and domain transformations.
+- `src/config/` contains application settings; `src/types.ts` defines shared domain types.
+
+Hooks use data services and utilities without importing rendering components. Keep helpers used only for rendering beside their component. Put new route registration in `routes/router.tsx` and profile tab definitions in `routes/profileTabs.tsx`.
+
 ## Data sources
 
 SkyTrace makes these requests from the browser:

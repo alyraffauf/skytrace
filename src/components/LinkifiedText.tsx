@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
-import { profilePath } from '../lib/routes'
+import { profilePath } from '../routes/paths'
 import { safeHttpUrl } from '../lib/parse'
 
 const linkPattern =

@@ -1,6 +1,6 @@
 import { HeartIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 import { CloudRain } from 'lucide-react'
-import { ActorSearch } from '../components/ActorSearch'
+import { ActorSearch } from '../components/actors/ActorSearch'
 
 export function HomePage() {
   return (
