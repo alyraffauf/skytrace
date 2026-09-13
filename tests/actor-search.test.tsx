@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { queryKeys } from '../src/data/queryKeys'
 import { ActorSearch } from '../src/components/ActorSearch'
 import { createTestQueryClient, jsonResponse } from './testUtils'
 
@@ -10,13 +11,13 @@ const actors = [
   { did: 'did:plc:abcdefghijklmnopqrstuvwx', handle: 'another.example', displayName: 'Another account' },
 ]
 
-function setup() {
+function setup(client = createTestQueryClient()) {
   vi.useFakeTimers()
   function Location() {
     return <div data-testid="location">{useLocation().pathname}</div>
   }
   render(
-    <QueryClientProvider client={createTestQueryClient()}>
+    <QueryClientProvider client={client}>
       <MemoryRouter>
         <ActorSearch />
         <Location />
@@ -127,4 +128,34 @@ it('validates direct form submissions and navigates without suggestions', () => 
   expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   fireEvent.submit(input.closest('form')!)
   expect(screen.getByTestId('location')).toHaveTextContent('/profile/atproto.com')
+})
+
+it('keeps selection valid when cached suggestions shrink, grow, and become empty', async () => {
+  const client = createTestQueryClient()
+  const key = queryKeys.actorSuggestions('at')
+  client.setQueryData(key, actors)
+  const input = setup(client)
+  fireEvent.change(input, { target: { value: 'at' } })
+  await advance()
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(screen.getAllByRole('option')[1]).toHaveAttribute('aria-selected', 'true')
+
+  async function updateSuggestions(next: typeof actors) {
+    client.setQueryData(key, next)
+    await advance(1)
+  }
+  await updateSuggestions(actors.slice(0, 1))
+  expect(screen.getByRole('option')).toHaveAttribute('aria-selected', 'true')
+  expect(input).toHaveAttribute('aria-activedescendant', screen.getByRole('option').id)
+  await updateSuggestions(actors)
+  expect(screen.getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true')
+  expect(screen.getAllByRole('option')[1]).toHaveAttribute('aria-selected', 'false')
+  await updateSuggestions([])
+  expect(input).not.toHaveAttribute('aria-activedescendant')
+  expect(screen.queryByRole('option')).not.toBeInTheDocument()
+  await updateSuggestions(actors)
+  expect(screen.getAllByRole('option').every((option) => option.getAttribute('aria-selected') === 'false')).toBe(true)
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${actors[0].did}`)
 })

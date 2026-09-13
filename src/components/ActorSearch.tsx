@@ -1,7 +1,7 @@
 import { ActorSuggestions } from './ActorSuggestions'
 import { useActorSuggestions } from './useActorSuggestions'
 import { ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import { type FormEvent, type KeyboardEvent, useEffect, useId, useState } from 'react'
+import { type FormEvent, type KeyboardEvent, useId, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { normalizeActorInput } from '../lib/parse'
 import { profilePath } from '../lib/routes'
@@ -25,9 +25,9 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
   const { suggestions, isFetching, canShowSuggestions } = useActorSuggestions({ input, hasFocus })
   const showSuggestions = canShowSuggestions && !isDismissed
 
-  useEffect(() => {
-    setActiveIndex((current) => (current >= suggestions.length ? suggestions.length - 1 : current))
-  }, [suggestions.length])
+  if (activeIndex >= suggestions.length) {
+    setActiveIndex(suggestions.length - 1)
+  }
 
   function selectSuggestion(suggestion: ActorSuggestion) {
     setInput(`@${suggestion.handle}`)
