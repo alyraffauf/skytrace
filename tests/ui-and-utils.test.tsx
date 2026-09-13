@@ -2,7 +2,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { FeedRow, splitFacetedText } from '../src/components/FeedRow'
+import { FeedRow } from '../src/components/FeedRow'
+import { splitFacetedText } from '../src/components/PostContent'
 import { InfiniteScroll } from '../src/components/InfiniteScroll'
 import { ImageWithFallback } from '../src/components/Images'
 import { LabelRow } from '../src/components/LabelRow'
@@ -665,6 +666,43 @@ describe('repost rendering', () => {
       expect.stringContaining(encodeURIComponent(originalDid)),
     )
     expect(load.mock.calls.every(([uri]) => uri === post.uri || uri === post.quoteUri)).toBe(true)
+  })
+
+  it('shows quote loading and failure inside the post, with its record menu', async () => {
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(queryKeys.profileView(originalDid), {
+      ...profile,
+      identity: { ...identity, did: originalDid },
+    })
+    const service = new PublicDataService(queryClient)
+    let resolveQuote!: (item: import('../src/types').UnavailableItem) => void
+    const options = service.feedPostQueryOptions(post.quoteUri!)
+    vi.spyOn(service, 'feedPostQueryOptions').mockReturnValue({
+      ...options,
+      queryFn: () =>
+        new Promise<import('../src/types').UnavailableItem>((resolve) => {
+          resolveQuote = resolve
+        }),
+    })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <FeedRow item={post} service={service} footer={<span>Footer after quote</span>} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(screen.getByText('Loading quoted post…')).toBeVisible()
+    await act(async () => resolveQuote({ kind: 'unavailable', id: post.quoteUri!, reason: 'Quote deleted' }))
+    expect(await screen.findByText('Quote deleted')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Open links for unavailable record' })).toBeVisible()
+    expect(screen.getByText('Footer after quote')).toBeVisible()
+  })
+
+  it('does not expand quotes without a service', () => {
+    renderWithRouter(<FeedRow item={{ ...post, author: actorReference }} />)
+    expect(screen.getByText('Original post body')).toBeVisible()
+    expect(screen.queryByText('Loading quoted post…')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Open links for quoted post' })).not.toBeInTheDocument()
   })
 
   it('keeps both record menus when the repost target is unavailable', async () => {

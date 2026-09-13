@@ -1,7 +1,9 @@
+import { PostContent } from './PostContent'
+import { QuotedPostPreview } from './QuotedPostPreview'
+import { UnavailableFeedItem } from './UnavailableFeedItem'
 import { ArrowPathRoundedSquareIcon } from '@heroicons/react/24/outline'
-import { Fragment, memo, type ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
 import {
   ActorAvatar,
   ActorHandle,
@@ -9,154 +11,13 @@ import {
   ActorReferenceAvatar,
   ActorReferenceText,
   HydratedActor,
-  MiniActor,
 } from './ActorIdentity'
-import { ImageWithFallback } from './Images'
 import { RecordLinksMenu } from './RecordLinksMenu'
-import { cdnImageUrl, pdsBlobUrl } from '../lib/cdn'
 import { formatDateTime } from '../lib/dates'
 import { socialPathForAtUri, socialPostPath } from '../lib/links'
-import { parseAtUri, safeHttpUrl } from '../lib/parse'
-import { profilePath } from '../lib/routes'
-import type { Actor, Facet, FeedItem, FeedPost, UnavailableItem } from '../types'
+import { parseAtUri } from '../lib/parse'
+import type { Actor, FeedItem, FeedPost, UnavailableItem } from '../types'
 import type { PublicDataService } from '../data/publicData'
-
-type TextPart = { text: string; facet?: Facet }
-
-export function splitFacetedText(text: string, facets: Facet[]): TextPart[] {
-  const bytes = new TextEncoder().encode(text)
-  const decoder = new TextDecoder()
-  const validFacets = facets
-    .filter((facet) => facet.byteStart >= 0 && facet.byteEnd > facet.byteStart && facet.byteEnd <= bytes.length)
-    .sort((left, right) => left.byteStart - right.byteStart)
-  const parts: TextPart[] = []
-  let position = 0
-  for (const facet of validFacets) {
-    if (facet.byteStart < position) continue
-    if (facet.byteStart > position) parts.push({ text: decoder.decode(bytes.slice(position, facet.byteStart)) })
-    parts.push({ text: decoder.decode(bytes.slice(facet.byteStart, facet.byteEnd)), facet })
-    position = facet.byteEnd
-  }
-  if (position < bytes.length) parts.push({ text: decoder.decode(bytes.slice(position)) })
-  return parts
-}
-
-function RichText({ text, facets, className }: { text: string; facets: Facet[]; className: string }) {
-  return (
-    <p className={className}>
-      {splitFacetedText(text, facets).map((part, index) => {
-        const externalHref = part.facet?.href && safeHttpUrl(part.facet.href)
-        const mentionPath = part.facet?.mentionDid ? profilePath(part.facet.mentionDid) : undefined
-        return mentionPath ? (
-          <Link
-            key={index}
-            to={mentionPath}
-            className="rounded text-violet-700 underline decoration-violet-200 underline-offset-2 hover:text-violet-900 dark:text-violet-300 dark:decoration-violet-900 dark:hover:text-violet-200"
-          >
-            {part.text}
-          </Link>
-        ) : externalHref ? (
-          <a
-            key={index}
-            href={externalHref}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded text-violet-700 underline decoration-violet-200 underline-offset-2 hover:text-violet-900 dark:text-violet-300 dark:decoration-violet-900 dark:hover:text-violet-200"
-          >
-            {part.text}
-          </a>
-        ) : (
-          <Fragment key={index}>{part.text}</Fragment>
-        )
-      })}
-    </p>
-  )
-}
-
-function PostBody({
-  post,
-  service,
-  quoted = false,
-}: {
-  post: FeedPost
-  service?: PublicDataService
-  quoted?: boolean
-}) {
-  const authorDid = parseAtUri(post.uri)?.did ?? ''
-  return (
-    <div className={quoted ? 'p-2.5' : ''}>
-      <RichText
-        text={post.text}
-        facets={post.facets}
-        className={`${quoted ? 'line-clamp-3 ' : ''}whitespace-pre-wrap break-words text-sm leading-5 text-zinc-800 dark:text-zinc-200`}
-      />
-      {post.images && (
-        <div
-          className={`mt-2 grid gap-px overflow-hidden border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800 ${post.images.length > 1 ? 'grid-cols-2' : ''}`}
-        >
-          {post.images.map((image, index) => {
-            const imageUrl = cdnImageUrl('feed_fullsize', authorDid, image.cid)
-            const thumbnailUrl = cdnImageUrl('feed_thumbnail', authorDid, image.cid)
-            return (
-              <a
-                key={image.cid}
-                href={imageUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="block focus-visible:outline-2 focus-visible:outline-violet-600"
-              >
-                <ImageWithFallback
-                  src={thumbnailUrl}
-                  alt={image.alt || `Image ${index + 1} attached to this post`}
-                  fallback="image"
-                  fallbackClassName="h-36 w-full sm:h-48"
-                  className="h-36 w-full bg-zinc-100 object-cover dark:bg-zinc-900 sm:h-48"
-                  loading="lazy"
-                />
-              </a>
-            )
-          })}
-        </div>
-      )}
-      {post.video && post.repositoryPds && (
-        <video
-          className="mt-2 max-h-64 w-full bg-black"
-          controls
-          preload="none"
-          aria-label={post.video.alt || 'Video attached to this post'}
-        >
-          <source
-            src={pdsBlobUrl(post.repositoryPds, authorDid, post.video.cid)}
-            type={post.video.mimeType || 'video/mp4'}
-          />
-          Your browser cannot play this video.
-        </video>
-      )}
-      {post.quoteUri && service && (
-        <div className="mt-2 overflow-hidden border border-zinc-200 dark:border-zinc-800">
-          <StreamedQuotedPost uri={post.quoteUri} service={service} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-function QuotedPost({ post }: { post: FeedPost | UnavailableItem }) {
-  if (post.kind === 'unavailable') return <UnavailableFeedItem item={post} />
-  const socialPath = socialPathForAtUri(post.uri)
-  return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 px-3 py-2 dark:border-zinc-800">
-        <MiniActor actor={post.author} />
-        <div className="flex items-center gap-1 text-xs text-zinc-400 dark:text-zinc-500">
-          {formatDateTime(post.createdAt)}
-          <RecordLinksMenu recordUri={post.uri} socialPath={socialPath} label="quoted post" />
-        </div>
-      </div>
-      <PostBody post={post} quoted />
-    </div>
-  )
-}
 
 export const FeedRow = memo(function FeedRow({
   item,
@@ -242,7 +103,13 @@ function FeedRowContent({
               <RecordLinksMenu recordUri={post.uri} socialPath={socialPath} label="post" />
             </div>
           </div>
-          <PostBody post={post} service={service} />
+          <PostContent post={post}>
+            {post.quoteUri && service && (
+              <div className="mt-2 overflow-hidden border border-zinc-200 dark:border-zinc-800">
+                <QuotedPostPreview uri={post.quoteUri} service={service} />
+              </div>
+            )}
+          </PostContent>
           {footer}
         </div>
       </div>
@@ -281,14 +148,6 @@ function ResolvedRepost({
   return <ResolvedFeedRow repost={item} post={targetQuery.data} service={service} footer={footer} />
 }
 
-function StreamedQuotedPost({ uri, service }: { uri: FeedPost['uri']; service: PublicDataService }) {
-  const quoteQuery = useQuery(service.feedPostQueryOptions(uri))
-  if (quoteQuery.isPending)
-    return <div className="p-2.5 text-sm text-zinc-500 dark:text-zinc-400">Loading quoted post…</div>
-  if (!quoteQuery.data) return null
-  return <QuotedPost post={quoteQuery.data} />
-}
-
 function RepostByline({ item }: { item: Extract<FeedItem, { kind: 'repost' }> }) {
   return (
     <HydratedActor actor={item.author}>{(author) => <RepostBylineContent item={item} author={author} />}</HydratedActor>
@@ -321,13 +180,4 @@ function FeedAuthor({ author }: { author: Actor }) {
   if (author.kind === 'actorReference') return <ActorReferenceText actor={author} />
 
   return <ActorIdentityText profile={author} inline />
-}
-
-function UnavailableFeedItem({ item }: { item: UnavailableItem }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-3 text-sm text-zinc-500 dark:text-zinc-400">
-      <span>{item.reason}</span>
-      <RecordLinksMenu recordUri={item.id} socialPath={socialPathForAtUri(item.id)} label="unavailable record" />
-    </div>
-  )
 }
