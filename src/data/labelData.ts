@@ -17,22 +17,12 @@ export class LabelDataService {
     cursor?: LabelPagingState,
     signal?: AbortSignal,
   ): Promise<Page<LabelEvent | UnavailableItem, LabelPagingState>> {
-    return this.aggregateLabels({ did, uriPatterns: [did], cursor, signal })
-  }
-
-  private async aggregateLabels(options: {
-    did: string
-    uriPatterns: string[]
-    cursor?: LabelPagingState
-    signal?: AbortSignal
-  }): Promise<Page<LabelEvent | UnavailableItem, LabelPagingState>> {
-    const { did, uriPatterns, cursor, signal } = options
-    const state = readLabelState(did, uriPatterns, cursor)
+    const state = readLabelState(did, cursor)
     const emittedIds = new Set(state.emittedIds)
 
     if (!state.relayDone) {
       const page = await this.loadRelayPage({
-        uriPatterns,
+        did,
         cursor: state.relayCursor,
         providers: state.providers,
         signal,
@@ -67,7 +57,7 @@ export class LabelDataService {
           issues: failedProviders.map((failedProvider) => failedProvider.did),
         }
       }
-      const page = await this.loadProviderPage({ provider, uriPatterns, signal })
+      const page = await this.loadProviderPage({ provider, did, signal })
       if (!page) continue
       const nextCursor = page.cursor
       const seenCursors = new Set(provider.seenCursors ?? [])
@@ -91,18 +81,18 @@ export class LabelDataService {
   }
 
   private async loadRelayPage({
-    uriPatterns,
+    did,
     cursor,
     providers,
     signal,
   }: {
-    uriPatterns: string[]
+    did: string
     cursor?: string
     providers: ProviderPagingState[]
     signal?: AbortSignal
   }) {
     const page = await this.core.labelRecords({
-      uriPatterns,
+      uriPatterns: [did],
       cursor,
       repeatedCursorPolicy: 'return-page',
       limit: LABEL_PAGE_SIZE,
@@ -123,11 +113,11 @@ export class LabelDataService {
 
   private async loadProviderPage({
     provider,
-    uriPatterns,
+    did,
     signal,
   }: {
     provider: ProviderPagingState
-    uriPatterns: string[]
+    did: string
     signal?: AbortSignal
   }) {
     while (true) {
@@ -150,7 +140,7 @@ export class LabelDataService {
           page = await this.core.labelRecords({
             service: provider.useAppView ? SERVICE_URLS.blueskyAppView : provider.service,
             sources: provider.useAppView ? [provider.did] : undefined,
-            uriPatterns,
+            uriPatterns: [did],
             cursor: provider.cursor,
             limit: LABEL_PAGE_SIZE,
             signal: deadlineSignal(signal, OPTIONAL_LABELER_TIMEOUT_MS),

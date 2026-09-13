@@ -12,7 +12,6 @@ export type ProviderPagingState = {
 export type LabelPagingState = {
   kind: 'labels'
   did: string
-  uriPatterns: string[]
   relayCursor?: string
   seenRelayCursors: string[]
   relayDone: boolean
@@ -20,26 +19,20 @@ export type LabelPagingState = {
   emittedIds: string[]
 }
 
-export function readLabelState(did: string, uriPatterns: string[], cursor?: LabelPagingState): LabelPagingState {
-  const normalizedPatterns = [...new Set(uriPatterns)].sort()
+export function readLabelState(did: string, cursor?: LabelPagingState): LabelPagingState {
   if (!cursor)
     return {
       kind: 'labels',
       did,
-      uriPatterns: normalizedPatterns,
       relayDone: false,
       seenRelayCursors: [],
       providers: [],
       emittedIds: [],
     }
-  const patternsMatch =
-    cursor.uriPatterns.length === normalizedPatterns.length &&
-    cursor.uriPatterns.every((pattern, index) => pattern === normalizedPatterns[index])
-  if (cursor.did !== did || !patternsMatch) throw new Error('This label cursor belongs to another query.')
+  if (cursor.did !== did) throw new Error('This label cursor belongs to another query.')
   return {
     ...cursor,
     seenRelayCursors: [...cursor.seenRelayCursors],
-    uriPatterns: [...cursor.uriPatterns],
     providers: cursor.providers.map((provider) => ({
       ...provider,
       seenCursors: provider.seenCursors ? [...provider.seenCursors] : undefined,
@@ -49,5 +42,5 @@ export function readLabelState(did: string, uriPatterns: string[], cursor?: Labe
 }
 
 export function storeLabelState(state: LabelPagingState): LabelPagingState {
-  return readLabelState(state.did, state.uriPatterns, state)
+  return readLabelState(state.did, state)
 }

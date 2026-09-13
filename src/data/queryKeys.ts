@@ -32,7 +32,6 @@ export const queryKeys = {
   feed: (did: string) => ['feed', did] as const,
   listMembers: (uri: string) => ['listMembers', uri] as const,
   listMember: (listUri: string, membershipUri: string) => ['listMember', listUri, membershipUri] as const,
-  listedOn: (did: string) => ['listedOn', did] as const,
   listedOnMembership: (membershipUri: string) => ['listedOnMembership', membershipUri] as const,
   blockDate: (uri: string) => ['blockDate', uri] as const,
   feedPost: (uri: string) => ['feedPost', uri] as const,

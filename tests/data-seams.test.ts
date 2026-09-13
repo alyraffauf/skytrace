@@ -114,7 +114,10 @@ describe('public data seams', () => {
 
     const publicData = createTestService()
     const relay = await publicData.labels(did)
+    const savedCursor = structuredClone(relay.cursor)
+    await expect(publicData.labels(memberDid, relay.cursor)).rejects.toThrow('belongs to another query')
     const firstDirect = await publicData.labels(did, relay.cursor)
+    expect(relay.cursor).toEqual(savedCursor)
     const secondDirect = await publicData.labels(did, firstDirect.cursor)
     expect(firstDirect.items).toHaveLength(2)
     expect(secondDirect.items).toHaveLength(1)

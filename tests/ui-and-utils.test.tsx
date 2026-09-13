@@ -718,7 +718,6 @@ describe('account labels', () => {
     const cursor = {
       kind: 'labels' as const,
       did,
-      uriPatterns: [did],
       relayDone: false,
       seenRelayCursors: [],
       providers: [],
@@ -762,7 +761,6 @@ describe('account labels', () => {
         cursor: {
           kind: 'labels',
           did,
-          uriPatterns: [did],
           relayDone: false,
           seenRelayCursors: [],
           providers: [],
