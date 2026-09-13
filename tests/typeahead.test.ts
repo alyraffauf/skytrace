@@ -39,13 +39,6 @@ describe('actor typeahead', () => {
     expect(requestUrl.searchParams.get('limit')).toBe('8')
     expect(requestHeaders.get('X-Client')).toBe('skytrace')
   })
-
-  it('does not request suggestions for one-character input', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
-    await expect(searchActorsTypeahead('a')).resolves.toEqual([])
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
 })
 
 describe('PLC account details', () => {

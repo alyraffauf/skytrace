@@ -61,40 +61,32 @@ function setup(options: { cached?: boolean; issues?: string[] } = { cached: true
   return { client, load, mount, observers }
 }
 
-it('keeps cached labels, shows refresh failure, and retries from the first page', async () => {
-  const { client, load, mount } = setup()
-  load.mockRejectedValueOnce(new Error('Refresh failed')).mockResolvedValue({ items: [cached] })
-  mount()
-  await act(async () => {
-    await client.invalidateQueries({ queryKey: key })
-  })
-  expect(await screen.findByText("Couldn't refresh account labels")).toBeVisible()
-  expect(screen.getByText('Cached label row')).toBeVisible()
-  fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
-  await waitFor(() => expect(screen.queryByText("Couldn't refresh account labels")).not.toBeInTheDocument())
-  expect(load).toHaveBeenCalledTimes(2)
-  expect(load.mock.calls.map((call) => call[1])).toEqual([undefined, undefined])
-})
-
-it('disconnects automatic pagination during refresh and after refresh failure', async () => {
+it('pauses pagination during refresh, retains cached labels after failure, and retries from the first page', async () => {
   const { client, load, mount, observers } = setup()
   let reject!: (error: Error) => void
-  load.mockImplementation(
-    () =>
-      new Promise((_resolve, fail) => {
-        reject = fail
-      }),
-  )
+  load
+    .mockImplementationOnce(
+      () =>
+        new Promise((_resolve, fail) => {
+          reject = fail
+        }),
+    )
+    .mockResolvedValue({ items: [cached] })
   mount()
   expect(observers.size).toBe(1)
   await act(async () => {
     void client.invalidateQueries({ queryKey: key })
   })
   await waitFor(() => expect(observers.size).toBe(0))
+  expect(screen.getByText('Cached label row')).toBeVisible()
   await act(async () => reject(new Error('Refresh failed')))
   expect(await screen.findByText("Couldn't refresh account labels")).toBeVisible()
+  expect(screen.getByText('Cached label row')).toBeVisible()
   expect(observers.size).toBe(0)
   expect(load).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+  await waitFor(() => expect(screen.queryByText("Couldn't refresh account labels")).not.toBeInTheDocument())
+  expect(load.mock.calls.map((call) => call[1])).toEqual([undefined, undefined])
 })
 
 it('keeps the detailed initial error and loading announcement', async () => {

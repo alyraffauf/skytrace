@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
@@ -9,6 +9,7 @@ import type { LabeledPost } from '../src/types'
 import { createTestQueryClient } from './testUtils'
 
 it('keeps observing after a fast empty page so older labeled posts can load', async () => {
+  vi.useFakeTimers()
   const observers = new Set<{ callback: IntersectionObserverCallback; disconnect: () => void }>()
   vi.stubGlobal(
     'IntersectionObserver',
@@ -75,17 +76,23 @@ it('keeps observing after a fast empty page so older labeled posts can load', as
       </MemoryRouter>
     </QueryClientProvider>,
   )
-  await waitFor(() => expect(observers.size).toBe(1))
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1)
+  })
+  expect(observers.size).toBe(1)
   await act(async () => {
     for (const observer of observers)
       observer.callback(
         [{ isIntersecting: true } as IntersectionObserverEntry],
         observer as unknown as IntersectionObserver,
       )
-    await new Promise((resolve) => setTimeout(resolve, 10))
+    await vi.advanceTimersByTimeAsync(1)
   })
-  await waitFor(() => expect(load).toHaveBeenCalledTimes(2))
-  await waitFor(() => expect(observers.size).toBe(1))
+  expect(load).toHaveBeenCalledTimes(2)
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1)
+  })
+  expect(observers.size).toBe(1)
   await act(async () => {
     for (const observer of observers)
       observer.callback(
@@ -93,7 +100,10 @@ it('keeps observing after a fast empty page so older labeled posts can load', as
         observer as unknown as IntersectionObserver,
       )
   })
-  expect(await screen.findByText('Older labeled post')).toBeVisible()
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1)
+  })
+  expect(screen.getByText('Older labeled post')).toBeVisible()
   expect(screen.getByText('Bot')).toBeVisible()
   expect(screen.queryByText('No labeled posts found')).not.toBeInTheDocument()
   expect(observers.size).toBe(0)

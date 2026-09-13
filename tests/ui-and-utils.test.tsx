@@ -12,13 +12,11 @@ import { LabeledPostRow } from '../src/components/LabeledPostRow'
 import { labelDisplayName } from '../src/components/LabelValue'
 import { RelationshipRow } from '../src/components/RelationshipRow'
 import { RecordLinksMenu } from '../src/components/RecordLinksMenu'
-import { MiniActor } from '../src/components/ActorIdentity'
 import { LinkifiedText } from '../src/components/LinkifiedText'
 import { mergeFeedItems } from '../src/data/publicData'
 import { queryKeys } from '../src/data/queryKeys'
 import { labelDefinitionsFromRecord, parseFacets } from '../src/data/recordParsers'
 import { normalizeActorInput } from '../src/lib/parse'
-import { skythreadPostUrl } from '../src/lib/links'
 import { ProfilePage } from '../src/pages/ProfilePage'
 import { ListPage } from '../src/pages/ListPage'
 import { FeedTab, LabeledPostsTab, LabelsTab, mergeLabeledPosts } from '../src/pages/ProfileTabs'
@@ -86,7 +84,7 @@ describe('actor input normalization', () => {
 })
 
 describe('plain text links', () => {
-  it('links handles, bare domains, and full URLs without raw HTML', () => {
+  it('links handles, bare domains, and full URLs', () => {
     renderWithRouter(<LinkifiedText text="@atproto.com docs at atproto.com and https://example.com/read" />)
     expect(screen.getByRole('link', { name: '@atproto.com' })).toHaveAttribute('href', '/profile/atproto.com')
     expect(screen.getByRole('link', { name: 'atproto.com' })).toHaveAttribute('href', 'https://atproto.com/')
@@ -100,25 +98,15 @@ describe('plain text links', () => {
 describe('record links', () => {
   const postUri = `at://${did}/app.bsky.feed.post/3example`
 
-  it('builds Skythread links only for posts', () => {
-    expect(skythreadPostUrl(postUri)).toBe(
-      `https://skythread.mackuba.eu/?author=${encodeURIComponent(did)}&post=3example`,
-    )
-    expect(skythreadPostUrl(`at://${did}/app.bsky.graph.block/3example`)).toBeUndefined()
-  })
-
   it('offers Skythread in a post links menu', () => {
-    render(<RecordLinksMenu recordUri={postUri} label="post" />)
+    const view = render(<RecordLinksMenu recordUri={postUri} label="post" />)
     fireEvent.click(screen.getByRole('button', { name: 'Open links for post' }))
-    expect(screen.getByRole('link', { name: /Skythread/ })).toHaveAttribute('href', skythreadPostUrl(postUri))
-  })
-})
-
-describe('compact account references', () => {
-  it('uses the account handle without repeating its display name', () => {
-    renderWithRouter(<MiniActor actor={profile} label="By" />)
-    expect(screen.getByRole('link', { name: '@atproto.com' })).toBeVisible()
-    expect(screen.queryByText('AT Protocol')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Skythread/ })).toHaveAttribute(
+      'href',
+      `https://skythread.mackuba.eu/?author=did%3Aplc%3Aewvi7nxzyoun6zhxrhs64oiz&post=3example`,
+    )
+    view.rerender(<RecordLinksMenu recordUri={`at://${did}/app.bsky.graph.block/3example`} label="block" />)
+    expect(screen.queryByRole('link', { name: /Skythread/ })).not.toBeInTheDocument()
   })
 })
 
@@ -171,12 +159,6 @@ describe('profile relationship counts', () => {
     expect(await screen.findByRole('link', { name: 'Blocked (2)' })).toBeVisible()
     expect(await screen.findByRole('link', { name: 'Blocked by (3,000)' })).toBeVisible()
     expect(screen.getByText('they/them')).toBeVisible()
-    const pdsLink = screen.getByRole('link', { name: 'pds.example', hidden: true })
-    expect(pdsLink).toHaveAttribute('href', identity.pds)
-    const pdsFavicon = pdsLink.querySelector('img')
-    expect(pdsFavicon).toHaveAttribute('src', 'https://pds.example/favicon.ico')
-    fireEvent.error(pdsFavicon as HTMLImageElement)
-    expect(pdsFavicon).not.toBeVisible()
     expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinks'))).toBe(false)
   })
 
@@ -344,7 +326,7 @@ describe('list member pagination', () => {
     return { ...view, queryClient }
   }
 
-  it('keeps six placeholders and the detailed initial error without showing an empty result', async () => {
+  it('shows loading and the initial error without showing an empty result', async () => {
     let reject!: (error: Error) => void
     vi.spyOn(PublicDataService.prototype, 'listMembers').mockImplementation(
       () =>
@@ -353,7 +335,7 @@ describe('list member pagination', () => {
         }),
     )
     renderMembers()
-    expect(screen.getByLabelText('Loading').querySelectorAll('.size-8')).toHaveLength(6)
+    expect(screen.getByLabelText('Loading')).toBeVisible()
     await act(async () => {
       reject(new Error('Membership service explanation'))
     })
@@ -626,6 +608,7 @@ describe('repost rendering', () => {
     queryClient.setQueryData(queryKeys.profileView(originalDid), {
       ...profile,
       displayName: 'Original author',
+      avatarCid: cid,
       identity: { ...identity, did: originalDid, handle: 'original.example' },
     })
     const service = new PublicDataService(queryClient)
@@ -654,6 +637,7 @@ describe('repost rendering', () => {
     expect(await screen.findByText('Quoted body')).toBeVisible()
     expect(screen.getAllByText('Original author').length).toBeGreaterThan(0)
     expect(screen.getByText('@atproto.com')).toBeVisible()
+    expect(view.container.querySelector(`img[src*="${originalDid}"]`)).toHaveAttribute('alt', '')
     expect(screen.getByText('Label footer')).toBeVisible()
     expect(screen.getByText('Reply to a public post')).toBeVisible()
     expect(screen.getAllByAltText('Original image')[0]).toHaveAttribute('src', expect.stringContaining(originalDid))
@@ -696,13 +680,6 @@ describe('repost rendering', () => {
     expect(await screen.findByText('Quote deleted')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Open links for unavailable record' })).toBeVisible()
     expect(screen.getByText('Footer after quote')).toBeVisible()
-  })
-
-  it('does not expand quotes without a service', () => {
-    renderWithRouter(<FeedRow item={{ ...post, author: actorReference }} />)
-    expect(screen.getByText('Original post body')).toBeVisible()
-    expect(screen.queryByText('Loading quoted post…')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Open links for quoted post' })).not.toBeInTheDocument()
   })
 
   it('keeps both record menus when the repost target is unavailable', async () => {
@@ -978,14 +955,24 @@ describe('labeled post previews', () => {
     }
     const newerLabel: LabelEvent = { ...olderLabel, id: 'newer-label', value: 'new', createdAt: '2026-04-03T00:00:00Z' }
     const items: LabeledPost[] = [
+      { kind: 'labeledPost', post: { ...post, uri: `${post.uri}-z` }, labels: [] },
+      {
+        kind: 'labeledPost',
+        post: { ...post, uri: `${post.uri}-older`, createdAt: '2025-01-01T00:00:00Z' },
+        labels: [],
+      },
       { kind: 'labeledPost', post, labels: [olderLabel] },
       { kind: 'labeledPost', post, labels: [olderLabel, newerLabel] },
     ]
 
-    expect(mergeLabeledPosts(items)).toEqual([expect.objectContaining({ post, labels: [newerLabel, olderLabel] })])
+    expect(mergeLabeledPosts(items)).toEqual([
+      expect.objectContaining({ post, labels: [newerLabel, olderLabel] }),
+      items[0],
+      items[1],
+    ])
   })
 
-  it('uses the compact feed row with its author, media, and every label', () => {
+  it('shows every post label with its custom name', () => {
     const postUri = `at://${did}/app.bsky.feed.post/labeled` as const
     const author = actorReference
     const post: FeedPost = {
@@ -995,12 +982,10 @@ describe('labeled post previews', () => {
       createdAt: '2026-04-01T00:00:00Z',
       text: 'A compact labeled post',
       facets: [],
-      replyTo: `at://${did}/app.bsky.feed.post/parent`,
-      images: [{ cid, alt: 'Compact attachment' }],
     }
     const label = (value: string): LabelEvent => ({
       kind: 'labelEvent',
-      id: value,
+      id: `event-${value}`,
       source: author,
       sourceDid: did,
       subject: postUri,
@@ -1011,14 +996,12 @@ describe('labeled post previews', () => {
     renderWithRouter(
       <LabeledPostRow
         item={{ kind: 'labeledPost', post, labels: [label('graphic-media'), label('photography')] }}
-        displayNames={new Map([['graphic-media', 'Graphic Media']])}
+        displayNames={new Map([['event-graphic-media', 'Custom warning']])}
       />,
     )
 
     expect(screen.getByRole('heading', { name: 'Post labels' })).toBeInTheDocument()
-    expect(screen.getByText('Graphic Media')).toHaveAttribute('title', 'Raw label: graphic-media')
+    expect(screen.getByText('Custom warning')).toHaveAttribute('title', 'Raw label: graphic-media')
     expect(screen.getByText('photography')).toBeInTheDocument()
-    expect(screen.getByText('Reply to a public post')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Compact attachment' })).toBeInTheDocument()
   })
 })

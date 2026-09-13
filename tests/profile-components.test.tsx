@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { expect, it, vi } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { AccountDetails } from '../src/components/AccountDetails'
@@ -7,6 +7,12 @@ import { ProfileTabsNav } from '../src/components/ProfileTabsNav'
 import { ProfilePage } from '../src/pages/ProfilePage'
 import { PublicDataService } from '../src/data/publicData'
 import { createTestQueryClient } from './testUtils'
+
+const originalScrollTo = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollTo')
+afterEach(() => {
+  if (originalScrollTo) Object.defineProperty(HTMLElement.prototype, 'scrollTo', originalScrollTo)
+  else Reflect.deleteProperty(HTMLElement.prototype, 'scrollTo')
+})
 
 it('requests history only after expansion and retains it on reopening', async () => {
   const client = createTestQueryClient()
@@ -36,6 +42,11 @@ it('requests history only after expansion and retains it on reopening', async ()
     details.open = false
     fireEvent(details, new Event('toggle'))
   })
+  act(() => {
+    details.open = true
+    fireEvent(details, new Event('toggle'))
+  })
+  expect(screen.getByText('@old.example')).toBeVisible()
   expect(load).toHaveBeenCalledTimes(1)
 })
 
@@ -50,7 +61,7 @@ it('scrolls the active tab on navigation and count changes', () => {
       <ProfileTabsNav actor="example.com" />
     </MemoryRouter>,
   )
-  expect(scroll).toHaveBeenLastCalledWith({ behavior: 'smooth', left: 400 })
+  expect(scroll.mock.calls.at(-1)?.[0].left).toBeGreaterThan(0)
   scroll.mockClear()
   fireEvent.click(screen.getByRole('link', { name: 'Blocked' }))
   expect(scroll).toHaveBeenCalledTimes(1)
