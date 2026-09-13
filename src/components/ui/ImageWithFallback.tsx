@@ -48,7 +48,7 @@ export function ImageWithFallback({
       src={src}
       decoding={props.decoding ?? 'async'}
       data-loaded={loaded || undefined}
-      className={`${props.className ?? ''} media-image ${loaded ? 'media-image-loaded' : ''}`}
+      className={`${props.className ?? ''} media-image`}
       onLoad={(event) => {
         setStatus({ src, failed: false, loaded: true })
         onLoad?.(event)

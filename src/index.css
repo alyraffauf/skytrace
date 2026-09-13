@@ -130,7 +130,7 @@
   transition: opacity 160ms ease-out;
 }
 
-.media-image-loaded {
+.media-image[data-loaded='true'] {
   opacity: 1;
 }
 
