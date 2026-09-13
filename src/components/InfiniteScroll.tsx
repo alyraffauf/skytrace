@@ -13,7 +13,7 @@ export function InfiniteScroll({ hasMore, loading, disabled = false, error, load
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadRef = useRef(load)
   loadRef.current = load
-  const showLoading = useDelayedFlag(loading)
+  const loadingIndicatorVisible = useDelayedFlag(loading)
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -37,10 +37,10 @@ export function InfiniteScroll({ hasMore, loading, disabled = false, error, load
     <div
       ref={sentinelRef}
       data-infinite-scroll
-      className={`min-h-px text-center ${showLoading || error ? 'border-b border-zinc-200 py-2 dark:border-zinc-800' : ''}`}
+      className={`min-h-px text-center ${loadingIndicatorVisible || error ? 'border-b border-zinc-200 py-2 dark:border-zinc-800' : ''}`}
       aria-live="polite"
     >
-      {showLoading && (
+      {loadingIndicatorVisible && (
         <span role="status" className="inline-flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
           <ArrowPathIcon className="size-3.5 animate-spin" aria-hidden="true" /> Loading more…
         </span>
@@ -62,15 +62,11 @@ export function InfiniteScroll({ hasMore, loading, disabled = false, error, load
   )
 }
 
-function useDelayedFlag(active: boolean, delayMs = 350): boolean {
+function useDelayedFlag(active: boolean, showDelayMs = 350, hideDelayMs = 500): boolean {
   const [visible, setVisible] = useState(false)
   useEffect(() => {
-    if (!active) {
-      setVisible(false)
-      return
-    }
-    const timeout = window.setTimeout(() => setVisible(true), delayMs)
+    const timeout = window.setTimeout(() => setVisible(active), active ? showDelayMs : hideDelayMs)
     return () => window.clearTimeout(timeout)
-  }, [active, delayMs])
+  }, [active, hideDelayMs, showDelayMs])
   return visible
 }
