@@ -14,14 +14,11 @@ export const RelationshipRow = memo(function RelationshipRow({
   if (entry.kind === 'unavailable') {
     return <UnavailableRow reason={entry.reason} />
   }
-  if (entry.actor.kind === 'actorReference') {
-    return (
-      <HydratedActor actor={entry.actor}>
-        {(actor) => <RelationshipRowContent entry={entry} actor={actor} />}
-      </HydratedActor>
-    )
-  }
-  return <RelationshipRowContent entry={entry} actor={entry.actor} />
+  return (
+    <HydratedActor actor={entry.actor}>
+      {(actor) => <RelationshipRowContent entry={entry} actor={actor} />}
+    </HydratedActor>
+  )
 })
 
 function RelationshipRowContent({ entry, actor }: { entry: RelationshipEntry; actor: ActorProfile | ActorReference }) {
