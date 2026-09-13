@@ -3,7 +3,7 @@ import { SERVICE_URLS } from '../config/serviceUrls'
 type ImageTransform = 'avatar' | 'feed_thumbnail' | 'feed_fullsize'
 
 export function cdnImageUrl(transform: ImageTransform, did: string, cid: string): string {
-  return `${SERVICE_URLS.blueskyImageCdn}/img/${transform}/plain/${did}/${cid}@jpeg`
+  return `${SERVICE_URLS.blueskyImageCdn}/img/${transform}/plain/${did}/${cid}@webp`
 }
 
 export function pdsBlobUrl(pds: string, did: string, cid: string): string {
