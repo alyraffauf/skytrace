@@ -1,17 +1,15 @@
-import { ChevronRightIcon } from '@heroicons/react/24/outline'
+import { AccountDetails } from '../components/AccountDetails'
+import { ProfileTabsNav } from '../components/ProfileTabsNav'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigationType, useParams } from 'react-router-dom'
+import { Suspense, useLayoutEffect } from 'react'
+import { Outlet, useLocation, useNavigationType, useParams } from 'react-router-dom'
 import { LinkifiedText } from '../components/LinkifiedText'
 import { RecordLinksMenu } from '../components/RecordLinksMenu'
 import { ActorAvatar, actorHandle, actorLabel } from '../components/ActorIdentity'
 import { ErrorState } from '../components/States'
-import { formatDate } from '../lib/dates'
 import { publicDataServiceFor, type PublicDataService } from '../data/publicData'
 import { socialProfilePath } from '../lib/links'
-import { profilePath, profileTabPath } from '../lib/routes'
 import type { ActorProfile } from '../types'
-import { PROFILE_TABS } from '../profileTabRoutes'
 import { blockTargetDid } from '../config/privacy'
 
 export type ProfileOutletContext = {
@@ -24,7 +22,6 @@ export function ProfilePage() {
   const service = publicDataServiceFor(useQueryClient())
   const location = useLocation()
   const navigationType = useNavigationType()
-  const tabListRef = useRef<HTMLDivElement>(null)
   const configuredBlockTargetDid = blockTargetDid()
   const profileQuery = useQuery({
     ...service.actorProfileQueryOptions(actor),
@@ -40,20 +37,6 @@ export function ProfilePage() {
   useLayoutEffect(() => {
     if (navigationType !== 'POP') window.scrollTo({ top: 0, left: 0 })
   }, [location.pathname, location.search, navigationType])
-
-  useEffect(() => {
-    const tabList = tabListRef.current
-    const activeTab = tabList?.querySelector<HTMLElement>('[aria-current="page"]')
-    if (!tabList || !activeTab) return
-    const left = activeTab.offsetLeft
-    const right = left + activeTab.offsetWidth
-    if (left < tabList.scrollLeft || right > tabList.scrollLeft + tabList.clientWidth) {
-      tabList.scrollTo({
-        behavior: 'smooth',
-        left: left - (tabList.clientWidth - activeTab.offsetWidth) / 2,
-      })
-    }
-  }, [blockedByCountQuery.data, blockedCountQuery.data, location.pathname, profileQuery.isSuccess])
 
   if (profileQuery.isPending) return <ProfileSkeleton />
   if (profileQuery.isError) return <ErrorState error={profileQuery.error} retry={() => void profileQuery.refetch()} />
@@ -74,30 +57,7 @@ export function ProfilePage() {
         <ProfileIdentity profile={profile} service={service} />
       </aside>
       <div className="min-w-0">
-        <nav
-          aria-label="Profile sections"
-          className="sticky top-12 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
-        >
-          <div ref={tabListRef} className="tabs-scroll scrollbar-none flex gap-6 overflow-x-auto px-4 sm:px-6 lg:px-7">
-            {PROFILE_TABS.map(({ id, path, label }) => {
-              const count =
-                id === 'blocking' ? blockedCountQuery.data : id === 'blocked-by' ? blockedByCountQuery.data : undefined
-              return (
-                <NavLink
-                  key={id}
-                  to={path ? profileTabPath(actor, path) : profilePath(actor)}
-                  end={!path}
-                  className={({ isActive }) =>
-                    `flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-0.5 text-sm font-medium sm:min-h-0 sm:py-3 ${isActive ? 'border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-300' : 'border-transparent text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'}`
-                  }
-                >
-                  {label}
-                  {count !== undefined && ` (${count.toLocaleString()})`}
-                </NavLink>
-              )
-            })}
-          </div>
-        </nav>
+        <ProfileTabsNav actor={actor} blockedCount={blockedCountQuery.data} blockedByCount={blockedByCountQuery.data} />
         <section className="px-4 sm:px-6 lg:px-8">
           <Suspense
             fallback={
@@ -130,11 +90,8 @@ function BlockedProfileState() {
 function ProfileIdentity({ profile, service }: { profile: ActorProfile; service: PublicDataService }) {
   const { identity } = profile
   const visibleHandle = actorHandle(identity)
-  const [detailsOpen, setDetailsOpen] = useState(false)
-  const detailsQuery = useQuery({ ...service.accountDetailsQueryOptions(identity.did), enabled: detailsOpen })
   const hasValidHandle = identity.handle !== 'handle.invalid'
   const profileRecordUri = `at://${identity.did}/app.bsky.actor.profile/self`
-  const pdsUrl = new URL(identity.pds)
 
   return (
     <div className="px-6 py-6 sm:px-8 lg:px-8 lg:py-8">
@@ -169,94 +126,9 @@ function ProfileIdentity({ profile, service }: { profile: ActorProfile; service:
         />
       )}
 
-      <details
-        onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
-        className="group mt-5 border-t border-zinc-200 pt-4 dark:border-zinc-800"
-      >
-        <summary className="flex min-h-9 cursor-pointer list-none items-start gap-2.5 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100">
-          <ChevronRightIcon className="mt-0.5 size-4 shrink-0 group-open:rotate-90" aria-hidden="true" />
-          <span>
-            <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">Account details</span>
-            <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-500">
-              DID, PDS, and identity history
-            </span>
-          </span>
-        </summary>
-        <dl className="mt-4 grid gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-          {detailsQuery.data?.createdAt && (
-            <Detail label="Created" value={formatDate(detailsQuery.data.createdAt) ?? detailsQuery.data.createdAt} />
-          )}
-          {detailsQuery.data?.aliases.length ? (
-            <DetailList label="Aliases" values={detailsQuery.data.aliases.map(formatAlias)} />
-          ) : null}
-          {detailsQuery.data?.formerHandles.length ? (
-            <DetailList label="Former handles" values={detailsQuery.data.formerHandles.map((handle) => `@${handle}`)} />
-          ) : null}
-          <div className="min-w-0">
-            <dt className="font-medium text-zinc-700 dark:text-zinc-300">Decentralized Identifier</dt>
-            <dd className="mt-1 break-all font-mono text-[11px]">{identity.did}</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="font-medium text-zinc-700 dark:text-zinc-300">Personal Data Server</dt>
-            <dd className="mt-1 break-all font-mono text-[11px]">
-              <a
-                href={identity.pds}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-violet-700 hover:underline dark:text-violet-300"
-              >
-                <img
-                  src={new URL('/favicon.ico', pdsUrl).toString()}
-                  alt=""
-                  className="size-3.5 shrink-0 object-contain"
-                  onError={(event) => {
-                    event.currentTarget.hidden = true
-                  }}
-                />
-                {pdsUrl.host}
-              </a>
-            </dd>
-          </div>
-          {detailsOpen && detailsQuery.isPending && (
-            <div className="text-zinc-500 dark:text-zinc-400">Loading identity history...</div>
-          )}
-          {detailsQuery.isError && (
-            <div className="text-zinc-500 dark:text-zinc-400">Identity history unavailable.</div>
-          )}
-        </dl>
-      </details>
+      <AccountDetails identity={identity} service={service} />
     </div>
   )
-}
-
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="font-medium text-zinc-700 dark:text-zinc-300">{label}</dt>
-      <dd className="mt-1 break-all font-mono text-[11px]">{value}</dd>
-    </div>
-  )
-}
-
-function DetailList({ label, values }: { label: string; values: string[] }) {
-  return (
-    <div className="min-w-0">
-      <dt className="font-medium text-zinc-700 dark:text-zinc-300">{label}</dt>
-      <dd className="mt-1">
-        <ul className="grid gap-1 font-mono text-[11px]">
-          {values.map((value) => (
-            <li key={value} className="break-all">
-              {value}
-            </li>
-          ))}
-        </ul>
-      </dd>
-    </div>
-  )
-}
-
-function formatAlias(alias: string): string {
-  return alias.startsWith('at://') ? `@${alias.slice(5)}` : alias
 }
 
 function ProfileSkeleton() {
