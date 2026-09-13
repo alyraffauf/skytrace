@@ -318,6 +318,102 @@ describe('list block count', () => {
   })
 })
 
+describe('list member pagination', () => {
+  const listUri = `at://${did}/app.bsky.graph.list/members`
+  const membershipUri = `at://${did}/app.bsky.graph.listitem/member`
+  function renderMembers(queryClient = createTestQueryClient()) {
+    queryClient.setQueryData(queryKeys.identity(identity.handle), identity)
+    queryClient.setQueryData(queryKeys.profileView(did), profile)
+    queryClient.setQueryData(queryKeys.listSummary(listUri), {
+      kind: 'list',
+      uri: listUri,
+      name: 'Members test',
+      purpose: 'app.bsky.graph.defs#curatelist',
+      owner: actorReference,
+    })
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/list/${identity.handle}/members`]}>
+          <Routes>
+            <Route path="list/:actor/:rkey" element={<ListPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    return { ...view, queryClient }
+  }
+
+  it('keeps six placeholders and the detailed initial error without showing an empty result', async () => {
+    let reject!: (error: Error) => void
+    vi.spyOn(PublicDataService.prototype, 'listMembers').mockImplementation(
+      () =>
+        new Promise((_resolve, fail) => {
+          reject = fail
+        }),
+    )
+    renderMembers()
+    expect(screen.getByLabelText('Loading').querySelectorAll('.size-8')).toHaveLength(6)
+    await act(async () => {
+      reject(new Error('Membership service explanation'))
+    })
+    expect(await screen.findByText('Membership service explanation')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Members test' })).toBeVisible()
+    expect(screen.queryByText('No members found')).not.toBeInTheDocument()
+  })
+
+  it('retains members after refresh failure and prevents pagination during refresh', async () => {
+    const activeObservers = new Set<object>()
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        observe() {
+          activeObservers.add(this)
+        }
+        disconnect() {
+          activeObservers.delete(this)
+        }
+      },
+    )
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(queryKeys.listMembers(listUri), {
+      pages: [{ items: [{ uri: membershipUri }], cursor: 'next' }],
+      pageParams: [undefined],
+    })
+    queryClient.setQueryData(queryKeys.listMember(listUri, membershipUri), {
+      kind: 'unavailable',
+      id: membershipUri,
+      reason: 'Cached member row',
+    })
+    let reject!: (error: Error) => void
+    const members = vi
+      .spyOn(PublicDataService.prototype, 'listMembers')
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, fail) => {
+            reject = fail
+          }),
+      )
+      .mockResolvedValue({ items: [{ uri: membershipUri }] })
+    renderMembers(queryClient)
+    expect(screen.getByText('Cached member row')).toBeVisible()
+    expect(activeObservers.size).toBe(1)
+    await act(async () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.listMembers(listUri) })
+    })
+    await waitFor(() => expect(activeObservers.size).toBe(0))
+    expect(members).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      reject(new Error('Refresh failed'))
+    })
+    expect(await screen.findByText("Couldn't refresh members")).toBeVisible()
+    expect(screen.getByText('Cached member row')).toBeVisible()
+    expect(screen.queryByText('No members found')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    await waitFor(() => expect(screen.queryByText("Couldn't refresh members")).not.toBeInTheDocument())
+    expect(members).toHaveBeenCalledTimes(2)
+  })
+})
+
 describe('profile post privacy', () => {
   const restrictedProfile: ActorProfile = { ...profile, hasNoUnauthenticatedSelfLabel: true }
   const unavailableExplanation = 'This account has chosen not to show its posts on public sites like SkyTrace.'
