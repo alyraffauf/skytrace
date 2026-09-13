@@ -1,11 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { FeedDataService, mergeFeedItems, type LabeledPostsCursor } from './feedData'
+import { FeedDataService } from './feedData'
 import { GraphDataService } from './graphData'
 import { LabelDataService } from './labelData'
 import { PublicDataCore } from './publicDataCore'
-
-export { mergeFeedItems }
-export type { LabeledPostsCursor }
 
 export class PublicDataService {
   readonly core: PublicDataCore
