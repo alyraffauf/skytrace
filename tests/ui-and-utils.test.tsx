@@ -523,6 +523,30 @@ describe('UTF-8 facets', () => {
 })
 
 describe('pagination utilities', () => {
+  it('uses the latest load callback when an existing observer intersects', () => {
+    let onIntersection!: IntersectionObserverCallback
+    const disconnect = vi.fn()
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: IntersectionObserverCallback) {
+          onIntersection = callback
+        }
+        observe() {}
+        disconnect = disconnect
+      },
+    )
+    const firstLoad = vi.fn()
+    const nextLoad = vi.fn(() => expect(disconnect).toHaveBeenCalled())
+    const view = render(<InfiniteScroll hasMore loading={false} load={firstLoad} />)
+    const originalCallback = onIntersection
+    view.rerender(<InfiniteScroll hasMore loading={false} load={nextLoad} />)
+    disconnect.mockClear()
+    act(() => originalCallback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver))
+    expect(firstLoad).not.toHaveBeenCalled()
+    expect(nextLoad).toHaveBeenCalledOnce()
+  })
+
   it('pauses automatic pagination after an error and offers a manual retry', () => {
     const load = vi.fn()
     const observe = vi.fn()

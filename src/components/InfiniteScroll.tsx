@@ -1,5 +1,5 @@
 import { ArrowPathIcon } from '@heroicons/react/24/outline'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 
 type InfiniteScrollProps = {
   hasMore: boolean
@@ -12,8 +12,7 @@ type InfiniteScrollProps = {
 
 export function InfiniteScroll({ hasMore, loading, disabled = false, error, load, resetKey }: InfiniteScrollProps) {
   const sentinelRef = useRef<HTMLDivElement>(null)
-  const loadRef = useRef(load)
-  loadRef.current = load
+  const loadNextPage = useEffectEvent(() => load())
   const loadingIndicatorVisible = useDelayedFlag(loading)
 
   // Fast cached pages can finish without rendering a loading state. Reobserve when page data changes.
@@ -25,7 +24,7 @@ export function InfiniteScroll({ hasMore, loading, disabled = false, error, load
       ([entry]) => {
         if (!entry?.isIntersecting) return
         observer.disconnect()
-        loadRef.current()
+        loadNextPage()
       },
       { rootMargin: '160px 0px' },
     )
