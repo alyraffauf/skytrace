@@ -70,6 +70,7 @@ export function PagedQueryPagination({
   return (
     <InfiniteScroll
       hasMore={hasMore}
+      resetKey={query.data}
       disabled={query.isFetching}
       loading={query.isFetchingNextPage}
       error={paginationError}

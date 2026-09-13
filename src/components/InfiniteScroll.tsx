@@ -4,17 +4,19 @@ import { useEffect, useRef, useState } from 'react'
 type InfiniteScrollProps = {
   hasMore: boolean
   loading: boolean
+  resetKey?: unknown
   disabled?: boolean
   error?: Error | null
   load: () => void
 }
 
-export function InfiniteScroll({ hasMore, loading, disabled = false, error, load }: InfiniteScrollProps) {
+export function InfiniteScroll({ hasMore, loading, disabled = false, error, load, resetKey }: InfiniteScrollProps) {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadRef = useRef(load)
   loadRef.current = load
   const loadingIndicatorVisible = useDelayedFlag(loading)
 
+  // Fast cached pages can finish without rendering a loading state. Reobserve when page data changes.
   useEffect(() => {
     const sentinel = sentinelRef.current
     if (!sentinel || !hasMore || loading || disabled || error) return
@@ -30,7 +32,7 @@ export function InfiniteScroll({ hasMore, loading, disabled = false, error, load
 
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [disabled, error, hasMore, loading])
+  }, [disabled, error, hasMore, loading, resetKey])
 
   if (!hasMore) return null
   return (
