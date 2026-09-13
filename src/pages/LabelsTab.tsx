@@ -20,10 +20,10 @@ export function LabelsTab() {
     (cursor, signal) => service.labels(profile.identity.did, cursor, signal),
   )
   useEffect(() => {
-    if (query.data?.pages.length === 1 && query.hasNextPage && !query.isFetchingNextPage) {
+    if (query.data?.pages.length === 1 && query.hasNextPage && !query.isFetching && !query.isError) {
       void query.fetchNextPage()
     }
-  }, [query.data?.pages.length, query.fetchNextPage, query.hasNextPage, query.isFetchingNextPage])
+  }, [query.data?.pages.length, query.fetchNextPage, query.hasNextPage, query.isFetching, query.isError])
   if (query.isPending) return <LoadingRows />
   if (!query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />
   const entriesById = new Map(query.data.pages.flatMap((page) => page.items).map((entry) => [entry.id, entry]))

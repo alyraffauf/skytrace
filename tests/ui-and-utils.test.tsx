@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { splitFacetedText } from '../src/components/FeedRow'
@@ -500,6 +500,61 @@ describe('relationship rendering', () => {
 })
 
 describe('account labels', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    )
+  })
+  it('stops eager pagination after a delayed failure and recovers only on Retry', async () => {
+    let rejectPage!: (error: Error) => void
+    const cursor = { kind: 'labels' as const, did, uriPatterns: [did], relayDone: false, providers: [], emittedIds: [] }
+    const labels = vi
+      .spyOn(PublicDataService.prototype, 'labels')
+      .mockResolvedValueOnce({
+        items: [{ kind: 'unavailable', id: 'loaded', reason: 'Previously loaded label' }],
+        cursor,
+      })
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject) => {
+            rejectPage = reject
+          }),
+      )
+      .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'recovered', reason: 'Recovered label' }] })
+    renderProfileTab(<LabelsTab />, profile)
+    await waitFor(() => expect(labels).toHaveBeenCalledTimes(2))
+    expect(screen.getByText('Previously loaded label')).toBeVisible()
+    await act(async () => {
+      rejectPage(new Error('Relay unavailable'))
+    })
+    const retry = await screen.findByRole('button', { name: 'Retry' })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30))
+    })
+    expect(labels).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('Previously loaded label')).toBeVisible()
+    fireEvent.click(retry)
+    expect(await screen.findByText('Recovered label')).toBeVisible()
+    expect(labels).toHaveBeenCalledTimes(3)
+  })
+
+  it('eagerly loads the second label page on success', async () => {
+    const labels = vi
+      .spyOn(PublicDataService.prototype, 'labels')
+      .mockResolvedValueOnce({
+        items: [],
+        cursor: { kind: 'labels', did, uriPatterns: [did], relayDone: false, providers: [], emittedIds: [] },
+      })
+      .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'second', reason: 'Second label page' }] })
+    renderProfileTab(<LabelsTab />, profile)
+    expect(await screen.findByText('Second label page')).toBeVisible()
+    expect(labels).toHaveBeenCalledTimes(2)
+  })
+
   it('uses the labeler-provided name with locale fallback', () => {
     const definitions = [
       {
