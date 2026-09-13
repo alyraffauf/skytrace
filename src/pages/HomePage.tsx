@@ -5,6 +5,7 @@ import { ActorSearch } from '../components/actors/ActorSearch'
 export function HomePage() {
   return (
     <div className="home-hero flex w-full flex-1 items-center justify-center overflow-hidden text-center">
+      <title>SkyTrace — Explore Bluesky blocks, labels, lists, and posts</title>
       <div className="mx-auto w-full max-w-2xl pb-4">
         <CloudRain
           className="rain-cloud pointer-events-none mx-auto mb-5 size-40 overflow-visible stroke-[1.2] text-violet-500 dark:text-violet-400 sm:size-56"
