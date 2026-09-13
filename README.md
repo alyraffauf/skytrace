@@ -93,15 +93,13 @@ The script uses its bundled Inter font file and replaces `public/og.png`.
 
 ## Deploy the static build
 
-Run `bun run build`, then publish `dist` with a static host. SkyTrace uses client-side routes such as `/profile/:actor` and `/list/:actor/:rkey`, so the host must send unknown paths to `index.html`.
+Run `bun run build`, then publish `dist` with a static host. The container's nginx configuration and the included `_redirects` file serve the app for profile pages, the named profile tabs, the legacy feed alias, and individual lists. Other paths and missing files must return HTTP 404 using `404.html`. Adding a route requires updating these hosting rules too.
 
-The repository includes `public/_redirects` with this rule:
+The homepage is indexable. Profile and list responses carry `X-Robots-Tag: noindex`; their content remains accessible through the app and shared links. The container sets this header in nginx. Static hosts that support `_headers` can use the included file; other hosts must configure the equivalent response headers. Verify these headers on the original URL after any internal rewrite.
 
-```text
-/* /index.html 200
-```
+`robots.txt` allows crawling so search engines can read the indexing headers. Cloudflare may prepend its managed crawler policy; keep that policy and verify the response contains plain text without application HTML. No sitemap is generated, and `/sitemap.xml` must return 404.
 
-Vite copies the rule into `dist` during the build. If your host does not support `_redirects`, configure the same fallback in the host settings.
+After deployment, check `/`, a profile tab, and a list URL for the expected status and indexing header. Check an unknown route and a missing asset for 404 responses. Use Search Console's URL Inspection to confirm the homepage can be rendered and indexed. The local Vite development server does not apply production hosting rules.
 
 SkyTrace respects the `!no-unauthenticated` profile self-label by default and does not load that account's Feed or Labeled posts tabs. To ignore the label in the container, set `SKYTRACE_IGNORE_NO_UNAUTHENTICATED` when you start it:
 

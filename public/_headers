@@ -1,0 +1,4 @@
+/profile/*
+  X-Robots-Tag: noindex
+/list/*
+  X-Robots-Tag: noindex

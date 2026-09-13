@@ -1,1 +1,9 @@
-/* /index.html 200
+/profile/:actor /index.html 200
+/profile/:actor/labels /index.html 200
+/profile/:actor/labeled-posts /index.html 200
+/profile/:actor/blocking /index.html 200
+/profile/:actor/blocked-by /index.html 200
+/profile/:actor/lists /index.html 200
+/profile/:actor/listed-on /index.html 200
+/profile/:actor/feed /index.html 200
+/list/:actor/:rkey /index.html 200
