@@ -36,11 +36,7 @@ export function useRecordLinksPopup() {
 
   useEffect(() => {
     if (!isOpen) return
-    const closeOnOutsideClick = (event: PointerEvent) => {
-      const target = event.target as Node
-      if (!containerRef.current?.contains(target) && !popupRef.current?.contains(target)) setIsOpen(false)
-    }
-    const closeOnFocusExit = (event: FocusEvent) => {
+    const closeOnOutsideInteraction = (event: Event) => {
       const target = event.target as Node
       if (!containerRef.current?.contains(target) && !popupRef.current?.contains(target)) setIsOpen(false)
     }
@@ -49,14 +45,14 @@ export function useRecordLinksPopup() {
       setIsOpen(false)
       buttonRef.current?.focus()
     }
-    document.addEventListener('pointerdown', closeOnOutsideClick)
-    document.addEventListener('focusin', closeOnFocusExit)
+    document.addEventListener('pointerdown', closeOnOutsideInteraction)
+    document.addEventListener('focusin', closeOnOutsideInteraction)
     document.addEventListener('keydown', closeOnEscape)
     window.addEventListener('resize', positionPopup)
     window.addEventListener('scroll', positionPopup, true)
     return () => {
-      document.removeEventListener('pointerdown', closeOnOutsideClick)
-      document.removeEventListener('focusin', closeOnFocusExit)
+      document.removeEventListener('pointerdown', closeOnOutsideInteraction)
+      document.removeEventListener('focusin', closeOnOutsideInteraction)
       document.removeEventListener('keydown', closeOnEscape)
       window.removeEventListener('resize', positionPopup)
       window.removeEventListener('scroll', positionPopup, true)
