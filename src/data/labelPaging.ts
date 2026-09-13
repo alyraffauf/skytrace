@@ -1,4 +1,4 @@
-type ProviderPagingState = {
+export type ProviderPagingState = {
   did: string
   service?: string
   cursor?: string

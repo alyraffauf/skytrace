@@ -3,7 +3,7 @@ import { SERVICE_URLS } from '../config/serviceUrls'
 import { deadlineSignal, throwIfAborted } from '../lib/abort'
 import { dedupeBy } from '../lib/collections'
 import { timestampFor } from '../lib/sorting'
-import { readLabelState, storeLabelState, type LabelPagingState } from './labelPaging'
+import { readLabelState, storeLabelState, type LabelPagingState, type ProviderPagingState } from './labelPaging'
 import { actorReference, type PublicDataCore } from './publicDataCore'
 
 const LABEL_PAGE_SIZE = 250
@@ -31,23 +31,13 @@ export class LabelDataService {
     const emittedIds = new Set(state.emittedIds)
 
     if (!state.relayDone) {
-      const page = await this.core.labelRecords({
+      const page = await this.loadRelayPage({
         uriPatterns,
         cursor: state.relayCursor,
-        repeatedCursorPolicy: 'return-page',
-        limit: LABEL_PAGE_SIZE,
+        providers: state.providers,
         signal,
       })
       const labels = page.items.filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
-      for (const label of labels) {
-        const provider = state.providers.find((candidate) => candidate.did === label.sourceDid)
-        if (provider) {
-          if (!provider.latestEventAt || timestampFor(label.createdAt) > timestampFor(provider.latestEventAt)) {
-            provider.latestEventAt = label.createdAt
-          }
-        } else state.providers.push({ did: label.sourceDid, done: false, latestEventAt: label.createdAt })
-      }
-      state.providers.sort((left, right) => timestampFor(right.latestEventAt) - timestampFor(left.latestEventAt))
       state.relayDone = !page.cursor || state.seenRelayCursors.includes(page.cursor)
       state.relayCursor = state.relayDone ? undefined : page.cursor
       if (page.cursor) state.seenRelayCursors.push(page.cursor)
@@ -77,6 +67,70 @@ export class LabelDataService {
           issues: failedProviders.map((failedProvider) => failedProvider.did),
         }
       }
+      const page = await this.loadProviderPage({ provider, uriPatterns, signal })
+      if (!page) continue
+      const nextCursor = page.cursor
+      const seenCursors = new Set(provider.seenCursors ?? [])
+      provider.done = !nextCursor || seenCursors.has(nextCursor)
+      provider.cursor = provider.done ? undefined : nextCursor
+      if (nextCursor) seenCursors.add(nextCursor)
+      provider.seenCursors = [...seenCursors]
+      const labels = page.items.filter(
+        (item): item is Omit<LabelEvent, 'source'> =>
+          item.kind === 'labelEvent' && item.sourceDid === provider.did && !emittedIds.has(item.id),
+      )
+      for (const label of labels) emittedIds.add(label.id)
+      state.emittedIds = [...emittedIds]
+      return {
+        items: this.hydrateSources(labels, signal).sort(
+          (left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt),
+        ),
+        cursor: state.providers.some((candidate) => !candidate.done) ? storeLabelState(state) : undefined,
+      }
+    }
+  }
+
+  private async loadRelayPage({
+    uriPatterns,
+    cursor,
+    providers,
+    signal,
+  }: {
+    uriPatterns: string[]
+    cursor?: string
+    providers: ProviderPagingState[]
+    signal?: AbortSignal
+  }) {
+    const page = await this.core.labelRecords({
+      uriPatterns,
+      cursor,
+      repeatedCursorPolicy: 'return-page',
+      limit: LABEL_PAGE_SIZE,
+      signal,
+    })
+    const labels = page.items.filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
+    for (const label of labels) {
+      const provider = providers.find((candidate) => candidate.did === label.sourceDid)
+      if (provider) {
+        if (!provider.latestEventAt || timestampFor(label.createdAt) > timestampFor(provider.latestEventAt)) {
+          provider.latestEventAt = label.createdAt
+        }
+      } else providers.push({ did: label.sourceDid, done: false, latestEventAt: label.createdAt })
+    }
+    providers.sort((left, right) => timestampFor(right.latestEventAt) - timestampFor(left.latestEventAt))
+    return page
+  }
+
+  private async loadProviderPage({
+    provider,
+    uriPatterns,
+    signal,
+  }: {
+    provider: ProviderPagingState
+    uriPatterns: string[]
+    signal?: AbortSignal
+  }) {
+    while (true) {
       try {
         if (!provider.useAppView && !provider.service) {
           try {
@@ -109,27 +163,11 @@ export class LabelDataService {
           provider.seenCursors = undefined
           continue
         }
-        const nextCursor = page.cursor
-        const seenCursors = new Set(provider.seenCursors ?? [])
-        provider.done = !nextCursor || seenCursors.has(nextCursor)
-        provider.cursor = provider.done ? undefined : nextCursor
-        if (nextCursor) seenCursors.add(nextCursor)
-        provider.seenCursors = [...seenCursors]
-        const labels = page.items.filter(
-          (item): item is Omit<LabelEvent, 'source'> =>
-            item.kind === 'labelEvent' && item.sourceDid === provider.did && !emittedIds.has(item.id),
-        )
-        for (const label of labels) emittedIds.add(label.id)
-        state.emittedIds = [...emittedIds]
-        return {
-          items: this.hydrateSources(labels, signal).sort(
-            (left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt),
-          ),
-          cursor: state.providers.some((candidate) => !candidate.done) ? storeLabelState(state) : undefined,
-        }
+        return page
       } catch {
         throwIfAborted(signal)
         provider.failed = true
+        return undefined
       }
     }
   }
