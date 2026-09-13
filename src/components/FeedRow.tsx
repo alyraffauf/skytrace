@@ -5,10 +5,9 @@ import { ArrowPathRoundedSquareIcon } from '@heroicons/react/24/outline'
 import { memo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  ActorAvatar,
+  DecorativeActorAvatar,
   ActorHandle,
   ActorIdentityText,
-  ActorReferenceAvatar,
   ActorReferenceText,
   HydratedActor,
 } from './ActorIdentity'
@@ -88,11 +87,7 @@ function FeedRowContent({
       {repost && <RepostByline item={repost} />}
       {post.replyTo && <ReplyByline recordUri={post.replyTo} />}
       <div className="flex gap-3">
-        {author.kind === 'actorProfile' ? (
-          <ActorAvatar profile={author} size="row" decorative />
-        ) : (
-          <ActorReferenceAvatar actor={author} />
-        )}
+        <DecorativeActorAvatar actor={author} size="row" />
         <div className="min-w-0 flex-1">
           <div className="relative mb-1 min-w-0 pr-10">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">

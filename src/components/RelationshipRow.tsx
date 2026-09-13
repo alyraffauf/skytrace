@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { ActorAvatar, ActorHandle, ActorReferenceAvatar, actorLabel, HydratedActor } from './ActorIdentity'
+import { DecorativeActorAvatar, ActorHandle, actorLabel, HydratedActor } from './ActorIdentity'
 import { RecordLinksMenu } from './RecordLinksMenu'
 import { formatDate } from '../lib/dates'
 import { socialProfilePath } from '../lib/links'
@@ -28,11 +28,7 @@ function RelationshipRowContent({ entry, actor }: { entry: RelationshipEntry; ac
     <article
       className={`${compactRowClassName} group grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-0.5 sm:grid-cols-[2rem_minmax(0,1fr)_8rem_2rem]`}
     >
-      {actor.kind === 'actorReference' ? (
-        <ActorReferenceAvatar actor={actor} />
-      ) : (
-        <ActorAvatar profile={actor} size="row" decorative />
-      )}
+      <DecorativeActorAvatar actor={actor} size="row" />
       <ActorHandle actor={actor} />
       <p className="col-start-2 row-start-2 truncate text-xs text-zinc-500 dark:text-zinc-400 sm:col-start-3 sm:row-start-1 sm:text-right">
         {date ?? 'Date unknown'}

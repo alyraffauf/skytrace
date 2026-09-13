@@ -93,6 +93,14 @@ export function ActorReferenceAvatar({ actor, size = 'row' }: { actor: ActorRefe
   )
 }
 
+export function DecorativeActorAvatar({ actor, size }: { actor: Actor; size: 'small' | 'row' }) {
+  return actor.kind === 'actorReference' ? (
+    <ActorReferenceAvatar actor={actor} size={size} />
+  ) : (
+    <ActorAvatar profile={actor} size={size} decorative />
+  )
+}
+
 export function ActorReferenceText({ actor }: { actor: ActorReference }) {
   return (
     <Link
@@ -134,11 +142,7 @@ function MiniActorView({ actor, label }: { actor: Actor; label?: string }) {
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
       {label && <span>{label}</span>}
-      {actor.kind === 'actorReference' ? (
-        <ActorReferenceAvatar actor={actor} size="small" />
-      ) : (
-        <ActorAvatar profile={actor} size="small" decorative />
-      )}
+      <DecorativeActorAvatar actor={actor} size="small" />
       <ActorHandle actor={actor} compact />
     </span>
   )
