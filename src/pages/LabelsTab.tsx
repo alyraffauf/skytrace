@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { InfiniteScroll } from '../components/InfiniteScroll'
+import { PagedQueryPagination, PagedQueryRefreshNotice } from '../components/PagedQuery'
 import { LabelRow } from '../components/LabelRow'
 import { groupLabelHistory, type LabelHistoryEvent } from '../lib/labelHistory'
 import { useLabelDisplayNames } from '../components/LabelValue'
@@ -31,6 +31,7 @@ export function LabelsTab() {
   const issues = query.data.pages.at(-1)?.issues ?? []
   return (
     <div>
+      <PagedQueryRefreshNotice query={query} resourceLabel="account labels" />
       {items.length === 0 ? (
         <EmptyState title="No account labels found" />
       ) : (
@@ -39,12 +40,7 @@ export function LabelsTab() {
         </RecordList>
       )}
       {issues.length > 0 && <SourceIssues issues={issues} retry={() => void query.fetchNextPage()} />}
-      <InfiniteScroll
-        hasMore={query.hasNextPage && issues.length === 0}
-        loading={query.isFetchingNextPage}
-        error={query.isFetchNextPageError ? query.error : undefined}
-        load={() => void query.fetchNextPage()}
-      />
+      <PagedQueryPagination query={query} hasMore={query.hasNextPage && issues.length === 0} />
     </div>
   )
 }

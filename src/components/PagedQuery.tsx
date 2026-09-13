@@ -16,7 +16,6 @@ export function PagedQueryView({
   children: ReactNode
   paginationClassName?: string
 }) {
-  const paginationError = query.isFetchNextPageError ? query.error : undefined
   if (query.isPending) return <LoadingRows count={loadingCount} />
   if (!query.data) {
     return (
@@ -30,27 +29,52 @@ export function PagedQueryView({
   }
   return (
     <div>
-      {query.isRefetchError && (
-        <PagedQueryError
-          resourceLabel={resourceLabel}
-          mode="refresh"
-          isRetrying={query.isFetching}
-          retry={() => void query.refetch()}
-        />
-      )}
+      <PagedQueryRefreshNotice query={query} resourceLabel={resourceLabel} />
       {children}
       {!query.isRefetchError && (
         <div className={paginationClassName}>
-          <InfiniteScroll
-            hasMore={query.hasNextPage}
-            disabled={query.isFetching}
-            loading={query.isFetchingNextPage}
-            error={paginationError}
-            load={() => void query.fetchNextPage()}
-          />
+          <PagedQueryPagination query={query} />
         </div>
       )}
     </div>
+  )
+}
+
+export function PagedQueryRefreshNotice({
+  query,
+  resourceLabel,
+}: {
+  query: UseInfiniteQueryResult<unknown, Error>
+  resourceLabel: string
+}) {
+  if (!query.isRefetchError) return null
+  return (
+    <PagedQueryError
+      resourceLabel={resourceLabel}
+      mode="refresh"
+      isRetrying={query.isFetching}
+      retry={() => void query.refetch()}
+    />
+  )
+}
+
+export function PagedQueryPagination({
+  query,
+  hasMore = query.hasNextPage,
+}: {
+  query: UseInfiniteQueryResult<unknown, Error>
+  hasMore?: boolean
+}) {
+  const paginationError = query.isFetchNextPageError ? query.error : undefined
+  if (query.isRefetchError) return null
+  return (
+    <InfiniteScroll
+      hasMore={hasMore}
+      disabled={query.isFetching}
+      loading={query.isFetchingNextPage}
+      error={paginationError}
+      load={() => void query.fetchNextPage()}
+    />
   )
 }
 
