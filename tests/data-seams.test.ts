@@ -354,7 +354,7 @@ describe('public data seams', () => {
       }),
     )
 
-    const publicData = new PublicDataService(createTestQueryClient(), undefined, 20)
+    const publicData = new PublicDataService(createTestQueryClient(), 20)
     await expect(publicData.record(uri)).rejects.toMatchObject({ name: 'TimeoutError' })
     expect(fetchSignal?.aborted).toBe(true)
   })
@@ -492,7 +492,7 @@ describe('feed paging', () => {
     expect(emitted.slice(50, 100).every((item) => item.kind === 'post' && item.createdAt.startsWith('2026-03'))).toBe(
       true,
     )
-    expect(emitted.slice(100).every((item) => item.kind === 'repost' && item.target.kind === 'post')).toBe(true)
+    expect(emitted.slice(100).every((item) => item.kind === 'repost' && item.target === undefined)).toBe(true)
     const dates = emitted.map((item) =>
       item.kind === 'unavailable' ? Number.NEGATIVE_INFINITY : Date.parse(item.createdAt),
     )

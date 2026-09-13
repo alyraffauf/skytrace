@@ -29,6 +29,7 @@ const RECORD_COUNT_PAGE_SIZE = 100
 const clients = new Map<string, Client>()
 const backlinkSources = [
   'app.bsky.graph.block:subject',
+  'app.bsky.graph.listblock:subject',
   'app.bsky.graph.listitem:list',
   'app.bsky.graph.listitem:subject',
 ] as const

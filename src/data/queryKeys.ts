@@ -11,6 +11,7 @@ export const queryKeys = {
     ['repositoryRecords', identity.pds, identity.did, collection, cursor ?? null, limit] as const,
   blockedCount: (identity?: ActorIdentity) => ['blockedCount', identity?.pds ?? null, identity?.did ?? null] as const,
   blockedByCount: (did?: string) => ['blockedByCount', did ?? null] as const,
+  listBlockCount: (uri?: string) => ['listBlockCount', uri ?? null] as const,
   actorBlocksConfiguredAccount: (did?: string, targetDid?: string) =>
     ['actorBlocksConfiguredAccount', did ?? null, targetDid ?? null] as const,
   backlinks: (subject: string, source: string, cursor: string | undefined) =>
@@ -30,4 +31,9 @@ export const queryKeys = {
   labeledPosts: (did: string) => ['labeledPosts', did] as const,
   feed: (did: string) => ['feed', did] as const,
   listMembers: (uri: string) => ['listMembers', uri] as const,
+  listMember: (listUri: string, membershipUri: string) => ['listMember', listUri, membershipUri] as const,
+  listedOn: (did: string) => ['listedOn', did] as const,
+  listedOnMembership: (membershipUri: string) => ['listedOnMembership', membershipUri] as const,
+  blockDate: (uri: string) => ['blockDate', uri] as const,
+  feedPost: (uri: string) => ['feedPost', uri] as const,
 } as const

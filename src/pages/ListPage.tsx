@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { isRecordKey } from '@atcute/lexicons/syntax'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { MiniActor } from '../components/ActorIdentity'
 import { InfiniteScroll } from '../components/InfiniteScroll'
 import { ListAvatar } from '../components/ListRow'
 import { RecordLinksMenu } from '../components/RecordLinksMenu'
-import { RelationshipRow } from '../components/RelationshipRow'
 import { RecordList } from '../components/RecordList'
+import { StreamedListMemberRow } from '../components/StreamedMembershipRows'
 import { EmptyState, ErrorState, LoadingRows, UnavailableCard } from '../components/States'
 import { formatDate } from '../lib/dates'
 import { publicDataServiceFor, type PublicDataService } from '../data/publicData'
@@ -14,10 +14,9 @@ import { queryKeys } from '../data/queryKeys'
 import { listPurposeLabel } from '../lib/lists'
 import { socialListPath } from '../lib/links'
 import { parseAtUri } from '../lib/parse'
-import { profileTabPath } from '../lib/routes'
-import { newestFirst } from '../lib/sorting'
+import { dedupeBy } from '../lib/collections'
 import { usePagedRecords } from '../lib/usePagedRecords'
-import type { ListSummary, RelationshipEntry, UnavailableItem } from '../types'
+import type { ListSummary } from '../types'
 
 export function ListPage() {
   const { actor = '', rkey = '' } = useParams()
@@ -52,11 +51,12 @@ function UnavailableListPage({ reason }: { reason: string }) {
 
 function ResolvedListPage({ list, service }: { list: ListSummary; service: PublicDataService }) {
   const listRecord = parseAtUri(list.uri)!
-  const membersQuery = usePagedRecords<RelationshipEntry | UnavailableItem>(
-    queryKeys.listMembers(list.uri),
-    (cursor, signal) => service.listMembers(list.uri, cursor, signal),
+  const moderationListUri = list.purpose.endsWith('#modlist') ? list.uri : undefined
+  const listBlockCountQuery = useQuery(service.listBlockCountQueryOptions(moderationListUri))
+  const membersQuery = usePagedRecords<{ uri: string }>(queryKeys.listMembers(list.uri), (cursor, signal) =>
+    service.listMembers(list.uri, cursor, signal),
   )
-  const members = newestFirst(membersQuery.data?.pages.flatMap((page) => page.items) ?? [])
+  const members = uniqueMembershipReferences(membersQuery.data?.pages.flatMap((page) => page.items) ?? [])
   const paginationError = membersQuery.isFetchNextPageError ? membersQuery.error : undefined
 
   return (
@@ -85,14 +85,20 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
         )}
       </header>
 
+      {listBlockCountQuery.data !== undefined && (
+        <div className="border-b border-zinc-200 py-3 dark:border-zinc-800">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {listBlockCountQuery.data.toLocaleString()}{' '}
+            {listBlockCountQuery.data === 1 ? 'account blocks' : 'accounts block'} this moderation list
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between border-b border-zinc-200 py-3 dark:border-zinc-800">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Members</h2>
-        <Link
-          to={profileTabPath(listRecord.did, 'lists')}
-          className="text-xs text-zinc-500 hover:text-violet-700 dark:text-zinc-400 dark:hover:text-violet-300"
-        >
-          Owner's lists
-        </Link>
+        <span className="hidden w-[10.5rem] pr-[2.5rem] text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 sm:block">
+          Date added
+        </span>
       </div>
 
       {membersQuery.isPending && <LoadingRows count={6} />}
@@ -103,7 +109,7 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
       {members.length > 0 && (
         <RecordList>
           {members.map((member) => (
-            <RelationshipRow key={member.id} entry={member} />
+            <StreamedListMemberRow key={member.uri} listUri={list.uri} membershipUri={member.uri} service={service} />
           ))}
         </RecordList>
       )}
@@ -115,6 +121,10 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
       />
     </article>
   )
+}
+
+function uniqueMembershipReferences(references: Array<{ uri: string }>) {
+  return dedupeBy(references, (reference) => reference.uri)
 }
 
 function ListPageSkeleton() {

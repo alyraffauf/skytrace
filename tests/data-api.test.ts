@@ -306,9 +306,11 @@ describe('atcute-backed API boundaries', () => {
     )
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const service = new PublicDataService(queryClient)
+    const listUri = `at://${did}/app.bsky.graph.list/3skytrace`
 
     await expect(queryClient.fetchQuery(service.blockedCountQueryOptions(identity))).resolves.toBe(2)
     await expect(queryClient.fetchQuery(service.blockedByCountQueryOptions(did))).resolves.toBe(3_000)
+    await expect(queryClient.fetchQuery(service.listBlockCountQueryOptions(listUri))).resolves.toBe(3_000)
   })
 
   it('keeps a successful relationship count when the other source fails', async () => {
@@ -385,7 +387,93 @@ describe('atcute-backed API boundaries', () => {
     const service = createTestService()
     const page = await service.listMembers(listUri)
     expect(backlinkSubject).toBe(listUri)
-    expect(page.items[0]).toMatchObject({ kind: 'relationship', actor: { kind: 'actorReference', did: memberDid } })
+    expect(page.items).toEqual([{ uri: `at://${did}/app.bsky.graph.listitem/3member` }])
+  })
+
+  it('returns list-member backlinks without waiting for every membership record', async () => {
+    const listUri = `at://${did}/app.bsky.graph.list/3large`
+    const memberCount = 96
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.pathname.endsWith('getBacklinks')) {
+          return response({
+            total: memberCount,
+            records: Array.from({ length: memberCount }, (_, index) => ({
+              did,
+              collection: 'app.bsky.graph.listitem',
+              rkey: `3member${index}`,
+            })),
+          })
+        }
+        throw new Error(`Unexpected request for ${url.pathname}`)
+      }),
+    )
+
+    const page = await createTestService().listMembers(listUri)
+
+    expect(page.items).toHaveLength(memberCount)
+    expect(page.items.every((item) => item.uri.includes('/app.bsky.graph.listitem/'))).toBe(true)
+  })
+
+  it('hydrates a list member after its backlink page has loaded', async () => {
+    const listUri = `at://${did}/app.bsky.graph.list/3streamed`
+    const memberDid = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
+    const membershipUri = `at://${did}/app.bsky.graph.listitem/3member`
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.pathname.endsWith('getBacklinks'))
+          return response({ total: 1, records: [{ did, collection: 'app.bsky.graph.listitem', rkey: '3member' }] })
+        return response({
+          uri: membershipUri,
+          cid,
+          value: {
+            $type: 'app.bsky.graph.listitem',
+            subject: memberDid,
+            list: listUri,
+            createdAt: '2026-01-05T00:00:00Z',
+          },
+        })
+      }),
+    )
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const service = new PublicDataService(queryClient)
+
+    await expect(service.listMembers(listUri)).resolves.toMatchObject({ items: [{ uri: membershipUri }] })
+    await expect(queryClient.fetchQuery(service.listMemberQueryOptions(listUri, membershipUri))).resolves.toMatchObject(
+      {
+        kind: 'relationship',
+        actor: { did: memberDid },
+      },
+    )
+  })
+
+  it('calls a fetched but invalid list membership malformed', async () => {
+    const listUri = `at://${did}/app.bsky.graph.list/3streamed`
+    const membershipUri = `at://${did}/app.bsky.graph.listitem/3member`
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        response({
+          uri: membershipUri,
+          cid,
+          value: {
+            $type: 'app.bsky.graph.listitem',
+            subject: 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa',
+            list: `at://${did}/app.bsky.graph.list/3other`,
+            createdAt: '2026-01-05T00:00:00Z',
+          },
+        }),
+      ),
+    )
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+    await expect(
+      queryClient.fetchQuery(new PublicDataService(queryClient).listMemberQueryOptions(listUri, membershipUri)),
+    ).resolves.toMatchObject({ kind: 'unavailable', reason: 'This list membership is malformed.' })
   })
 
   it('queries each labeled-post subject separately and groups every matching label', async () => {

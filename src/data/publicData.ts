@@ -5,7 +5,6 @@ import type {
   FeedItem,
   LabeledPost,
   LabelEvent,
-  ListMembership,
   ListSummary,
   Page,
   RawRecord,
@@ -28,8 +27,8 @@ export class PublicDataService {
   private readonly labelsService: LabelDataService
   private readonly feedService: FeedDataService
 
-  constructor(queryClient: QueryClient, optionalProfileTimeoutMs?: number, requestTimeoutMs?: number) {
-    this.core = new PublicDataCore(queryClient, optionalProfileTimeoutMs, requestTimeoutMs)
+  constructor(queryClient: QueryClient, requestTimeoutMs?: number) {
+    this.core = new PublicDataCore(queryClient, requestTimeoutMs)
     this.graph = new GraphDataService(this.core)
     this.labelsService = new LabelDataService(this.core)
     this.feedService = new FeedDataService(this.core, this.labelsService)
@@ -71,6 +70,10 @@ export class PublicDataService {
     return this.core.blockedByCountQueryOptions(did)
   }
 
+  listBlockCountQueryOptions(listUri?: string) {
+    return this.core.listBlockCountQueryOptions(listUri)
+  }
+
   actorBlocksConfiguredAccountQueryOptions(did?: ActorIdentity['did'], targetDid?: ActorIdentity['did']) {
     return this.graph.actorBlocksConfiguredAccountQueryOptions(did, targetDid)
   }
@@ -95,6 +98,10 @@ export class PublicDataService {
     return this.graph.blockedBy(did, cursor, signal)
   }
 
+  blockDateQueryOptions(blockUri: string) {
+    return this.graph.blockDateQueryOptions(blockUri)
+  }
+
   listSummaryQueryOptions(uri: string | undefined) {
     return this.graph.listSummaryQueryOptions(uri)
   }
@@ -103,16 +110,20 @@ export class PublicDataService {
     return this.graph.lists(identity, cursor, signal)
   }
 
-  listedOn(did: string, cursor?: string, signal?: AbortSignal): Promise<Page<ListMembership | UnavailableItem>> {
-    return this.graph.listedOn(did, cursor, signal)
+  listMembers(listUri: string, cursor?: string, signal?: AbortSignal): Promise<Page<{ uri: string }>> {
+    return this.graph.listMembers(listUri, cursor, signal)
   }
 
-  listMembers(
-    listUri: string,
-    cursor?: string,
-    signal?: AbortSignal,
-  ): Promise<Page<RelationshipEntry | UnavailableItem>> {
-    return this.graph.listMembers(listUri, cursor, signal)
+  listMemberQueryOptions(listUri: string, membershipUri: string) {
+    return this.graph.listMemberQueryOptions(listUri, membershipUri)
+  }
+
+  listedOnReferences(did: string, cursor?: string, signal?: AbortSignal): Promise<Page<{ uri: string }>> {
+    return this.graph.listedOnReferences(did, cursor, signal)
+  }
+
+  listedOnMembershipQueryOptions(membershipUri: string) {
+    return this.graph.listedOnMembershipQueryOptions(membershipUri)
   }
 
   labels(
@@ -137,6 +148,10 @@ export class PublicDataService {
     signal?: AbortSignal,
   ): Promise<Page<FeedItem, FeedPagingState>> {
     return this.feedService.feed(identity, cursor, signal)
+  }
+
+  feedPostQueryOptions(uri: import('../types').FeedPost['uri']) {
+    return this.feedService.feedPostQueryOptions(uri)
   }
 }
 

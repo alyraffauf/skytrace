@@ -4,15 +4,24 @@ import { labelState } from './LabelRow'
 import { formatDate } from '../lib/dates'
 import type { LabeledPost } from '../types'
 import { LabelValue } from './LabelValue'
+import type { PublicDataService } from '../data/publicData'
 
 export function LabeledPostRow({
   item,
   displayNames,
+  service,
 }: {
   item: LabeledPost
   displayNames?: ReadonlyMap<string, string>
+  service?: PublicDataService
 }) {
-  return <FeedRow item={item.post} footer={<PostLabels labels={item.labels} displayNames={displayNames} />} />
+  return (
+    <FeedRow
+      item={item.post}
+      service={service}
+      footer={<PostLabels labels={item.labels} displayNames={displayNames} />}
+    />
+  )
 }
 
 function PostLabels({

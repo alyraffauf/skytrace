@@ -1,20 +1,11 @@
 import { AppBskyGraphBlock, AppBskyGraphList, AppBskyGraphListitem } from '@atcute/bluesky'
 import { queryOptions } from '@tanstack/react-query'
-import type {
-  ActorIdentity,
-  ListMembership,
-  ListSummary,
-  Page,
-  RawRecord,
-  RelationshipEntry,
-  UnavailableItem,
-} from '../types'
+import type { ActorIdentity, ListSummary, Page, RawRecord, RelationshipEntry, UnavailableItem } from '../types'
 import { CACHE_TTL_MS } from '../lib/cache'
 import { actorFromAtUri, isDid, parseAtUri } from '../lib/parse'
 import { actorReference, isUnavailableRecord, type PublicDataCore, unavailable } from './publicDataCore'
 import { queryKeys } from './queryKeys'
 import { blobCid, parsedRecord } from './recordParsers'
-import { throwIfAborted } from '../lib/abort'
 
 export class GraphDataService {
   constructor(private readonly core: PublicDataCore) {}
@@ -84,22 +75,28 @@ export class GraphDataService {
     signal?: AbortSignal,
   ): Promise<Page<RelationshipEntry | UnavailableItem>> {
     const page = await this.core.backlinks({ subject: did, source: 'app.bsky.graph.block:subject', cursor, signal })
-    const items = await Promise.all(
-      page.items.map(async (reference) => {
-        const blockerDid = actorFromAtUri(reference.uri)
-        if (!blockerDid || !isDid(blockerDid))
-          return unavailable(reference.uri, 'Constellation returned an invalid block reference.')
-        const relationshipRecord = await this.core.optionalRecord(reference.uri, signal)
-        const createdAt = parsedRecord(AppBskyGraphBlock.mainSchema, relationshipRecord)?.createdAt
-        return {
-          kind: 'relationship' as const,
-          id: reference.uri,
-          actor: actorReference(blockerDid),
-          createdAt,
-        }
-      }),
-    )
+    const items = page.items.map((reference) => {
+      const blockerDid = actorFromAtUri(reference.uri)
+      if (!blockerDid || !isDid(blockerDid))
+        return unavailable(reference.uri, 'Constellation returned an invalid block reference.')
+      return {
+        kind: 'relationship' as const,
+        id: reference.uri,
+        actor: actorReference(blockerDid),
+      }
+    })
     return { items, cursor: page.cursor }
+  }
+
+  blockDateQueryOptions(blockUri: string) {
+    return queryOptions({
+      queryKey: queryKeys.blockDate(blockUri),
+      queryFn: async ({ signal }) => {
+        const record = await this.core.optionalRecord(blockUri, signal)
+        return parsedRecord(AppBskyGraphBlock.mainSchema, record)?.createdAt
+      },
+      staleTime: CACHE_TTL_MS.activity,
+    })
   }
 
   private listFromRecord(record: RawRecord): ListSummary | UnavailableItem {
@@ -147,66 +144,55 @@ export class GraphDataService {
     }
   }
 
-  async listedOn(did: string, cursor?: string, signal?: AbortSignal): Promise<Page<ListMembership | UnavailableItem>> {
-    const page = await this.core.backlinks({ subject: did, source: 'app.bsky.graph.listitem:subject', cursor, signal })
-    const items = await Promise.all(
-      page.items.map(async (reference) => {
-        if (!actorFromAtUri(reference.uri))
-          return unavailable(reference.uri, 'Constellation returned an invalid membership reference.')
-        try {
-          const membership = await this.core.optionalRecord(reference.uri, signal)
-          if (!membership) return unavailable(reference.uri)
-          const value = parsedRecord(AppBskyGraphListitem.mainSchema, membership)
-          if (!value || !parseAtUri(value.list))
-            return unavailable(reference.uri, 'This membership has no valid list reference.')
-          const listUri = value.list
-          const listRecord = await this.core.optionalRecord(listUri, signal)
-          return {
-            kind: 'membership' as const,
-            uri: reference.uri,
-            createdAt: value.createdAt,
-            list: listRecord ? this.listFromRecord(listRecord) : unavailable(listUri),
-          }
-        } catch {
-          throwIfAborted(signal)
-          return unavailable(reference.uri)
-        }
-      }),
-    )
-    return { items, cursor: page.cursor }
-  }
-
-  async listMembers(
-    listUri: string,
-    cursor?: string,
-    signal?: AbortSignal,
-  ): Promise<Page<RelationshipEntry | UnavailableItem>> {
+  async listMembers(listUri: string, cursor?: string, signal?: AbortSignal): Promise<Page<{ uri: string }>> {
     const listRecord = parseAtUri(listUri)
     if (listRecord?.collection !== 'app.bsky.graph.list') {
-      return { items: [unavailable(listUri, 'This list address is invalid.')] }
+      throw new Error('This list address is invalid.')
     }
 
-    const page = await this.core.backlinks({
+    return this.core.backlinks({
       subject: listUri,
       source: 'app.bsky.graph.listitem:list',
       cursor,
       signal,
     })
-    const items = await Promise.all(
-      page.items.map(async (reference) => {
-        const membership = await this.core.optionalRecord(reference.uri, signal)
+  }
+
+  listMemberQueryOptions(listUri: string, membershipUri: string) {
+    return queryOptions({
+      queryKey: queryKeys.listMember(listUri, membershipUri),
+      queryFn: async ({ signal }) => {
+        const membership = await this.core.record(membershipUri, signal)
         const value = parsedRecord(AppBskyGraphListitem.mainSchema, membership)
-        if (!value || value.list !== listUri || !isDid(value.subject)) {
-          return unavailable(reference.uri, 'This list membership is malformed or unavailable.')
-        }
+        if (!value || value.list !== listUri || !isDid(value.subject))
+          return unavailable(membershipUri, 'This list membership is malformed.')
         return {
           kind: 'relationship' as const,
-          id: reference.uri,
+          id: membershipUri,
           actor: actorReference(value.subject),
           createdAt: value.createdAt,
         }
-      }),
-    )
-    return { items, cursor: page.cursor }
+      },
+      staleTime: CACHE_TTL_MS.activity,
+    })
+  }
+
+  async listedOnReferences(did: string, cursor?: string, signal?: AbortSignal): Promise<Page<{ uri: string }>> {
+    return this.core.backlinks({ subject: did, source: 'app.bsky.graph.listitem:subject', cursor, signal })
+  }
+
+  listedOnMembershipQueryOptions(membershipUri: string) {
+    return queryOptions({
+      queryKey: queryKeys.listedOnMembership(membershipUri),
+      queryFn: async ({ signal }) => {
+        const membership = await this.core.record(membershipUri, signal)
+        const value = parsedRecord(AppBskyGraphListitem.mainSchema, membership)
+        if (!value || !parseAtUri(value.list))
+          return unavailable(membershipUri, 'This membership has no valid list reference.')
+        const list = this.listFromRecord(await this.core.record(value.list, signal))
+        return { kind: 'membership' as const, uri: membershipUri, createdAt: value.createdAt, list }
+      },
+      staleTime: CACHE_TTL_MS.activity,
+    })
   }
 }

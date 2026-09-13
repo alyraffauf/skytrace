@@ -114,8 +114,8 @@ export type FeedPost = {
   text: string
   facets: Facet[]
   replyTo?: CanonicalResourceUri
+  quoteUri?: CanonicalResourceUri
   images?: FeedImage[]
-  quote?: FeedPost | UnavailableItem
   video?: { cid: Cid; alt?: string; mimeType?: string }
 }
 
@@ -124,7 +124,8 @@ type FeedRepost = {
   uri: CanonicalResourceUri
   createdAt: string
   author: ActorReference
-  target: FeedPost | UnavailableItem
+  subjectUri: CanonicalResourceUri
+  target?: FeedPost | UnavailableItem
 }
 
 export type FeedItem = FeedPost | FeedRepost | UnavailableItem

@@ -18,9 +18,10 @@ import { labelDefinitionsFromRecord, parseFacets } from '../src/data/recordParse
 import { normalizeActorInput } from '../src/lib/parse'
 import { skythreadPostUrl } from '../src/lib/links'
 import { ProfilePage } from '../src/pages/ProfilePage'
+import { ListPage } from '../src/pages/ListPage'
 import { FeedTab, LabeledPostsTab, LabelsTab, mergeLabeledPosts } from '../src/pages/ProfileTabs'
 import { PublicDataService } from '../src/data/publicData'
-import type { ActorIdentity, ActorProfile, FeedPost, LabeledPost, LabelEvent } from '../src/types'
+import type { ActorIdentity, ActorProfile, FeedPost, LabeledPost, LabelEvent, ListSummary } from '../src/types'
 import { createTestQueryClient, jsonResponse as response } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
@@ -231,6 +232,87 @@ describe('profile relationship counts', () => {
     ).toBeVisible()
     expect(view.queryByText('Feed content')).not.toBeInTheDocument()
     expect(requestedUrls.some((url) => url.hostname === 'pds.example')).toBe(false)
+    expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinksCount'))).toBe(false)
+  })
+})
+
+describe('list block count', () => {
+  it('shows how many people block the list', async () => {
+    const listUri = `at://${did}/app.bsky.graph.list/3skytrace`
+    const list: ListSummary = {
+      kind: 'list',
+      uri: listUri,
+      name: 'Test list',
+      purpose: 'app.bsky.graph.defs#modlist',
+      owner: actorReference,
+    }
+    let countRequest: URL | undefined
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.pathname.endsWith('getBacklinksCount')) {
+          countRequest = url
+          return response({ total: 12 })
+        }
+        if (url.pathname.endsWith('getBacklinks')) return response({ total: 0, records: [] })
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(queryKeys.identity(identity.handle), identity)
+    queryClient.setQueryData(queryKeys.listSummary(listUri), list)
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/list/${identity.handle}/3skytrace`]}>
+          <Routes>
+            <Route path="list/:actor/:rkey" element={<ListPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByText('12 accounts block this moderation list')).toBeVisible()
+    expect(screen.getByText('Date added')).toBeVisible()
+    expect(countRequest?.searchParams.get('subject')).toBe(listUri)
+    expect(countRequest?.searchParams.get('source')).toBe('app.bsky.graph.listblock:subject')
+  })
+
+  it('does not request a block count for a curation list', async () => {
+    const listUri = `at://${did}/app.bsky.graph.list/3curated`
+    const list: ListSummary = {
+      kind: 'list',
+      uri: listUri,
+      name: 'Curation list',
+      purpose: 'app.bsky.graph.defs#curatelist',
+      owner: actorReference,
+    }
+    const requestedUrls: URL[] = []
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(input instanceof Request ? input.url : String(input))
+      requestedUrls.push(url)
+      if (url.pathname.endsWith('getBacklinks')) return response({ total: 0, records: [] })
+      throw new Error(`Unexpected URL ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(queryKeys.identity(identity.handle), identity)
+    queryClient.setQueryData(queryKeys.listSummary(listUri), list)
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/list/${identity.handle}/3curated`]}>
+          <Routes>
+            <Route path="list/:actor/:rkey" element={<ListPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'No members found' })).toBeVisible()
+    expect(screen.queryByText(/Blocked by/)).not.toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalled()
     expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinksCount'))).toBe(false)
   })
 })

@@ -1,28 +1,23 @@
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { FeedRow } from '../components/FeedRow'
-import { PagedQueryView } from '../components/PagedQuery'
 import { LabeledPostRow } from '../components/LabeledPostRow'
 import { useLabelDisplayNames } from '../components/LabelValue'
 import { ListRow } from '../components/ListRow'
 import { RecordList } from '../components/RecordList'
+import { StreamedListedOnRow } from '../components/StreamedMembershipRows'
 import { RelationshipRow } from '../components/RelationshipRow'
-import { EmptyState, UnavailableCard } from '../components/States'
+import { StreamedBlockedByRow } from '../components/StreamedRelationshipRow'
+import { EmptyState } from '../components/States'
+import { PagedQueryView } from '../components/PagedQuery'
 import { shouldHideProfilePosts } from '../config/privacy'
 import { mergeFeedItems, type LabeledPostsCursor } from '../data/publicData'
 import type { FeedPagingState } from '../data/feedPaging'
 import { queryKeys } from '../data/queryKeys'
 import { timestampFor } from '../lib/sorting'
+import { dedupeBy } from '../lib/collections'
 import { usePagedRecords } from '../lib/usePagedRecords'
-import type {
-  FeedItem,
-  LabelEvent,
-  LabeledPost,
-  ListMembership,
-  ListSummary,
-  RelationshipEntry,
-  UnavailableItem,
-} from '../types'
+import type { FeedItem, LabelEvent, LabeledPost, ListSummary, RelationshipEntry, UnavailableItem } from '../types'
 import type { ProfileOutletContext } from './ProfilePage'
 import { RecordTab } from './RecordTab'
 
@@ -51,7 +46,7 @@ export function BlockedByTab() {
       emptyTitle="No accounts blocking this profile"
       load={(cursor, signal) => service.blockedBy(profile.identity.did, cursor, signal)}
       itemKey={(item) => item.id}
-      renderItem={(item) => <RelationshipRow entry={item} />}
+      renderItem={(item) => <StreamedBlockedByRow entry={item} service={service} />}
     />
   )
 }
@@ -72,22 +67,30 @@ export function ListsTab() {
 
 export function ListedOnTab() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
-  return (
-    <RecordTab<ListMembership | UnavailableItem>
-      queryKey={queryKeys.profileTab(profile.identity.did, 'listedOn')}
-      resourceLabel="list memberships"
-      emptyTitle="Not on any lists"
-      load={(cursor, signal) => service.listedOn(profile.identity.did, cursor, signal)}
-      itemKey={(item) => (item.kind === 'unavailable' ? item.id : item.uri)}
-      renderItem={(item) =>
-        item.kind === 'unavailable' ? (
-          <UnavailableCard reason={item.reason} />
-        ) : (
-          <ListRow list={item.list} membership={item} />
-        )
-      }
-    />
+  const query = usePagedRecords<{ uri: string }>(
+    queryKeys.profileTab(profile.identity.did, 'listedOn'),
+    (cursor, signal) => service.listedOnReferences(profile.identity.did, cursor, signal),
   )
+  const memberships = uniqueMembershipReferences(query.data?.pages.flatMap((page) => page.items) ?? [])
+  return (
+    <PagedQueryView query={query} resourceLabel="list memberships">
+      {memberships.length === 0 ? (
+        <EmptyState title="Not on any lists" />
+      ) : (
+        <RecordList>
+          {memberships.map((membership) => (
+            <Fragment key={membership.uri}>
+              <StreamedListedOnRow membershipUri={membership.uri} service={service} />
+            </Fragment>
+          ))}
+        </RecordList>
+      )}
+    </PagedQueryView>
+  )
+}
+
+function uniqueMembershipReferences(references: Array<{ uri: string }>) {
+  return dedupeBy(references, (reference) => reference.uri)
 }
 
 export function LabeledPostsTab() {
@@ -134,7 +137,9 @@ function ResolvedLabeledPostRows({
     items.flatMap((item) => item.labels),
     service,
   )
-  return items.map((item) => <LabeledPostRow key={item.post.uri} item={item} displayNames={displayNames} />)
+  return items.map((item) => (
+    <LabeledPostRow key={item.post.uri} item={item} displayNames={displayNames} service={service} />
+  ))
 }
 
 // Keep the first-seen post when a later page adds no labels.
@@ -185,7 +190,7 @@ function FeedQuery() {
       ) : (
         <RecordList>
           {items.map((item) => (
-            <FeedRow key={item.kind === 'unavailable' ? item.id : item.uri} item={item} />
+            <FeedRow key={item.kind === 'unavailable' ? item.id : item.uri} item={item} service={service} />
           ))}
         </RecordList>
       )}

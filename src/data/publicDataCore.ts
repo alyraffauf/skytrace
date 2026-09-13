@@ -31,7 +31,6 @@ import {
   resolveActor,
 } from './xrpc'
 
-const OPTIONAL_PROFILE_TIMEOUT_MS = 1_500
 const REQUEST_TIMEOUT_MS = 15_000
 
 const didDocumentResolver = new CompositeDidDocumentResolver({
@@ -69,7 +68,6 @@ export class PublicDataCore {
 
   constructor(
     private readonly queryClient: QueryClient,
-    private readonly optionalProfileTimeoutMs = OPTIONAL_PROFILE_TIMEOUT_MS,
     private readonly requestTimeoutMs = REQUEST_TIMEOUT_MS,
   ) {}
 
@@ -118,6 +116,22 @@ export class PublicDataCore {
             })
           : Promise.resolve(undefined),
       enabled: did !== undefined,
+      staleTime: CACHE_TTL_MS.activity,
+    })
+  }
+
+  listBlockCountQueryOptions(listUri?: string) {
+    return queryOptions({
+      queryKey: queryKeys.listBlockCount(listUri),
+      queryFn: ({ signal }) =>
+        listUri
+          ? getBacklinksCount({
+              subject: listUri,
+              source: 'app.bsky.graph.listblock:subject',
+              signal: deadlineSignal(signal, this.requestTimeoutMs),
+            })
+          : Promise.resolve(undefined),
+      enabled: listUri !== undefined,
       staleTime: CACHE_TTL_MS.activity,
     })
   }
@@ -209,12 +223,11 @@ export class PublicDataCore {
   }
 
   private async optionalLoad<T>(
-    load: (signal: AbortSignal) => Promise<T>,
+    load: (signal?: AbortSignal) => Promise<T>,
     signal?: AbortSignal,
   ): Promise<T | undefined> {
     try {
-      const requestSignal = deadlineSignal(signal, this.optionalProfileTimeoutMs)
-      const result = await load(requestSignal)
+      const result = await load(signal)
       throwIfAborted(signal)
       return result
     } catch {

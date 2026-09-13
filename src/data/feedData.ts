@@ -1,4 +1,5 @@
 import { AppBskyFeedPost, AppBskyFeedRepost } from '@atcute/bluesky'
+import { queryOptions } from '@tanstack/react-query'
 import type {
   ActorIdentity,
   FeedItem,
@@ -11,6 +12,7 @@ import type {
   UnavailableItem,
 } from '../types'
 import { dedupeBy } from '../lib/collections'
+import { CACHE_TTL_MS } from '../lib/cache'
 import { actorFromAtUri, parseAtUri } from '../lib/parse'
 import { timestampFor } from '../lib/sorting'
 import { readFeedState, storeFeedState, type FeedPagingState, type FeedStreamState } from './feedPaging'
@@ -18,6 +20,7 @@ import { type LabelDataService } from './labelData'
 import { actorReference, isUnavailableRecord, type PublicDataCore, unavailable } from './publicDataCore'
 import { blobCid, objectValue, parseFacets, parseImages, parsedRecord, stringValue } from './recordParsers'
 import { PublicDataValidationError } from './xrpc'
+import { queryKeys } from './queryKeys'
 
 const LABELED_POST_BATCH_SIZE = 12
 const FEED_BATCH_SIZE = 12
@@ -89,9 +92,8 @@ export class FeedDataService {
     record: RawRecord
     repository?: ActorIdentity
     signal?: AbortSignal
-    hydrateQuote?: boolean
   }): Promise<FeedPost | UnavailableItem> {
-    const { record, repository, signal, hydrateQuote = true } = options
+    const { record, repository, signal } = options
     const authorDid = actorFromAtUri(record.uri)
     const value = parsedRecord(AppBskyFeedPost.mainSchema, record)
     if (!authorDid || !value) return unavailable(record.uri, 'This post is malformed or unavailable.')
@@ -120,13 +122,6 @@ export class FeedDataService {
       repository?.did === authorDid
         ? Promise.resolve(repository.pds)
         : this.core.optionalIdentity(authorDid, signal).then((identity) => identity?.pds)
-    let quote: FeedPost | UnavailableItem | undefined
-    if (hydrateQuote && quoteUri) {
-      const quoteRecord = await this.core.optionalRecord(quoteUri, signal)
-      quote = quoteRecord
-        ? await this.postFromRecord({ record: quoteRecord, repository, signal, hydrateQuote: false })
-        : unavailable(quoteUri, 'Quoted post unavailable.')
-    }
     return {
       kind: 'post',
       uri: record.uri,
@@ -136,10 +131,23 @@ export class FeedDataService {
       text: value.text,
       facets: parseFacets(value.text, value.facets),
       replyTo,
+      quoteUri: quoteUri && parseAtUri(quoteUri) ? (quoteUri as FeedPost['uri']) : undefined,
       images: parseImages(mediaEmbed),
-      quote,
       video: video?.cid ? { cid: video.cid, alt: video.alt, mimeType: video.mimeType } : undefined,
     }
+  }
+
+  feedPostQueryOptions(uri: FeedPost['uri']) {
+    return queryOptions({
+      queryKey: queryKeys.feedPost(uri),
+      queryFn: async ({ signal }) => {
+        const record = await this.core.optionalRecord(uri, signal)
+        if (!record) return unavailable(uri, 'This post could not be loaded.')
+        const post = await this.postFromRecord({ record, signal })
+        return post.kind === 'post' ? post : unavailable(uri, 'This post is malformed.')
+      },
+      staleTime: CACHE_TTL_MS.activity,
+    })
   }
 
   async feed(
@@ -176,16 +184,12 @@ export class FeedDataService {
         const value = parsedRecord(AppBskyFeedRepost.mainSchema, record)
         if (!value) return unavailable(record.uri, 'This repost record is malformed.')
         const subjectUri = value.subject.uri
-        const targetRecord = await this.core.optionalRecord(subjectUri, signal)
-        const target = targetRecord
-          ? await this.postFromRecord({ record: targetRecord, repository: identity, signal })
-          : unavailable(subjectUri, 'Reposted post unavailable.')
         return {
           kind: 'repost',
           uri: record.uri,
           createdAt: value.createdAt,
           author: actorReference(identity.did),
-          target,
+          subjectUri: subjectUri as FeedPost['uri'],
         }
       }),
     )

@@ -1,5 +1,6 @@
 import { ArrowPathRoundedSquareIcon } from '@heroicons/react/24/outline'
 import { Fragment, memo, type ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
   ActorAvatar,
@@ -18,6 +19,7 @@ import { socialPathForAtUri, socialPostPath } from '../lib/links'
 import { parseAtUri, safeHttpUrl } from '../lib/parse'
 import { profilePath } from '../lib/routes'
 import type { Actor, Facet, FeedItem, FeedPost, UnavailableItem } from '../types'
+import type { PublicDataService } from '../data/publicData'
 
 type TextPart = { text: string; facet?: Facet }
 
@@ -71,7 +73,15 @@ function RichText({ text, facets, className }: { text: string; facets: Facet[]; 
   )
 }
 
-function PostBody({ post, quoted = false }: { post: FeedPost; quoted?: boolean }) {
+function PostBody({
+  post,
+  service,
+  quoted = false,
+}: {
+  post: FeedPost
+  service?: PublicDataService
+  quoted?: boolean
+}) {
   const authorDid = parseAtUri(post.uri)?.did ?? ''
   return (
     <div className={quoted ? 'p-2.5' : ''}>
@@ -122,9 +132,9 @@ function PostBody({ post, quoted = false }: { post: FeedPost; quoted?: boolean }
           Your browser cannot play this video.
         </video>
       )}
-      {post.quote && (
+      {post.quoteUri && service && (
         <div className="mt-2 overflow-hidden border border-zinc-200 dark:border-zinc-800">
-          <QuotedPost post={post.quote} />
+          <StreamedQuotedPost uri={post.quoteUri} service={service} />
         </div>
       )}
     </div>
@@ -148,10 +158,19 @@ function QuotedPost({ post }: { post: FeedPost | UnavailableItem }) {
   )
 }
 
-export const FeedRow = memo(function FeedRow({ item, footer }: { item: FeedItem; footer?: ReactNode }) {
+export const FeedRow = memo(function FeedRow({
+  item,
+  service,
+  footer,
+}: {
+  item: FeedItem
+  service?: PublicDataService
+  footer?: ReactNode
+}) {
   if (item.kind === 'unavailable') return <UnavailableFeedItem item={item} />
+  if (item.kind === 'repost' && !item.target) return <StreamedRepost item={item} service={service} footer={footer} />
   const post = item.kind === 'repost' ? item.target : item
-  if (post.kind === 'unavailable') {
+  if (!post || post.kind === 'unavailable') {
     return (
       <div className="py-2.5">
         <div className="mb-2 flex items-center justify-between gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
@@ -163,13 +182,21 @@ export const FeedRow = memo(function FeedRow({ item, footer }: { item: FeedItem;
             <RecordLinksMenu recordUri={item.uri} label="repost record" />
           </div>
         </div>
-        <UnavailableFeedItem item={post} />
+        <UnavailableFeedItem
+          item={
+            post ?? {
+              kind: 'unavailable',
+              id: item.kind === 'repost' ? item.subjectUri : item.uri,
+              reason: 'Reposted post unavailable.',
+            }
+          }
+        />
       </div>
     )
   }
   return (
     <HydratedActor actor={post.author}>
-      {(author) => <FeedRowContent item={item} post={post} author={author} footer={footer} />}
+      {(author) => <FeedRowContent item={item} post={post} author={author} service={service} footer={footer} />}
     </HydratedActor>
   )
 })
@@ -178,11 +205,13 @@ function FeedRowContent({
   item,
   post,
   author,
+  service,
   footer,
 }: {
   item: Exclude<FeedItem, UnavailableItem>
   post: FeedPost
   author: Actor
+  service?: PublicDataService
   footer?: ReactNode
 }) {
   const postParts = parseAtUri(post.uri)
@@ -207,12 +236,51 @@ function FeedRowContent({
               <RecordLinksMenu recordUri={post.uri} socialPath={socialPath} label="post" />
             </div>
           </div>
-          <PostBody post={post} />
+          <PostBody post={post} service={service} />
           {footer}
         </div>
       </div>
     </article>
   )
+}
+
+function StreamedRepost({
+  item,
+  service,
+  footer,
+}: {
+  item: Extract<FeedItem, { kind: 'repost' }>
+  service?: PublicDataService
+  footer?: ReactNode
+}) {
+  if (!service)
+    return (
+      <UnavailableFeedItem item={{ kind: 'unavailable', id: item.subjectUri, reason: 'Reposted post unavailable.' }} />
+    )
+  return <ResolvedRepost item={item} service={service} footer={footer} />
+}
+
+function ResolvedRepost({
+  item,
+  service,
+  footer,
+}: {
+  item: Extract<FeedItem, { kind: 'repost' }>
+  service: PublicDataService
+  footer?: ReactNode
+}) {
+  const targetQuery = useQuery(service.feedPostQueryOptions(item.subjectUri))
+  if (targetQuery.isPending || !targetQuery.data)
+    return <div className="py-5 text-sm text-zinc-500 dark:text-zinc-400">Loading reposted post…</div>
+  return <FeedRow item={{ ...item, target: targetQuery.data }} service={service} footer={footer} />
+}
+
+function StreamedQuotedPost({ uri, service }: { uri: FeedPost['uri']; service: PublicDataService }) {
+  const quoteQuery = useQuery(service.feedPostQueryOptions(uri))
+  if (quoteQuery.isPending)
+    return <div className="p-2.5 text-sm text-zinc-500 dark:text-zinc-400">Loading quoted post…</div>
+  if (!quoteQuery.data) return null
+  return <QuotedPost post={quoteQuery.data} />
 }
 
 function RepostByline({ item }: { item: Extract<FeedItem, { kind: 'repost' }> }) {
