@@ -13,7 +13,7 @@ export function AccountDetails({
   service: PublicDataService
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const detailsQuery = useQuery({ ...service.accountDetailsQueryOptions(identity.did), enabled: detailsOpen })
+  const detailsQuery = useQuery({ ...service.core.accountDetailsQueryOptions(identity.did), enabled: detailsOpen })
   const pdsUrl = new URL(identity.pds)
   return (
     <details

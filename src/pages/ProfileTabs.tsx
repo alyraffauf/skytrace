@@ -30,7 +30,7 @@ export function BlockingTab() {
       queryKey={queryKeys.profileTab(profile.identity.did, 'blocking')}
       resourceLabel="blocked accounts"
       emptyTitle="No blocked accounts found"
-      load={(cursor, signal) => service.blocking(profile.identity, cursor, signal)}
+      load={(cursor, signal) => service.graph.blocking(profile.identity, cursor, signal)}
       itemKey={(item) => item.id}
       renderItem={(item) => <RelationshipRow entry={item} />}
     />
@@ -44,7 +44,7 @@ export function BlockedByTab() {
       queryKey={queryKeys.profileTab(profile.identity.did, 'blockedBy')}
       resourceLabel="accounts blocking this profile"
       emptyTitle="No accounts blocking this profile"
-      load={(cursor, signal) => service.blockedBy(profile.identity.did, cursor, signal)}
+      load={(cursor, signal) => service.graph.blockedBy(profile.identity.did, cursor, signal)}
       itemKey={(item) => item.id}
       renderItem={(item) => <StreamedBlockedByRow entry={item} service={service} />}
     />
@@ -58,7 +58,7 @@ export function ListsTab() {
       queryKey={queryKeys.profileTab(profile.identity.did, 'lists')}
       resourceLabel="lists"
       emptyTitle="No lists found"
-      load={(cursor, signal) => service.lists(profile.identity, cursor, signal)}
+      load={(cursor, signal) => service.graph.lists(profile.identity, cursor, signal)}
       itemKey={(item) => (item.kind === 'unavailable' ? item.id : item.uri)}
       renderItem={(item) => <ListRow list={item} />}
     />
@@ -69,7 +69,7 @@ export function ListedOnTab() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
   const query = usePagedRecords<{ uri: string }>(
     queryKeys.profileTab(profile.identity.did, 'listedOn'),
-    (cursor, signal) => service.listedOnReferences(profile.identity.did, cursor, signal),
+    (cursor, signal) => service.graph.listedOnReferences(profile.identity.did, cursor, signal),
   )
   const memberships = dedupeBy(query.data?.pages.flatMap((page) => page.items) ?? [], (reference) => reference.uri)
   return (
@@ -97,7 +97,7 @@ function LabeledPostsQuery() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
   const query = usePagedRecords<LabeledPost, LabeledPostsCursor>(
     queryKeys.labeledPosts(profile.identity.did),
-    (cursor, signal) => service.labeledPosts(profile.identity, cursor, signal),
+    (cursor, signal) => service.feed.labeledPosts(profile.identity, cursor, signal),
     { retry: false },
   )
   const items = mergeLabeledPosts(query.data?.pages.flatMap((page) => page.items) ?? [])
@@ -166,7 +166,7 @@ function FeedQuery() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
   const query = usePagedRecords<FeedItem, FeedPagingState>(
     queryKeys.feed(profile.identity.did),
-    (cursor, signal) => service.feed(profile.identity, cursor, signal),
+    (cursor, signal) => service.feed.feed(profile.identity, cursor, signal),
     { retry: false },
   )
   const items = useMemo(

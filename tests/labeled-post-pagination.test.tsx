@@ -57,7 +57,7 @@ it('keeps observing after a fast empty page so older labeled posts can load', as
   }
   const cursor = { kind: 'labeledPosts' as const, did, seenRepositoryCursors: [], repositoryCursor: 'next' }
   const load = vi
-    .spyOn(service, 'labeledPosts')
+    .spyOn(service.feed, 'labeledPosts')
     .mockResolvedValueOnce({ items: [], cursor })
     .mockResolvedValueOnce({ items: [], cursor: { ...cursor, repositoryCursor: 'older' } })
     .mockResolvedValueOnce({ items: [olderPost] })

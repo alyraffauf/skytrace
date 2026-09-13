@@ -24,15 +24,15 @@ export function ProfilePage() {
   const navigationType = useNavigationType()
   const configuredBlockTargetDid = blockTargetDid()
   const profileQuery = useQuery({
-    ...service.actorProfileQueryOptions(actor),
+    ...service.core.actorProfileQueryOptions(actor),
   })
   const actorBlocksConfiguredAccountQuery = useQuery(
-    service.actorBlocksConfiguredAccountQueryOptions(profileQuery.data?.identity.did, configuredBlockTargetDid),
+    service.graph.actorBlocksConfiguredAccountQueryOptions(profileQuery.data?.identity.did, configuredBlockTargetDid),
   )
   const blockCheckFinished = configuredBlockTargetDid === undefined || actorBlocksConfiguredAccountQuery.data === false
   const visibleIdentity = blockCheckFinished ? profileQuery.data?.identity : undefined
-  const blockedCountQuery = useQuery(service.blockedCountQueryOptions(visibleIdentity))
-  const blockedByCountQuery = useQuery(service.blockedByCountQueryOptions(visibleIdentity?.did))
+  const blockedCountQuery = useQuery(service.core.blockedCountQueryOptions(visibleIdentity))
+  const blockedByCountQuery = useQuery(service.core.blockedByCountQueryOptions(visibleIdentity?.did))
 
   useLayoutEffect(() => {
     if (navigationType !== 'POP') window.scrollTo({ top: 0, left: 0 })

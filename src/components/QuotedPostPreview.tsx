@@ -8,7 +8,7 @@ import type { FeedPost, UnavailableItem } from '../types'
 import type { PublicDataService } from '../data/publicData'
 
 export function QuotedPostPreview({ uri, service }: { uri: FeedPost['uri']; service: PublicDataService }) {
-  const quoteQuery = useQuery(service.feedPostQueryOptions(uri))
+  const quoteQuery = useQuery(service.feed.feedPostQueryOptions(uri))
   if (quoteQuery.isPending)
     return <div className="p-2.5 text-sm text-zinc-500 dark:text-zinc-400">Loading quoted post…</div>
   if (!quoteQuery.data) return null

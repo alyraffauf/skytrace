@@ -17,7 +17,7 @@ export function LabelsTab() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
   const query = usePagedRecords<LabelEvent | UnavailableItem, LabelPagingState>(
     queryKeys.profileTab(profile.identity.did, 'labels'),
-    (cursor, signal) => service.labels(profile.identity.did, cursor, signal),
+    (cursor, signal) => service.labels.labels(profile.identity.did, cursor, signal),
   )
   useEffect(() => {
     if (query.data?.pages.length === 1 && query.hasNextPage && !query.isFetching && !query.isError) {

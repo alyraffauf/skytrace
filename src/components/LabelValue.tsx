@@ -40,7 +40,7 @@ export function useLabelDisplayNames(
 ): ReadonlyMap<string, string> {
   const sourceDids = [...new Set(labels.map((label) => label.sourceDid))]
   const definitionQueries = useQueries({
-    queries: sourceDids.map((did) => service.labelDefinitionsQueryOptions(did)),
+    queries: sourceDids.map((did) => service.core.labelDefinitionsQueryOptions(did)),
   })
   const definitionsBySource = new Map(sourceDids.map((did, index) => [did, definitionQueries[index]?.data] as const))
 

@@ -10,7 +10,7 @@ export function StreamedBlockedByRow({
   entry: RelationshipEntry | UnavailableItem
   service: PublicDataService
 }) {
-  const blockDateQuery = useQuery(service.blockDateQueryOptions(entry.id))
+  const blockDateQuery = useQuery(service.graph.blockDateQueryOptions(entry.id))
   const datedEntry =
     entry.kind === 'relationship' && blockDateQuery.data ? { ...entry, createdAt: blockDateQuery.data } : entry
   return <RelationshipRow entry={datedEntry} />

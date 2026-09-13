@@ -60,7 +60,7 @@ describe('atcute-backed API boundaries', () => {
       id: 'app.bsky.graph.block:first:1',
       reason: 'This repository record is malformed.',
     })
-    const servicePage = await createTestService().blocking(identity)
+    const servicePage = await createTestService().graph.blocking(identity)
     expect(servicePage.items[1]).toMatchObject({ kind: 'unavailable', reason: 'This repository record is malformed.' })
   })
 
@@ -160,7 +160,7 @@ describe('atcute-backed API boundaries', () => {
 
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.actorProfileQueryOptions('atproto.com'))).resolves.toMatchObject({
+    await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions('atproto.com'))).resolves.toMatchObject({
       hasNoUnauthenticatedSelfLabel: expected,
     })
   })
@@ -169,7 +169,7 @@ describe('atcute-backed API boundaries', () => {
     stubProfileRecord({ error: 'NotFound', message: 'Deleted' }, 404)
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
+    await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
       kind: 'actorProfile',
       identity,
       hasNoUnauthenticatedSelfLabel: false,
@@ -180,7 +180,7 @@ describe('atcute-backed API boundaries', () => {
     stubProfileRecord({ uri: 'not-an-at-uri', value: {} })
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
+    await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
       kind: 'actorProfile',
       identity,
       hasNoUnauthenticatedSelfLabel: false,
@@ -191,7 +191,7 @@ describe('atcute-backed API boundaries', () => {
     stubProfileRecord({ error: 'UpstreamFailure', message: 'Try later' }, 503)
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.actorProfileQueryOptions('atproto.com'))).rejects.toMatchObject({
+    await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions('atproto.com'))).rejects.toMatchObject({
       status: 503,
     })
   })
@@ -215,15 +215,15 @@ describe('atcute-backed API boundaries', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
     const service = new PublicDataService(queryClient)
 
-    await service.identity('atproto.com')
-    await service.identity('atproto.com')
-    await service.record(recordUri)
-    await service.record(recordUri)
+    await service.core.identity('atproto.com')
+    await service.core.identity('atproto.com')
+    await service.core.record(recordUri)
+    await service.core.record(recordUri)
     expect(fetchMock).toHaveBeenCalledTimes(2)
 
     vi.setSystemTime(Date.now() + CACHE_TTL_MS.identity + 1)
-    await service.identity('atproto.com')
-    await service.record(recordUri)
+    await service.core.identity('atproto.com')
+    await service.core.record(recordUri)
     expect(fetchMock).toHaveBeenCalledTimes(4)
   })
 
@@ -238,7 +238,7 @@ describe('atcute-backed API boundaries', () => {
     )
 
     const service = createTestService()
-    await expect(service.blockedBy(did)).resolves.toEqual({ items: [], cursor: undefined })
+    await expect(service.graph.blockedBy(did)).resolves.toEqual({ items: [], cursor: undefined })
     expect(requestedUrl?.searchParams.get('reverse')).toBe('false')
   })
 
@@ -266,7 +266,7 @@ describe('atcute-backed API boundaries', () => {
       }),
     )
 
-    await expect(createTestService().actorBlocksConfiguredAccount(did, blockTargetDid)).resolves.toBe(true)
+    await expect(createTestService().graph.actorBlocksConfiguredAccount(did, blockTargetDid)).resolves.toBe(true)
     expect(requestedUrls).toHaveLength(2)
     expect(requestedUrls[0]?.searchParams.get('subject')).toBe(blockTargetDid)
     expect(requestedUrls[0]?.searchParams.get('source')).toBe('app.bsky.graph.block:subject')
@@ -307,8 +307,8 @@ describe('atcute-backed API boundaries', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const service = new PublicDataService(queryClient)
     const [blocked, blockedBy] = await Promise.allSettled([
-      queryClient.fetchQuery(service.blockedCountQueryOptions(identity)),
-      queryClient.fetchQuery(service.blockedByCountQueryOptions(did)),
+      queryClient.fetchQuery(service.core.blockedCountQueryOptions(identity)),
+      queryClient.fetchQuery(service.core.blockedByCountQueryOptions(did)),
     ])
 
     expect(blocked.status).toBe('rejected')
@@ -347,15 +347,15 @@ describe('atcute-backed API boundaries', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const service = new PublicDataService(queryClient)
 
-    await expect(service.listMembers(listUri)).resolves.toMatchObject({ items: [{ uri: membershipUri }] })
+    await expect(service.graph.listMembers(listUri)).resolves.toMatchObject({ items: [{ uri: membershipUri }] })
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('subject')).toBe(listUri)
-    await expect(queryClient.fetchQuery(service.listMemberQueryOptions(listUri, membershipUri))).resolves.toMatchObject(
-      {
-        kind: 'relationship',
-        actor: { did: memberDid },
-      },
-    )
+    await expect(
+      queryClient.fetchQuery(service.graph.listMemberQueryOptions(listUri, membershipUri)),
+    ).resolves.toMatchObject({
+      kind: 'relationship',
+      actor: { did: memberDid },
+    })
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
@@ -380,7 +380,7 @@ describe('atcute-backed API boundaries', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
     await expect(
-      queryClient.fetchQuery(new PublicDataService(queryClient).listMemberQueryOptions(listUri, membershipUri)),
+      queryClient.fetchQuery(new PublicDataService(queryClient).graph.listMemberQueryOptions(listUri, membershipUri)),
     ).resolves.toMatchObject({ kind: 'unavailable', reason: 'This list membership is malformed.' })
   })
 
@@ -439,7 +439,7 @@ describe('atcute-backed API boundaries', () => {
     )
 
     const service = createTestService()
-    const page = await service.labeledPosts(identity)
+    const page = await service.feed.labeledPosts(identity)
     expect(repositoryLimit).toBe('12')
     expect(labelSubjects).toEqual(expect.arrayContaining([newerUri, olderUri]))
     expect(labelSubjects).toHaveLength(2)
@@ -505,11 +505,11 @@ describe('atcute-backed API boundaries', () => {
     )
 
     const service = createTestService()
-    const firstPage = await service.labeledPosts(identity)
+    const firstPage = await service.feed.labeledPosts(identity)
     expect(firstPage.items).toEqual([])
     expect(firstPage.cursor).toBeDefined()
 
-    const secondPage = await service.labeledPosts(identity, firstPage.cursor)
+    const secondPage = await service.feed.labeledPosts(identity, firstPage.cursor)
     expect(secondPage.items).toMatchObject([
       {
         post: { kind: 'post', uri: labeledUri, text: 'Found later' },
@@ -554,11 +554,11 @@ describe('atcute-backed API boundaries', () => {
     )
 
     const publicData = createTestService()
-    const malformedPage = await publicData.labeledPosts(identity)
+    const malformedPage = await publicData.feed.labeledPosts(identity)
     expect(malformedPage.items).toEqual([])
     expect(malformedPage.cursor).toBeDefined()
 
-    const validPage = await publicData.labeledPosts(identity, malformedPage.cursor)
+    const validPage = await publicData.feed.labeledPosts(identity, malformedPage.cursor)
     expect(validPage.items).toMatchObject([{ post: { uri: validUri, text: 'Still reachable' } }])
   })
 
@@ -592,7 +592,7 @@ describe('atcute-backed API boundaries', () => {
       }),
     )
 
-    const page = await createTestService().labeledPosts(identity)
+    const page = await createTestService().feed.labeledPosts(identity)
     expect(page.items.map((item) => item.post.uri)).toEqual([validUri])
   })
 
@@ -618,15 +618,15 @@ describe('atcute-backed API boundaries', () => {
     vi.stubGlobal('fetch', fetchMock)
     const service = createTestService()
 
-    const page = await service.blocking(identity)
+    const page = await service.graph.blocking(identity)
     expect(page.items).toEqual([
       expect.objectContaining({ kind: 'relationship', actor: { kind: 'actorReference', did: blockedDid } }),
     ])
-    await service.blocking(identity)
+    await service.graph.blocking(identity)
     expect(fetchMock).toHaveBeenCalledTimes(1)
 
     vi.setSystemTime(Date.now() + CACHE_TTL_MS.activity + 1)
-    await service.blocking(identity)
+    await service.graph.blocking(identity)
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 

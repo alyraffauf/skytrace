@@ -14,14 +14,14 @@ export function StreamedListMemberRow({
   membershipUri: string
   service: PublicDataService
 }) {
-  const membershipQuery = useQuery(service.listMemberQueryOptions(listUri, membershipUri))
+  const membershipQuery = useQuery(service.graph.listMemberQueryOptions(listUri, membershipUri))
   if (membershipQuery.isPending) return <MembershipLoadingRow />
   if (membershipQuery.isError) return <UnavailableRow reason="This list membership could not be loaded." />
   return <RelationshipRow entry={membershipQuery.data} />
 }
 
 export function StreamedListedOnRow({ membershipUri, service }: { membershipUri: string; service: PublicDataService }) {
-  const membershipQuery = useQuery(service.listedOnMembershipQueryOptions(membershipUri))
+  const membershipQuery = useQuery(service.graph.listedOnMembershipQueryOptions(membershipUri))
   if (membershipQuery.isPending) return <MembershipLoadingRow />
   if (membershipQuery.isError) return <UnavailableRow reason="This list membership could not be loaded." />
   if (membershipQuery.data.kind === 'unavailable') return <UnavailableRow reason={membershipQuery.data.reason} />

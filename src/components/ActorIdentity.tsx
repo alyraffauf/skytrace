@@ -66,7 +66,7 @@ export function ActorAvatar({
 
 function useReferencedProfile(actor: ActorReference) {
   const service = publicDataServiceFor(useQueryClient())
-  return useQuery(service.actorProfileQueryOptions(actor.did))
+  return useQuery(service.core.actorProfileQueryOptions(actor.did))
 }
 
 export function HydratedActor({

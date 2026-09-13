@@ -43,7 +43,7 @@ function setup(options: { cached?: boolean; issues?: string[] } = { cached: true
       ],
       pageParams: [undefined, cursor],
     })
-  const load = vi.spyOn(service, 'labels')
+  const load = vi.spyOn(service.labels, 'labels')
   function mount() {
     render(
       <QueryClientProvider client={client}>

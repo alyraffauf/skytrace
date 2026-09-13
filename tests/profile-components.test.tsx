@@ -18,8 +18,8 @@ it('requests history only after expansion and retains it on reopening', async ()
   const client = createTestQueryClient()
   const service = new PublicDataService(client)
   const load = vi.fn(async () => ({ aliases: ['at://old.example'], formerHandles: [] }))
-  const options = service.accountDetailsQueryOptions('did:plc:example')
-  vi.spyOn(service, 'accountDetailsQueryOptions').mockImplementation(() => ({
+  const options = service.core.accountDetailsQueryOptions('did:plc:example')
+  vi.spyOn(service.core, 'accountDetailsQueryOptions').mockImplementation(() => ({
     ...options,
     queryFn: load,
   }))

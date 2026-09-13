@@ -139,7 +139,7 @@ export class PublicDataCore {
   }
 
   async identity(identifier: string, signal?: AbortSignal): Promise<ActorIdentity> {
-    return this.sharedQuery(
+    return this.sharedRequests.query(
       queryKeys.identity(identifier),
       CACHE_TTL_MS.identity,
       (requestSignal) => this.resolveAndCacheIdentity(identifier, requestSignal),
@@ -159,7 +159,7 @@ export class PublicDataCore {
   }
 
   async record(uri: string, signal?: AbortSignal): Promise<RawRecord> {
-    return this.sharedQuery(
+    return this.sharedRequests.query(
       queryKeys.record(uri),
       CACHE_TTL_MS.record,
       (requestSignal) => getRecordByUri(uri, requestSignal),
@@ -271,7 +271,7 @@ export class PublicDataCore {
     repeatedCursorPolicy?: 'return-page'
     repeatedCursorError: string
   }): Promise<Page<T>> {
-    const page = await this.sharedQuery(options.key, CACHE_TTL_MS.activity, options.load, options.signal)
+    const page = await this.sharedRequests.query(options.key, CACHE_TTL_MS.activity, options.load, options.signal)
     throwIfAborted(options.signal)
     if (options.repeatedCursorPolicy !== 'return-page' && options.cursor && page.cursor === options.cursor) {
       throw new PublicDataValidationError(options.repeatedCursorError)
@@ -280,7 +280,7 @@ export class PublicDataCore {
   }
 
   async labelerEndpoint(did: string, signal?: AbortSignal): Promise<string | undefined> {
-    return this.sharedQuery(
+    return this.sharedRequests.query(
       queryKeys.labelerEndpoint(did),
       CACHE_TTL_MS.identity,
       async (requestSignal) => {
@@ -293,14 +293,5 @@ export class PublicDataCore {
       },
       signal,
     )
-  }
-
-  sharedQuery<T>(
-    queryKey: readonly unknown[],
-    staleTime: number,
-    load: (signal: AbortSignal) => Promise<T>,
-    consumerSignal?: AbortSignal,
-  ): Promise<T> {
-    return this.sharedRequests.query(queryKey, staleTime, load, consumerSignal)
   }
 }

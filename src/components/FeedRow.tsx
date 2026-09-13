@@ -117,7 +117,7 @@ function ResolvedRepost({
   service: PublicDataService
   footer?: ReactNode
 }) {
-  const targetQuery = useQuery(service.feedPostQueryOptions(item.subjectUri))
+  const targetQuery = useQuery(service.feed.feedPostQueryOptions(item.subjectUri))
   if (targetQuery.isPending || !targetQuery.data)
     return <div className="py-5 text-sm text-zinc-500 dark:text-zinc-400">Loading reposted post…</div>
   return <ResolvedFeedRow repost={item} post={targetQuery.data} service={service} footer={footer} />

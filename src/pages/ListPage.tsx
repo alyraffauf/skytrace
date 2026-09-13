@@ -19,11 +19,11 @@ import type { ListSummary } from '../types'
 export function ListPage() {
   const { actor = '', rkey = '' } = useParams()
   const service = publicDataServiceFor(useQueryClient())
-  const identityQuery = useQuery(service.identityQueryOptions(actor))
+  const identityQuery = useQuery(service.core.identityQueryOptions(actor))
   const listUri =
     identityQuery.data && isRecordKey(rkey) ? `at://${identityQuery.data.did}/app.bsky.graph.list/${rkey}` : undefined
   const listQuery = useQuery({
-    ...service.listSummaryQueryOptions(listUri),
+    ...service.graph.listSummaryQueryOptions(listUri),
     enabled: Boolean(listUri),
   })
 
@@ -49,9 +49,9 @@ function UnavailableListPage({ reason }: { reason: string }) {
 
 function ResolvedListPage({ list, service }: { list: ListSummary; service: PublicDataService }) {
   const moderationListUri = list.purpose.endsWith('#modlist') ? list.uri : undefined
-  const listBlockCountQuery = useQuery(service.listBlockCountQueryOptions(moderationListUri))
+  const listBlockCountQuery = useQuery(service.core.listBlockCountQueryOptions(moderationListUri))
   const membersQuery = usePagedRecords<{ uri: string }>(queryKeys.listMembers(list.uri), (cursor, signal) =>
-    service.listMembers(list.uri, cursor, signal),
+    service.graph.listMembers(list.uri, cursor, signal),
   )
   const members = dedupeBy(membersQuery.data?.pages.flatMap((page) => page.items) ?? [], (reference) => reference.uri)
 

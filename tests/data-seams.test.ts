@@ -41,13 +41,13 @@ describe('public data seams', () => {
       }),
     )
     const service = createTestService()
-    let page = await service.labels(did)
+    let page = await service.labels.labels(did)
     for (let index = 1; index < cursors.length; index++) {
-      page = await service.labels(did, page.cursor)
+      page = await service.labels.labels(did, page.cursor)
       expect(page.items).toMatchObject([{ value: `relay-${index}` }])
       expect(page.issues).toBeUndefined()
     }
-    const backfill = await service.labels(did, page.cursor)
+    const backfill = await service.labels.labels(did, page.cursor)
     expect(backfill.items).toMatchObject([{ value: 'backfill' }])
     expect(backfill.cursor).toBeUndefined()
     expect(relayPages).toBe(cursors.length)
@@ -58,7 +58,7 @@ describe('public data seams', () => {
       'fetch',
       vi.fn(async () => response({ records: [], cursor: 'same' })),
     )
-    await expect(createTestService().blocking(identity, 'same')).rejects.toThrow('repeated a pagination cursor')
+    await expect(createTestService().graph.blocking(identity, 'same')).rejects.toThrow('repeated a pagination cursor')
   })
 
   it('continues direct-provider pagination and filters forged sources', async () => {
@@ -113,12 +113,12 @@ describe('public data seams', () => {
     )
 
     const publicData = createTestService()
-    const relay = await publicData.labels(did)
+    const relay = await publicData.labels.labels(did)
     const savedCursor = structuredClone(relay.cursor)
-    await expect(publicData.labels(memberDid, relay.cursor)).rejects.toThrow('belongs to another query')
-    const firstDirect = await publicData.labels(did, relay.cursor)
+    await expect(publicData.labels.labels(memberDid, relay.cursor)).rejects.toThrow('belongs to another query')
+    const firstDirect = await publicData.labels.labels(did, relay.cursor)
     expect(relay.cursor).toEqual(savedCursor)
-    const secondDirect = await publicData.labels(did, firstDirect.cursor)
+    const secondDirect = await publicData.labels.labels(did, firstDirect.cursor)
     expect(firstDirect.items).toHaveLength(2)
     expect(secondDirect.items).toHaveLength(1)
     expect(secondDirect.items).not.toContainEqual(expect.objectContaining({ value: 'forged-source' }))
@@ -163,8 +163,8 @@ describe('public data seams', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const publicData = createTestService()
-    const relay = await publicData.labels(did)
-    const direct = await publicData.labels(did, relay.cursor)
+    const relay = await publicData.labels.labels(did)
+    const direct = await publicData.labels.labels(did, relay.cursor)
     const requestedHosts = fetchMock.mock.calls.map(
       ([input]) => new URL(input instanceof Request ? input.url : String(input)).hostname,
     )
@@ -205,8 +205,8 @@ describe('public data seams', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const publicData = createTestService()
-    const relay = await publicData.labels(did)
-    const fallback = await publicData.labels(did, relay.cursor)
+    const relay = await publicData.labels.labels(did)
+    const fallback = await publicData.labels.labels(did, relay.cursor)
     expect(fallback.items).toEqual([
       expect.objectContaining({ sourceDid: labelerDid, value: 'renewed', createdAt: '2026-09-03T00:00:00Z' }),
     ])
@@ -248,10 +248,10 @@ describe('public data seams', () => {
     )
 
     const publicData = createTestService()
-    const relay = await publicData.labels(did)
-    const first = await publicData.labels(did, relay.cursor)
-    const second = await publicData.labels(did, first.cursor)
-    const repeated = await publicData.labels(did, second.cursor)
+    const relay = await publicData.labels.labels(did)
+    const first = await publicData.labels.labels(did, relay.cursor)
+    const second = await publicData.labels.labels(did, first.cursor)
+    const repeated = await publicData.labels.labels(did, second.cursor)
     expect(repeated.cursor).toBeUndefined()
   })
 
@@ -281,8 +281,8 @@ describe('public data seams', () => {
       }),
     )
     const publicData = createTestService()
-    const malformed = await publicData.labels(did)
-    const recovered = await publicData.labels(did, malformed.cursor)
+    const malformed = await publicData.labels.labels(did)
+    const recovered = await publicData.labels.labels(did, malformed.cursor)
     expect(malformed.cursor).toBeDefined()
     expect(recovered.items).toContainEqual(expect.objectContaining({ kind: 'labelEvent', value: 'recovered' }))
   })
@@ -300,7 +300,7 @@ describe('public data seams', () => {
       }),
     )
     const controller = new AbortController()
-    const pending = createTestService().record(uri, controller.signal)
+    const pending = createTestService().core.record(uri, controller.signal)
     await vi.waitFor(() => expect(fetchSignal).toBeDefined())
     controller.abort()
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
@@ -330,10 +330,10 @@ describe('public data seams', () => {
 
     const publicData = createTestService()
     const controller = new AbortController()
-    const abandoned = publicData.record(uri, controller.signal)
+    const abandoned = publicData.core.record(uri, controller.signal)
     await vi.waitFor(() => expect(requests).toBe(1))
     controller.abort()
-    const restarted = publicData.record(uri)
+    const restarted = publicData.core.record(uri)
 
     await expect(abandoned).rejects.toMatchObject({ name: 'AbortError' })
     await expect(restarted).resolves.toMatchObject({ uri })
@@ -354,7 +354,7 @@ describe('public data seams', () => {
     )
 
     const publicData = new PublicDataService(createTestQueryClient(), 20)
-    await expect(publicData.record(uri)).rejects.toMatchObject({ name: 'TimeoutError' })
+    await expect(publicData.core.record(uri)).rejects.toMatchObject({ name: 'TimeoutError' })
     expect(fetchSignal?.aborted).toBe(true)
   })
 
@@ -377,8 +377,8 @@ describe('public data seams', () => {
     expect(publicDataServiceFor(queryClient)).toBe(publicData)
     const firstController = new AbortController()
     const secondController = new AbortController()
-    const first = publicData.record(uri, firstController.signal)
-    const second = publicData.record(uri, secondController.signal)
+    const first = publicData.core.record(uri, firstController.signal)
+    const second = publicData.core.record(uri, secondController.signal)
     await vi.waitFor(() => expect(finishRequest).toBeDefined())
     firstController.abort()
     await expect(first).rejects.toMatchObject({ name: 'AbortError' })
@@ -482,7 +482,7 @@ describe('feed paging', () => {
     const emitted = []
     let cursor
     do {
-      const page = await publicData.feed(identity, cursor)
+      const page = await publicData.feed.feed(identity, cursor)
       emitted.push(...page.items)
       cursor = page.cursor
     } while (emitted.length < 100 && cursor)
@@ -512,7 +512,7 @@ describe('feed paging', () => {
         return response({ records: [], cursor: `empty-${collection}-${requests}` })
       }),
     )
-    const page = await createTestService().feed(identity)
+    const page = await createTestService().feed.feed(identity)
     expect(page.items).toEqual([])
     expect(page.cursor).toBeDefined()
     expect(requestsByCollection).toEqual(
@@ -549,7 +549,7 @@ describe('feed paging', () => {
       }),
     )
 
-    const page = await createTestService().feed(identity)
+    const page = await createTestService().feed.feed(identity)
     expect(page.items).toHaveLength(12)
     expect(requestsByCollection).toEqual(
       new Map([

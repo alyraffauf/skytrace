@@ -1,3 +1,6 @@
+import { GraphDataService } from '../src/data/graphData'
+import { FeedDataService } from '../src/data/feedData'
+import { LabelDataService } from '../src/data/labelData'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
@@ -345,7 +348,7 @@ describe('list member pagination', () => {
 
   it('shows loading and the initial error without showing an empty result', async () => {
     let reject!: (error: Error) => void
-    vi.spyOn(PublicDataService.prototype, 'listMembers').mockImplementation(
+    vi.spyOn(GraphDataService.prototype, 'listMembers').mockImplementation(
       () =>
         new Promise((_resolve, fail) => {
           reject = fail
@@ -386,7 +389,7 @@ describe('list member pagination', () => {
     })
     let reject!: (error: Error) => void
     const members = vi
-      .spyOn(PublicDataService.prototype, 'listMembers')
+      .spyOn(GraphDataService.prototype, 'listMembers')
       .mockImplementationOnce(
         () =>
           new Promise((_resolve, fail) => {
@@ -420,7 +423,7 @@ describe('profile post privacy', () => {
 
   it('shows the privacy notice without requesting the feed', () => {
     const fetchMock = vi.fn()
-    const feed = vi.spyOn(PublicDataService.prototype, 'feed')
+    const feed = vi.spyOn(FeedDataService.prototype, 'feed')
     vi.stubGlobal('fetch', fetchMock)
 
     renderProfileTab(<FeedTab />, restrictedProfile)
@@ -433,7 +436,7 @@ describe('profile post privacy', () => {
 
   it('shows the privacy notice without requesting repositories or label relays', () => {
     const fetchMock = vi.fn()
-    const labeledPosts = vi.spyOn(PublicDataService.prototype, 'labeledPosts')
+    const labeledPosts = vi.spyOn(FeedDataService.prototype, 'labeledPosts')
     vi.stubGlobal('fetch', fetchMock)
 
     renderProfileTab(<LabeledPostsTab />, restrictedProfile)
@@ -445,7 +448,7 @@ describe('profile post privacy', () => {
   })
 
   it('keeps Account labels available for the same profile', async () => {
-    const labels = vi.spyOn(PublicDataService.prototype, 'labels').mockResolvedValue({ items: [] })
+    const labels = vi.spyOn(LabelDataService.prototype, 'labels').mockResolvedValue({ items: [] })
 
     renderProfileTab(<LabelsTab />, restrictedProfile)
 
@@ -455,8 +458,8 @@ describe('profile post privacy', () => {
 
   it('loads both post tabs when the runtime override is enabled', async () => {
     vi.stubGlobal('__SKYTRACE_CONFIG__', { ignoreNoUnauthenticated: true })
-    const feed = vi.spyOn(PublicDataService.prototype, 'feed').mockResolvedValue({ items: [] })
-    const labeledPosts = vi.spyOn(PublicDataService.prototype, 'labeledPosts').mockResolvedValue({ items: [] })
+    const feed = vi.spyOn(FeedDataService.prototype, 'feed').mockResolvedValue({ items: [] })
+    const labeledPosts = vi.spyOn(FeedDataService.prototype, 'labeledPosts').mockResolvedValue({ items: [] })
 
     const feedView = renderProfileTab(<FeedTab />, restrictedProfile)
     expect(await screen.findByRole('heading', { name: 'No posts or reposts found' })).toBeVisible()
@@ -629,8 +632,8 @@ describe('repost rendering', () => {
       identity: { ...identity, did: originalDid, handle: 'original.example' },
     })
     const service = new PublicDataService(queryClient)
-    const postOptions = service.feedPostQueryOptions.bind(service)
-    const load = vi.spyOn(service, 'feedPostQueryOptions').mockImplementation((uri) => ({
+    const postOptions = service.feed.feedPostQueryOptions.bind(service.feed)
+    const load = vi.spyOn(service.feed, 'feedPostQueryOptions').mockImplementation((uri) => ({
       ...postOptions(uri),
       queryFn: async () =>
         uri === post.uri
@@ -677,8 +680,8 @@ describe('repost rendering', () => {
     })
     const service = new PublicDataService(queryClient)
     let resolveQuote!: (item: import('../src/types').UnavailableItem) => void
-    const options = service.feedPostQueryOptions(post.quoteUri!)
-    vi.spyOn(service, 'feedPostQueryOptions').mockReturnValue({
+    const options = service.feed.feedPostQueryOptions(post.quoteUri!)
+    vi.spyOn(service.feed, 'feedPostQueryOptions').mockReturnValue({
       ...options,
       queryFn: () =>
         new Promise<import('../src/types').UnavailableItem>((resolve) => {
@@ -702,8 +705,8 @@ describe('repost rendering', () => {
   it('keeps both record menus when the repost target is unavailable', async () => {
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    const postOptions = service.feedPostQueryOptions(post.uri)
-    vi.spyOn(service, 'feedPostQueryOptions').mockReturnValue({
+    const postOptions = service.feed.feedPostQueryOptions(post.uri)
+    vi.spyOn(service.feed, 'feedPostQueryOptions').mockReturnValue({
       ...postOptions,
       queryFn: async () => ({ kind: 'unavailable', id: post.uri, reason: 'Target deleted' }),
     })
@@ -741,7 +744,7 @@ describe('account labels', () => {
       emittedIds: [],
     }
     const labels = vi
-      .spyOn(PublicDataService.prototype, 'labels')
+      .spyOn(LabelDataService.prototype, 'labels')
       .mockResolvedValueOnce({
         items: [{ kind: 'unavailable', id: 'loaded', reason: 'Previously loaded label' }],
         cursor,
@@ -772,7 +775,7 @@ describe('account labels', () => {
 
   it('eagerly loads the second label page on success', async () => {
     const labels = vi
-      .spyOn(PublicDataService.prototype, 'labels')
+      .spyOn(LabelDataService.prototype, 'labels')
       .mockResolvedValueOnce({
         items: [],
         cursor: {
