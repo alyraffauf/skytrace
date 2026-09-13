@@ -112,7 +112,7 @@ function ProfileIdentity({ profile, service }: { profile: ActorProfile; service:
   const profileRecordUri = `at://${identity.did}/app.bsky.actor.profile/self`
 
   return (
-    <div className="px-6 py-6 sm:px-8 lg:py-8">
+    <div className="p-6 sm:px-8 lg:py-8">
       <header className="relative flex items-center gap-4">
         <ActorAvatar profile={profile} size="profile" />
         <div className="min-w-0 flex-1">
@@ -155,7 +155,7 @@ function ProfileSkeleton() {
       aria-label="Loading profile"
       className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]"
     >
-      <div className="border-b border-zinc-200 bg-zinc-50/50 px-6 py-6 dark:border-zinc-800 dark:bg-zinc-950 sm:px-8 lg:border-b-0 lg:border-r lg:py-8">
+      <div className="border-b border-zinc-200 bg-zinc-50/50 p-6 dark:border-zinc-800 dark:bg-zinc-950 sm:px-8 lg:border-b-0 lg:border-r lg:py-8">
         <div className="flex items-center gap-4">
           <div className="skeleton size-20 shrink-0 rounded-full" />
           <div className="min-w-0 flex-1">
