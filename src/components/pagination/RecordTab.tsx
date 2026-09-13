@@ -4,9 +4,9 @@ import { RecordList } from '../records/RecordList'
 import { EmptyState } from '../ui/States'
 import { newestFirst } from '../../lib/sorting'
 import { usePagedRecords } from '../../hooks/usePagedRecords'
-import type { ListMembership, ListSummary, Page, RelationshipEntry, UnavailableItem } from '../../types'
+import type { ListSummary, Page, RelationshipEntry, UnavailableItem } from '../../types'
 
-type TabRecord = ListMembership | ListSummary | RelationshipEntry | UnavailableItem
+type TabRecord = ListSummary | RelationshipEntry | UnavailableItem
 
 export function RecordTab<T extends TabRecord>({
   queryKey,
