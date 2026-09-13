@@ -19,7 +19,7 @@ export function AppLayout() {
       {!isHomeRoute && (
         <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <div className="mx-auto flex h-12 max-w-[1440px] items-center gap-5 px-4 sm:px-6 lg:px-8">
-            <Link to="/" className="flex shrink-0 items-center gap-2.5 text-zinc-950 dark:text-zinc-100">
+            <Link to="/" className="flex shrink-0 items-center gap-2.5">
               <CloudRain
                 className="rain-cloud size-5 shrink-0 stroke-[1.8] text-violet-600 dark:text-violet-400"
                 aria-hidden="true"
