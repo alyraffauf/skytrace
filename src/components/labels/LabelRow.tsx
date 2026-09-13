@@ -22,7 +22,7 @@ export function LabelRow({ label, displayName }: { label: LabelHistoryEvent | Un
           <LabelValue
             value={label.value}
             displayName={displayName}
-            className="min-w-0 break-words text-sm font-semibold leading-4 text-zinc-950 [overflow-wrap:anywhere] dark:text-zinc-100"
+            className="min-w-0 break-words text-sm font-semibold leading-4 text-zinc-950 dark:text-zinc-100"
           />
           <span
             className={`shrink-0 text-xs font-medium ${state === 'Active' ? 'text-violet-700 dark:text-violet-300' : 'text-zinc-600 dark:text-zinc-400'}`}
