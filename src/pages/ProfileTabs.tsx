@@ -14,7 +14,7 @@ import { shouldHideProfilePosts } from '../config/privacy'
 import { mergeFeedItems, type LabeledPostsCursor } from '../data/publicData'
 import type { FeedPagingState } from '../data/feedPaging'
 import { queryKeys } from '../data/queryKeys'
-import { timestampFor } from '../lib/sorting'
+import { compareLabeledPostsNewestFirst, timestampFor } from '../lib/sorting'
 import { dedupeBy } from '../lib/collections'
 import { usePagedRecords } from '../lib/usePagedRecords'
 import type { FeedItem, LabelEvent, LabeledPost, ListSummary, RelationshipEntry, UnavailableItem } from '../types'
@@ -155,11 +155,7 @@ export function mergeLabeledPosts(items: LabeledPost[]): LabeledPost[] {
       labels: [...labels.values()].sort((left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt)),
     })
   }
-  return [...posts.values()].sort((left, right) => {
-    const leftDate = timestampFor(left.post.createdAt)
-    const rightDate = timestampFor(right.post.createdAt)
-    return rightDate - leftDate || left.post.uri.localeCompare(right.post.uri)
-  })
+  return [...posts.values()].sort(compareLabeledPostsNewestFirst)
 }
 
 export function FeedTab() {

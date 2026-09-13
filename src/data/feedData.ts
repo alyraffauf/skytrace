@@ -14,7 +14,7 @@ import type {
 import { dedupeBy } from '../lib/collections'
 import { CACHE_TTL_MS } from '../lib/cache'
 import { actorFromAtUri, parseAtUri } from '../lib/parse'
-import { timestampFor } from '../lib/sorting'
+import { compareLabeledPostsNewestFirst, timestampFor } from '../lib/sorting'
 import { readFeedState, storeFeedState, type FeedPagingState, type FeedStreamState } from './feedPaging'
 import { type LabelDataService } from './labelData'
 import { actorReference, isUnavailableRecord, type PublicDataCore, unavailable } from './publicDataCore'
@@ -69,9 +69,7 @@ export class FeedDataService {
     const items: LabeledPost[] = parsedItems
       .filter((item): item is { post: FeedPost; labels: LabelEvent[] } => item.post.kind === 'post')
       .map((item) => ({ kind: 'labeledPost', ...item }))
-    items.sort(
-      (left, right) => labeledPostDate(right) - labeledPostDate(left) || left.post.uri.localeCompare(right.post.uri),
-    )
+    items.sort(compareLabeledPostsNewestFirst)
     if (!postsPage.cursor) return { items }
     const seenCursors = new Set(cursor?.seenRepositoryCursors ?? [])
     if (seenCursors.has(postsPage.cursor))
@@ -235,10 +233,6 @@ function groupLabelsByPost(labels: LabelEvent[]): Map<string, LabelEvent[]> {
   for (const postLabels of grouped.values())
     postLabels.sort((left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt))
   return grouped
-}
-
-function labeledPostDate(item: LabeledPost): number {
-  return timestampFor(item.post.createdAt)
 }
 
 function rawRecordDate(record: RepositoryRecord): number {
