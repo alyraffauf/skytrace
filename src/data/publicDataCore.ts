@@ -257,7 +257,7 @@ export class PublicDataCore {
   }
 
   async labelRecords(
-    options: Parameters<typeof queryLabels>[0],
+    options: Parameters<typeof queryLabels>[0] & { repeatedCursorPolicy?: 'return-page' },
   ): Promise<Page<Omit<LabelEvent, 'source'> | UnavailableItem>> {
     const service = options.service ?? SERVICE_URLS.labelRelay
     const key = queryKeys.labels(
@@ -273,6 +273,7 @@ export class PublicDataCore {
       signal: options.signal,
       load: (signal) => queryLabels({ ...options, signal }),
       repeatedCursorError: 'The label service repeated a pagination cursor.',
+      repeatedCursorPolicy: options.repeatedCursorPolicy,
     })
   }
 
@@ -281,11 +282,12 @@ export class PublicDataCore {
     cursor?: string
     signal?: AbortSignal
     load: (signal: AbortSignal) => Promise<Page<T>>
+    repeatedCursorPolicy?: 'return-page'
     repeatedCursorError: string
   }): Promise<Page<T>> {
     const page = await this.sharedQuery(options.key, CACHE_TTL_MS.activity, options.load, options.signal)
     throwIfAborted(options.signal)
-    if (options.cursor && page.cursor === options.cursor) {
+    if (options.repeatedCursorPolicy !== 'return-page' && options.cursor && page.cursor === options.cursor) {
       throw new PublicDataValidationError(options.repeatedCursorError)
     }
     return page

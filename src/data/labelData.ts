@@ -34,6 +34,7 @@ export class LabelDataService {
       const page = await this.core.labelRecords({
         uriPatterns,
         cursor: state.relayCursor,
+        repeatedCursorPolicy: 'return-page',
         limit: LABEL_PAGE_SIZE,
         signal,
       })
@@ -47,8 +48,9 @@ export class LabelDataService {
         } else state.providers.push({ did: label.sourceDid, done: false, latestEventAt: label.createdAt })
       }
       state.providers.sort((left, right) => timestampFor(right.latestEventAt) - timestampFor(left.latestEventAt))
-      state.relayCursor = page.cursor
-      state.relayDone = !page.cursor
+      state.relayDone = !page.cursor || state.seenRelayCursors.includes(page.cursor)
+      state.relayCursor = state.relayDone ? undefined : page.cursor
+      if (page.cursor) state.seenRelayCursors.push(page.cursor)
       const newLabels = labels.filter((label) => !emittedIds.has(label.id))
       for (const label of newLabels) emittedIds.add(label.id)
       state.emittedIds = [...emittedIds]

@@ -511,7 +511,15 @@ describe('account labels', () => {
   })
   it('stops eager pagination after a delayed failure and recovers only on Retry', async () => {
     let rejectPage!: (error: Error) => void
-    const cursor = { kind: 'labels' as const, did, uriPatterns: [did], relayDone: false, providers: [], emittedIds: [] }
+    const cursor = {
+      kind: 'labels' as const,
+      did,
+      uriPatterns: [did],
+      relayDone: false,
+      seenRelayCursors: [],
+      providers: [],
+      emittedIds: [],
+    }
     const labels = vi
       .spyOn(PublicDataService.prototype, 'labels')
       .mockResolvedValueOnce({
@@ -547,7 +555,15 @@ describe('account labels', () => {
       .spyOn(PublicDataService.prototype, 'labels')
       .mockResolvedValueOnce({
         items: [],
-        cursor: { kind: 'labels', did, uriPatterns: [did], relayDone: false, providers: [], emittedIds: [] },
+        cursor: {
+          kind: 'labels',
+          did,
+          uriPatterns: [did],
+          relayDone: false,
+          seenRelayCursors: [],
+          providers: [],
+          emittedIds: [],
+        },
       })
       .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'second', reason: 'Second label page' }] })
     renderProfileTab(<LabelsTab />, profile)

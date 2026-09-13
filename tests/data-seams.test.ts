@@ -57,6 +57,52 @@ describe('public data seams', () => {
     expect(directPage.cursor).toBeUndefined()
   })
 
+  it.each([
+    ['a', 'a'],
+    ['a', 'b', 'a'],
+  ])('retains relay cycle pages and backfills providers: %j', async (...cursors) => {
+    let relayPages = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'labelers.firehose.stream') {
+          const index = relayPages++
+          return response({
+            labels: [{ ver: 1, src: memberDid, uri: did, val: `relay-${index}`, cts: '2026-08-01T00:00:00Z' }],
+            cursor: cursors[index],
+          })
+        }
+        if (url.hostname === 'plc.directory')
+          return response({
+            id: memberDid,
+            service: [
+              { id: '#atproto_labeler', type: 'AtprotoLabeler', serviceEndpoint: 'https://cycle-labels.example' },
+            ],
+          })
+        if (url.hostname === 'cycle-labels.example')
+          return response({
+            labels: [{ ver: 1, src: memberDid, uri: did, val: 'backfill', cts: '2025-01-01T00:00:00Z' }],
+          })
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+    const service = createTestService()
+    let page = await service.labels(did)
+    const firstCursor = page.cursor!
+    for (let index = 1; index < cursors.length; index++) {
+      page = await service.labels(did, page.cursor)
+      expect(page.items).toMatchObject([{ value: `relay-${index}` }])
+      expect(page.issues).toBeUndefined()
+    }
+    expect(firstCursor.seenRelayCursors).toEqual(['a'])
+    expect(page.cursor?.relayDone).toBe(true)
+    const backfill = await service.labels(did, page.cursor)
+    expect(backfill.items).toMatchObject([{ value: 'backfill' }])
+    expect(backfill.cursor).toBeUndefined()
+    expect(relayPages).toBe(cursors.length)
+  })
+
   it('rejects a repeated repository cursor', async () => {
     vi.stubGlobal(
       'fetch',
