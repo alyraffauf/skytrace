@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { splitFacetedText } from '../src/components/FeedRow'
+import { FeedRow, splitFacetedText } from '../src/components/FeedRow'
 import { InfiniteScroll } from '../src/components/InfiniteScroll'
 import { ImageWithFallback } from '../src/components/Images'
 import { groupLabelHistory, LabelRow } from '../src/components/LabelRow'
@@ -496,6 +496,96 @@ describe('relationship rendering', () => {
     )
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.getByRole('button', { name: `Open links for ${unresolvedDid}` })).toHaveFocus()
+  })
+})
+
+describe('repost rendering', () => {
+  const originalDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
+  const post: FeedPost = {
+    kind: 'post',
+    uri: `at://${originalDid}/app.bsky.feed.post/original`,
+    author: { kind: 'actorReference', did: originalDid },
+    createdAt: '2026-01-01T00:00:00Z',
+    text: 'Original post body',
+    facets: [],
+    repositoryPds: 'https://original-pds.example',
+    images: [{ cid, alt: 'Original image' }],
+    video: { cid, alt: 'Original video' },
+    replyTo: `at://${originalDid}/app.bsky.feed.post/parent`,
+    quoteUri: `at://${originalDid}/app.bsky.feed.post/quote`,
+  }
+  const repost = {
+    kind: 'repost' as const,
+    uri: `at://${did}/app.bsky.feed.repost/repost` as const,
+    author: actorReference,
+    subjectUri: post.uri,
+    createdAt: '2026-02-01T00:00:00Z',
+  }
+
+  it('loads the original author, preserves media origins and footer, and expands quotes once', async () => {
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(queryKeys.profileView(did), profile)
+    queryClient.setQueryData(queryKeys.profileView(originalDid), {
+      ...profile,
+      displayName: 'Original author',
+      identity: { ...identity, did: originalDid, handle: 'original.example' },
+    })
+    const service = new PublicDataService(queryClient)
+    const load = vi.spyOn(service, 'feedPostQueryOptions').mockImplementation((uri) => ({
+      queryKey: queryKeys.feedPost(uri),
+      queryFn: async () =>
+        uri === post.uri
+          ? post
+          : {
+              ...post,
+              uri: post.quoteUri!,
+              text: 'Quoted body',
+              quoteUri: `at://${originalDid}/app.bsky.feed.post/nested`,
+            },
+    }))
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <FeedRow item={repost} service={service} footer={<span>Label footer</span>} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(screen.getByText('Loading reposted post…')).toBeVisible()
+    expect(await screen.findByText('Original post body')).toBeVisible()
+    expect(await screen.findByText('Quoted body')).toBeVisible()
+    expect(screen.getAllByText('Original author').length).toBeGreaterThan(0)
+    expect(screen.getByText('@atproto.com')).toBeVisible()
+    expect(screen.getByText('Label footer')).toBeVisible()
+    expect(screen.getByText('Reply to a public post')).toBeVisible()
+    expect(screen.getAllByAltText('Original image')[0]).toHaveAttribute('src', expect.stringContaining(originalDid))
+    expect(view.container.querySelector('source')).toHaveAttribute(
+      'src',
+      expect.stringContaining('https://original-pds.example/'),
+    )
+    expect(view.container.querySelector('source')).toHaveAttribute(
+      'src',
+      expect.stringContaining(encodeURIComponent(originalDid)),
+    )
+    expect(load.mock.calls.every(([uri]) => uri === post.uri || uri === post.quoteUri)).toBe(true)
+  })
+
+  it('keeps both record menus when the repost target is unavailable', async () => {
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    vi.spyOn(service, 'feedPostQueryOptions').mockReturnValue({
+      queryKey: queryKeys.feedPost(post.uri),
+      queryFn: async () => ({ kind: 'unavailable', id: post.uri, reason: 'Target deleted' }),
+    })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <FeedRow item={repost} service={service} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(await screen.findByText('Target deleted')).toBeVisible()
+    expect(screen.getByRole('button', { name: /repost record/ })).toBeVisible()
+    expect(screen.getByRole('button', { name: /unavailable record/ })).toBeVisible()
   })
 })
 

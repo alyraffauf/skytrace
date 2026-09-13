@@ -125,7 +125,6 @@ type FeedRepost = {
   createdAt: string
   author: ActorReference
   subjectUri: CanonicalResourceUri
-  target?: FeedPost | UnavailableItem
 }
 
 export type FeedItem = FeedPost | FeedRepost | UnavailableItem

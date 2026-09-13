@@ -168,9 +168,23 @@ export const FeedRow = memo(function FeedRow({
   footer?: ReactNode
 }) {
   if (item.kind === 'unavailable') return <UnavailableFeedItem item={item} />
-  if (item.kind === 'repost' && !item.target) return <StreamedRepost item={item} service={service} footer={footer} />
-  const post = item.kind === 'repost' ? item.target : item
-  if (!post || post.kind === 'unavailable') {
+  if (item.kind === 'repost') return <StreamedRepost item={item} service={service} footer={footer} />
+  return <ResolvedFeedRow post={item} service={service} footer={footer} />
+})
+
+function ResolvedFeedRow({
+  post,
+  repost,
+  service,
+  footer,
+}: {
+  post: FeedPost | UnavailableItem
+  repost?: Extract<FeedItem, { kind: 'repost' }>
+  service?: PublicDataService
+  footer?: ReactNode
+}) {
+  if (post.kind === 'unavailable') {
+    if (!repost) return <UnavailableFeedItem item={post} />
     return (
       <div className="py-2.5">
         <div className="mb-2 flex items-center justify-between gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
@@ -178,37 +192,29 @@ export const FeedRow = memo(function FeedRow({
             <ArrowPathRoundedSquareIcon className="size-4" /> Reposted
           </span>
           <div className="flex items-center gap-1">
-            {formatDateTime(item.createdAt)}
-            <RecordLinksMenu recordUri={item.uri} label="repost record" />
+            {formatDateTime(repost.createdAt)}
+            <RecordLinksMenu recordUri={repost.uri} label="repost record" />
           </div>
         </div>
-        <UnavailableFeedItem
-          item={
-            post ?? {
-              kind: 'unavailable',
-              id: item.kind === 'repost' ? item.subjectUri : item.uri,
-              reason: 'Reposted post unavailable.',
-            }
-          }
-        />
+        <UnavailableFeedItem item={post} />
       </div>
     )
   }
   return (
     <HydratedActor actor={post.author}>
-      {(author) => <FeedRowContent item={item} post={post} author={author} service={service} footer={footer} />}
+      {(author) => <FeedRowContent repost={repost} post={post} author={author} service={service} footer={footer} />}
     </HydratedActor>
   )
-})
+}
 
 function FeedRowContent({
-  item,
+  repost,
   post,
   author,
   service,
   footer,
 }: {
-  item: Exclude<FeedItem, UnavailableItem>
+  repost?: Extract<FeedItem, { kind: 'repost' }>
   post: FeedPost
   author: Actor
   service?: PublicDataService
@@ -218,7 +224,7 @@ function FeedRowContent({
   const socialPath = postParts ? socialPostPath(postParts.did, postParts.rkey) : undefined
   return (
     <article className="feed-row py-2.5">
-      {item.kind === 'repost' && <RepostByline item={item} />}
+      {repost && <RepostByline item={repost} />}
       {post.replyTo && <ReplyByline recordUri={post.replyTo} />}
       <div className="flex gap-3">
         {author.kind === 'actorProfile' ? (
@@ -272,7 +278,7 @@ function ResolvedRepost({
   const targetQuery = useQuery(service.feedPostQueryOptions(item.subjectUri))
   if (targetQuery.isPending || !targetQuery.data)
     return <div className="py-5 text-sm text-zinc-500 dark:text-zinc-400">Loading reposted post…</div>
-  return <FeedRow item={{ ...item, target: targetQuery.data }} service={service} footer={footer} />
+  return <ResolvedFeedRow repost={item} post={targetQuery.data} service={service} footer={footer} />
 }
 
 function StreamedQuotedPost({ uri, service }: { uri: FeedPost['uri']; service: PublicDataService }) {

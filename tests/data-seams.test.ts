@@ -470,6 +470,7 @@ describe('request scheduling', () => {
 
 describe('feed paging', () => {
   it('holds older reposts until newer posts from the next source page are emitted', async () => {
+    const targetRequests = vi.fn()
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
@@ -512,6 +513,7 @@ describe('feed paging', () => {
             : response({ did, handle: 'atproto.com', pds: 'https://pds.example', signing_key: 'zQ3test' })
         }
         if (method === 'blue.microcosm.repo.getRecordByUri') {
+          targetRequests()
           const uri = url.searchParams.get('at_uri') ?? ''
           return response({
             uri,
@@ -531,6 +533,7 @@ describe('feed paging', () => {
       emitted.push(...page.items)
       cursor = page.cursor
     } while (emitted.length < 100 && cursor)
+    expect(targetRequests).not.toHaveBeenCalled()
     expect(emitted).toHaveLength(108)
     expect(emitted.slice(0, 50).every((item) => item.kind === 'post' && item.createdAt.startsWith('2026-04'))).toBe(
       true,
@@ -538,7 +541,7 @@ describe('feed paging', () => {
     expect(emitted.slice(50, 100).every((item) => item.kind === 'post' && item.createdAt.startsWith('2026-03'))).toBe(
       true,
     )
-    expect(emitted.slice(100).every((item) => item.kind === 'repost' && item.target === undefined)).toBe(true)
+    expect(emitted.slice(100).every((item) => item.kind === 'repost' && !('target' in item))).toBe(true)
     const dates = emitted.map((item) =>
       item.kind === 'unavailable' ? Number.NEGATIVE_INFINITY : Date.parse(item.createdAt),
     )
