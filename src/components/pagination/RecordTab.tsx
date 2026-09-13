@@ -1,10 +1,10 @@
 import { Fragment, type ReactNode } from 'react'
 import { PagedQueryView } from './PagedQuery'
-import { RecordList } from './RecordList'
-import { EmptyState } from './States'
-import { newestFirst } from '../lib/sorting'
-import { usePagedRecords } from '../hooks/usePagedRecords'
-import type { ListMembership, ListSummary, Page, RelationshipEntry, UnavailableItem } from '../types'
+import { RecordList } from '../records/RecordList'
+import { EmptyState } from '../ui/States'
+import { newestFirst } from '../../lib/sorting'
+import { usePagedRecords } from '../../hooks/usePagedRecords'
+import type { ListMembership, ListSummary, Page, RelationshipEntry, UnavailableItem } from '../../types'
 
 type TabRecord = ListMembership | ListSummary | RelationshipEntry | UnavailableItem
 

@@ -11,7 +11,7 @@ import {
   ActorReferenceText,
   HydratedActor,
 } from '../actors/ActorIdentity'
-import { RecordLinksMenu } from '../RecordLinksMenu'
+import { RecordLinksMenu } from '../records/RecordLinksMenu'
 import { formatDateTime } from '../../lib/dates'
 import type { Actor, FeedItem, FeedPost, UnavailableItem } from '../../types'
 import type { PublicDataService } from '../../data/publicData'

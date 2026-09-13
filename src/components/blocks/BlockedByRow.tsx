@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { RelationshipRow } from './RelationshipRow'
+import { BlockRow } from './BlockRow'
 import type { PublicDataService } from '../../data/publicData'
 import type { RelationshipEntry, UnavailableItem } from '../../types'
 
-export function StreamedBlockedByRow({
+export function BlockedByRow({
   entry,
   service,
 }: {
@@ -13,5 +13,5 @@ export function StreamedBlockedByRow({
   const blockDateQuery = useQuery(service.graph.blockDateQueryOptions(entry.id))
   const datedEntry =
     entry.kind === 'relationship' && blockDateQuery.data ? { ...entry, createdAt: blockDateQuery.data } : entry
-  return <RelationshipRow entry={datedEntry} />
+  return <BlockRow entry={datedEntry} />
 }

@@ -1,4 +1,4 @@
-import { useDelayedFlag } from '../hooks/useDelayedFlag'
+import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useEffect, useEffectEvent, useRef } from 'react'
 

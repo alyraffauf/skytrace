@@ -1,7 +1,7 @@
 import type { UseInfiniteQueryResult } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { InfiniteScroll } from './InfiniteScroll'
-import { EmptyState, LoadingRows } from './States'
+import { EmptyState, LoadingRows } from '../ui/States'
 
 export function PagedQueryView({
   query,

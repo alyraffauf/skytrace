@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { AccountDetails } from '../src/components/profile/AccountDetails'
 import { ProfileTabsNav } from '../src/components/profile/ProfileTabsNav'
-import { ProfilePage } from '../src/pages/profile/ProfilePage'
+import { ProfileLayout } from '../src/layouts/ProfileLayout'
 import { PublicDataService } from '../src/data/publicData'
 import { createTestQueryClient } from './testUtils'
 
@@ -96,7 +96,7 @@ it('resets page scroll for pushes but leaves back and forward restoration alone'
       <MemoryRouter initialEntries={['/profile/example.com']}>
         <Navigation />
         <Routes>
-          <Route path="/profile/:actor/*" element={<ProfilePage />} />
+          <Route path="/profile/:actor/*" element={<ProfileLayout />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

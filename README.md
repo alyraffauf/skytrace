@@ -49,15 +49,15 @@ Use the narrower commands while you work:
 
 - `src/main.tsx` mounts React and installs application providers.
 - `src/routes/` defines routes, lazy page loading, route errors, and internal URL helpers.
-- `src/layouts/` contains the shared application shell.
-- `src/pages/` contains route screens; profile screens and their outlet context live under `pages/profile/`.
-- `src/components/` contains reusable rendering. Feature components are grouped by actors, profile, feed, labels, lists, and relationships; shared UI stays at the directory root.
+- `src/layouts/` contains the application shell and profile layout, including the profile outlet context.
+- `src/pages/` contains route screens, with one file per profile tab under `pages/profile/`.
+- `src/components/` contains reusable rendering. Feature components are grouped by actors, profile, feed, labels, lists, and blocks. Shared display elements live in `ui/`, record rows and menus in `records/`, and paging components in `pagination/`.
 - `src/hooks/` contains custom React hooks for queries, timers, and interaction behavior.
 - `src/data/` owns service access, parsing, pagination, query keys, and the query client.
 - `src/lib/` contains non-React utilities and domain transformations.
 - `src/config/` contains application settings; `src/types.ts` defines shared domain types.
 
-Hooks use data services and utilities without importing rendering components. Keep helpers used only for rendering beside their component. Put new route registration in `routes/router.tsx` and profile tab definitions in `routes/profileTabs.tsx`.
+Hooks use data services and utilities without importing rendering components. Keep helpers used only for rendering beside their component. Put new route registration in `routes/router.tsx` and profile tab definitions in `routes/profileTabs.ts`.
 
 ## Data sources
 
@@ -80,10 +80,6 @@ SkyTrace runs up to six lookup requests and two pagination requests at once. `Pu
 
 The frontend uses React 19, TypeScript, Vite 8, Tailwind CSS 4, and TanStack Query.
 
-- `src/pages` contains the home, profile, profile-tab, and list pages.
-- `src/components` contains search, record rows, media, pagination, and error states.
-- `src/data` resolves identities and loads records, backlinks, labels, feeds, and lists.
-- `src/lib` contains caching, request scheduling, routing, parsing, and formatting helpers.
 - `tests` covers the data clients, pagination seams, record parsing, and UI behavior.
 - `scripts/generate-og.tsx` creates `public/og.png`.
 

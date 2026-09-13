@@ -1,19 +1,19 @@
-import type { ProfileOutletContext } from './context'
-import { AccountDetails } from '../../components/profile/AccountDetails'
-import { ProfileTabsNav } from '../../components/profile/ProfileTabsNav'
+import type { ProfileOutletContext } from './profileContext'
+import { AccountDetails } from '../components/profile/AccountDetails'
+import { ProfileTabsNav } from '../components/profile/ProfileTabsNav'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Suspense, useLayoutEffect } from 'react'
 import { Outlet, useLocation, useNavigationType, useParams } from 'react-router-dom'
-import { LinkifiedText } from '../../components/LinkifiedText'
-import { RecordLinksMenu } from '../../components/RecordLinksMenu'
-import { ActorAvatar, actorHandle, actorLabel } from '../../components/actors/ActorIdentity'
-import { ErrorState } from '../../components/States'
-import { publicDataServiceFor, type PublicDataService } from '../../data/publicData'
-import { socialProfilePath } from '../../lib/links'
-import type { ActorProfile } from '../../types'
-import { blockTargetDid } from '../../config/privacy'
+import { LinkifiedText } from '../components/ui/LinkifiedText'
+import { RecordLinksMenu } from '../components/records/RecordLinksMenu'
+import { ActorAvatar, actorHandle, actorLabel } from '../components/actors/ActorIdentity'
+import { ErrorState } from '../components/ui/States'
+import { publicDataServiceFor, type PublicDataService } from '../data/publicData'
+import { socialProfilePath } from '../lib/links'
+import type { ActorProfile } from '../types'
+import { blockTargetDid } from '../config/privacy'
 
-export function ProfilePage() {
+export function ProfileLayout() {
   const { actor = '' } = useParams()
   const service = publicDataServiceFor(useQueryClient())
   const location = useLocation()

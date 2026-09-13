@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
-import { RecordLinksMenu } from '../src/components/RecordLinksMenu'
+import { RecordLinksMenu } from '../src/components/records/RecordLinksMenu'
 
 const uri = 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/example'
 function setup() {

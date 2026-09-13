@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ImageWithFallback } from '../Images'
+import { ImageWithFallback } from '../ui/ImageWithFallback'
 import { cdnImageUrl, pdsBlobUrl } from '../../lib/cdn'
 import { parseAtUri, safeHttpUrl } from '../../lib/parse'
 import { profilePath } from '../../routes/paths'

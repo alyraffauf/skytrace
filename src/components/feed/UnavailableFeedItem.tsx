@@ -1,4 +1,4 @@
-import { RecordLinksMenu } from '../RecordLinksMenu'
+import { RecordLinksMenu } from '../records/RecordLinksMenu'
 import type { UnavailableItem } from '../../types'
 
 export function UnavailableFeedItem({ item }: { item: UnavailableItem }) {

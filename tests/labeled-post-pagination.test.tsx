@@ -2,7 +2,7 @@ import { act, render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
-import { LabeledPostsTab } from '../src/pages/profile/ProfileTabs'
+import { LabeledPostsPage } from '../src/pages/profile/LabeledPostsPage'
 import { PublicDataService } from '../src/data/publicData'
 import { queryKeys } from '../src/data/queryKeys'
 import type { LabeledPost } from '../src/types'
@@ -70,7 +70,7 @@ it('keeps observing after a fast empty page so older labeled posts can load', as
               <Outlet context={{ profile: { identity: { did }, hasNoUnauthenticatedSelfLabel: false }, service }} />
             }
           >
-            <Route index element={<LabeledPostsTab />} />
+            <Route index element={<LabeledPostsPage />} />
           </Route>
         </Routes>
       </MemoryRouter>

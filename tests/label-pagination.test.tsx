@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
-import { LabelsTab } from '../src/pages/profile/LabelsTab'
+import { AccountLabelsPage } from '../src/pages/profile/AccountLabelsPage'
 import { PublicDataService } from '../src/data/publicData'
 import { queryKeys } from '../src/data/queryKeys'
 import type { LabelPagingState } from '../src/data/labelPaging'
@@ -50,7 +50,7 @@ function setup(options: { cached?: boolean; issues?: string[] } = { cached: true
         <MemoryRouter>
           <Routes>
             <Route element={<Outlet context={{ profile: { identity: { did } }, service }} />}>
-              <Route index element={<LabelsTab />} />
+              <Route index element={<AccountLabelsPage />} />
             </Route>
           </Routes>
         </MemoryRouter>

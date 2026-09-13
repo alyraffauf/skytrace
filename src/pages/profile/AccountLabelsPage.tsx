@@ -1,16 +1,16 @@
 import { useOutletContext } from 'react-router-dom'
-import { PagedQueryPagination, PagedQueryRefreshNotice } from '../../components/PagedQuery'
+import { PagedQueryPagination, PagedQueryRefreshNotice } from '../../components/pagination/PagedQuery'
 import { LabelRow } from '../../components/labels/LabelRow'
 import { groupLabelHistory, type LabelHistoryEvent } from '../../lib/labelHistory'
 import { useLabelDisplayNames } from '../../hooks/useLabelDisplayNames'
-import { RecordList } from '../../components/RecordList'
+import { RecordList } from '../../components/records/RecordList'
 import { SourceIssues } from '../../components/labels/SourceIssues'
-import { EmptyState, ErrorState, LoadingRows } from '../../components/States'
+import { EmptyState, ErrorState, LoadingRows } from '../../components/ui/States'
 import { useAccountLabels } from '../../hooks/useAccountLabels'
 import type { UnavailableItem } from '../../types'
-import type { ProfileOutletContext } from './context'
+import type { ProfileOutletContext } from '../../layouts/profileContext'
 
-export function LabelsTab() {
+export function AccountLabelsPage() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
   const query = useAccountLabels(profile.identity.did, service.labels)
   if (query.isPending) return <LoadingRows />

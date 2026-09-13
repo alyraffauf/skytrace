@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { MiniActor } from '../actors/ActorIdentity'
-import { ImageWithFallback } from '../Images'
-import { RecordLinksMenu } from '../RecordLinksMenu'
+import { ImageWithFallback } from '../ui/ImageWithFallback'
+import { RecordLinksMenu } from '../records/RecordLinksMenu'
 import { cdnImageUrl } from '../../lib/cdn'
 import { formatDate } from '../../lib/dates'
 import { listPurposeLabel } from '../../lib/lists'
@@ -10,7 +10,7 @@ import { parseAtUri } from '../../lib/parse'
 import { listPath } from '../../routes/paths'
 import type { ListMembership, ListSummary, UnavailableItem } from '../../types'
 import { Link } from 'react-router-dom'
-import { compactRowClassName, UnavailableRow } from '../RecordList'
+import { compactRowClassName, UnavailableRow } from '../records/RecordList'
 
 export const ListRow = memo(function ListRow({
   list,

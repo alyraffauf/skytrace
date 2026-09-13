@@ -1,5 +1,5 @@
 import type { ActorSuggestion } from '../../types'
-import { ImageWithFallback } from '../Images'
+import { ImageWithFallback } from '../ui/ImageWithFallback'
 
 export function ActorSuggestions({
   listboxId,

@@ -8,22 +8,24 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FeedRow } from '../src/components/feed/FeedRow'
 import { splitFacetedText } from '../src/components/feed/PostContent'
-import { InfiniteScroll } from '../src/components/InfiniteScroll'
-import { ImageWithFallback } from '../src/components/Images'
+import { InfiniteScroll } from '../src/components/pagination/InfiniteScroll'
+import { ImageWithFallback } from '../src/components/ui/ImageWithFallback'
 import { LabelRow } from '../src/components/labels/LabelRow'
 import { groupLabelHistory } from '../src/lib/labelHistory'
 import { LabeledPostRow } from '../src/components/labels/LabeledPostRow'
 import { labelDisplayName } from '../src/lib/labelNames'
-import { RelationshipRow } from '../src/components/relationships/RelationshipRow'
-import { RecordLinksMenu } from '../src/components/RecordLinksMenu'
-import { LinkifiedText } from '../src/components/LinkifiedText'
+import { BlockRow } from '../src/components/blocks/BlockRow'
+import { RecordLinksMenu } from '../src/components/records/RecordLinksMenu'
+import { LinkifiedText } from '../src/components/ui/LinkifiedText'
 import { mergeFeedItems } from '../src/data/publicData'
 import { queryKeys } from '../src/data/queryKeys'
 import { labelDefinitionsFromRecord, parseFacets } from '../src/data/recordParsers'
 import { normalizeActorInput } from '../src/lib/parse'
-import { ProfilePage } from '../src/pages/profile/ProfilePage'
+import { ProfileLayout } from '../src/layouts/ProfileLayout'
 import { ListPage } from '../src/pages/ListPage'
-import { FeedTab, LabeledPostsTab, LabelsTab } from '../src/pages/profile/ProfileTabs'
+import { FeedPage } from '../src/pages/profile/FeedPage'
+import { LabeledPostsPage } from '../src/pages/profile/LabeledPostsPage'
+import { AccountLabelsPage } from '../src/pages/profile/AccountLabelsPage'
 import { PublicDataService } from '../src/data/publicData'
 import type { ActorIdentity, ActorProfile, FeedPost, LabeledPost, LabelEvent, ListSummary } from '../src/types'
 import { createTestQueryClient, jsonResponse as response } from './testUtils'
@@ -169,7 +171,7 @@ describe('profile relationship counts', () => {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/profile/atproto.com']}>
           <Routes>
-            <Route path="profile/:actor" element={<ProfilePage />}>
+            <Route path="profile/:actor" element={<ProfileLayout />}>
               <Route index element={<div>Feed content</div>} />
             </Route>
           </Routes>
@@ -221,7 +223,7 @@ describe('profile relationship counts', () => {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/profile/atproto.com']}>
           <Routes>
-            <Route path="profile/:actor" element={<ProfilePage />}>
+            <Route path="profile/:actor" element={<ProfileLayout />}>
               <Route index element={<div>Feed content</div>} />
             </Route>
           </Routes>
@@ -427,7 +429,7 @@ describe('profile post privacy', () => {
     const feed = vi.spyOn(FeedDataService.prototype, 'feed')
     vi.stubGlobal('fetch', fetchMock)
 
-    renderProfileTab(<FeedTab />, restrictedProfile)
+    renderProfileTab(<FeedPage />, restrictedProfile)
 
     expect(screen.getByRole('heading', { name: "Posts aren't available here" })).toBeVisible()
     expect(screen.getByText(unavailableExplanation)).toBeVisible()
@@ -440,7 +442,7 @@ describe('profile post privacy', () => {
     const labeledPosts = vi.spyOn(FeedDataService.prototype, 'labeledPosts')
     vi.stubGlobal('fetch', fetchMock)
 
-    renderProfileTab(<LabeledPostsTab />, restrictedProfile)
+    renderProfileTab(<LabeledPostsPage />, restrictedProfile)
 
     expect(screen.getByRole('heading', { name: "Posts aren't available here" })).toBeVisible()
     expect(screen.getByText(unavailableExplanation)).toBeVisible()
@@ -451,7 +453,7 @@ describe('profile post privacy', () => {
   it('keeps Account labels available for the same profile', async () => {
     const labels = vi.spyOn(LabelDataService.prototype, 'labels').mockResolvedValue({ items: [] })
 
-    renderProfileTab(<LabelsTab />, restrictedProfile)
+    renderProfileTab(<AccountLabelsPage />, restrictedProfile)
 
     expect(await screen.findByRole('heading', { name: 'No account labels found' })).toBeVisible()
     expect(labels).toHaveBeenCalledOnce()
@@ -462,12 +464,12 @@ describe('profile post privacy', () => {
     const feed = vi.spyOn(FeedDataService.prototype, 'feed').mockResolvedValue({ items: [] })
     const labeledPosts = vi.spyOn(FeedDataService.prototype, 'labeledPosts').mockResolvedValue({ items: [] })
 
-    const feedView = renderProfileTab(<FeedTab />, restrictedProfile)
+    const feedView = renderProfileTab(<FeedPage />, restrictedProfile)
     expect(await screen.findByRole('heading', { name: 'No posts or reposts found' })).toBeVisible()
     expect(feed).toHaveBeenCalledOnce()
     feedView.unmount()
 
-    renderProfileTab(<LabeledPostsTab />, restrictedProfile)
+    renderProfileTab(<LabeledPostsPage />, restrictedProfile)
     expect(await screen.findByRole('heading', { name: 'No labeled posts found' })).toBeVisible()
     expect(labeledPosts).toHaveBeenCalledOnce()
   })
@@ -596,7 +598,7 @@ describe('relationship rendering', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <RelationshipRow
+          <BlockRow
             entry={{
               kind: 'relationship',
               id: `at://${did}/app.bsky.graph.block/3abc`,
@@ -781,7 +783,7 @@ describe('account labels', () => {
           }),
       )
       .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'recovered', reason: 'Recovered label' }] })
-    renderProfileTab(<LabelsTab />, profile)
+    renderProfileTab(<AccountLabelsPage />, profile)
     await waitFor(() => expect(labels).toHaveBeenCalledTimes(2))
     expect(screen.getByText('Previously loaded label')).toBeVisible()
     await act(async () => {
@@ -813,7 +815,7 @@ describe('account labels', () => {
         },
       })
       .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'second', reason: 'Second label page' }] })
-    renderProfileTab(<LabelsTab />, profile)
+    renderProfileTab(<AccountLabelsPage />, profile)
     expect(await screen.findByText('Second label page')).toBeVisible()
     expect(labels).toHaveBeenCalledTimes(2)
   })

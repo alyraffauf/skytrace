@@ -1,4 +1,4 @@
-import { ImageWithFallback } from '../Images'
+import { ImageWithFallback } from '../ui/ImageWithFallback'
 import { cdnImageUrl } from '../../lib/cdn'
 import { profilePath } from '../../routes/paths'
 import type { ActorIdentity, ActorProfile } from '../../types'

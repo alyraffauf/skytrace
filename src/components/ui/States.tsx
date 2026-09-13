@@ -1,4 +1,4 @@
-import { LoadingRowContents } from './LoadingRowContents'
+import { LoadingRowContents } from '../records/LoadingRowContents'
 import { ArrowPathIcon, ExclamationTriangleIcon, InboxIcon } from '@heroicons/react/24/outline'
 import { ClientResponseError } from '@atcute/client'
 

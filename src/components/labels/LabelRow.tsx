@@ -2,7 +2,7 @@ import { labelState, type LabelHistoryEvent } from '../../lib/labelHistory'
 import { MiniActor } from '../actors/ActorIdentity'
 import { formatDate } from '../../lib/dates'
 import type { UnavailableItem } from '../../types'
-import { compactRowClassName, UnavailableRow } from '../RecordList'
+import { compactRowClassName, UnavailableRow } from '../records/RecordList'
 import { LabelValue } from './LabelValue'
 
 export function LabelRow({ label, displayName }: { label: LabelHistoryEvent | UnavailableItem; displayName?: string }) {

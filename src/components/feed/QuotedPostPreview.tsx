@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { MiniActor } from '../actors/ActorIdentity'
-import { RecordLinksMenu } from '../RecordLinksMenu'
+import { RecordLinksMenu } from '../records/RecordLinksMenu'
 import { PostContent } from './PostContent'
 import { UnavailableFeedItem } from './UnavailableFeedItem'
 import { formatDateTime } from '../../lib/dates'
