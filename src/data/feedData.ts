@@ -62,7 +62,7 @@ export class FeedDataService {
       records
         .filter((record) => labelsByPost.has(record.uri))
         .map(async (record) => ({
-          post: await this.postFromRecord({ record, repository: identity, signal }),
+          post: await this.loadPostFromRecord({ record, repository: identity, signal }),
           labels: labelsByPost.get(record.uri)!,
         })),
     )
@@ -88,7 +88,7 @@ export class FeedDataService {
     }
   }
 
-  private async postFromRecord(options: {
+  private async loadPostFromRecord(options: {
     record: RawRecord
     repository?: ActorIdentity
     signal?: AbortSignal
@@ -143,7 +143,7 @@ export class FeedDataService {
       queryFn: async ({ signal }) => {
         const record = await this.core.optionalRecord(uri, signal)
         if (!record) return unavailable(uri, 'This post could not be loaded.')
-        const post = await this.postFromRecord({ record, signal })
+        const post = await this.loadPostFromRecord({ record, signal })
         return post.kind === 'post' ? post : unavailable(uri, 'This post is malformed.')
       },
       staleTime: CACHE_TTL_MS.activity,
@@ -180,7 +180,7 @@ export class FeedDataService {
     const items = await Promise.all(
       selected.map(async ({ type, record }): Promise<FeedItem> => {
         if (isUnavailableRecord(record)) return record
-        if (type === 'post') return this.postFromRecord({ record, repository: identity, signal })
+        if (type === 'post') return this.loadPostFromRecord({ record, repository: identity, signal })
         const value = parsedRecord(AppBskyFeedRepost.mainSchema, record)
         if (!value) return unavailable(record.uri, 'This repost record is malformed.')
         const subjectUri = value.subject.uri
