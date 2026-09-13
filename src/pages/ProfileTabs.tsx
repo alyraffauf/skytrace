@@ -71,7 +71,7 @@ export function ListedOnTab() {
     queryKeys.profileTab(profile.identity.did, 'listedOn'),
     (cursor, signal) => service.listedOnReferences(profile.identity.did, cursor, signal),
   )
-  const memberships = uniqueMembershipReferences(query.data?.pages.flatMap((page) => page.items) ?? [])
+  const memberships = dedupeBy(query.data?.pages.flatMap((page) => page.items) ?? [], (reference) => reference.uri)
   return (
     <PagedQueryView query={query} resourceLabel="list memberships">
       {memberships.length === 0 ? (
@@ -87,10 +87,6 @@ export function ListedOnTab() {
       )}
     </PagedQueryView>
   )
-}
-
-function uniqueMembershipReferences(references: Array<{ uri: string }>) {
-  return dedupeBy(references, (reference) => reference.uri)
 }
 
 export function LabeledPostsTab() {

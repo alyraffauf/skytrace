@@ -56,7 +56,7 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
   const membersQuery = usePagedRecords<{ uri: string }>(queryKeys.listMembers(list.uri), (cursor, signal) =>
     service.listMembers(list.uri, cursor, signal),
   )
-  const members = uniqueMembershipReferences(membersQuery.data?.pages.flatMap((page) => page.items) ?? [])
+  const members = dedupeBy(membersQuery.data?.pages.flatMap((page) => page.items) ?? [], (reference) => reference.uri)
 
   return (
     <article className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
@@ -123,10 +123,6 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
       )}
     </article>
   )
-}
-
-function uniqueMembershipReferences(references: Array<{ uri: string }>) {
-  return dedupeBy(references, (reference) => reference.uri)
 }
 
 function ListPageSkeleton() {
