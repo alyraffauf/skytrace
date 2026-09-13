@@ -13,7 +13,7 @@ export function LabeledPostRow({
 }: {
   item: LabeledPost
   displayNames?: ReadonlyMap<string, string>
-  service?: PublicDataService
+  service: PublicDataService
 }) {
   return (
     <FeedRow

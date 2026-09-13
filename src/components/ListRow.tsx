@@ -5,7 +5,7 @@ import { RecordLinksMenu } from './RecordLinksMenu'
 import { cdnImageUrl } from '../lib/cdn'
 import { formatDate } from '../lib/dates'
 import { listPurposeLabel } from '../lib/lists'
-import { socialListPath } from '../lib/links'
+import { socialPathForAtUri } from '../lib/links'
 import { parseAtUri } from '../lib/parse'
 import { listPath } from '../lib/routes'
 import type { ListMembership, ListSummary, UnavailableItem } from '../types'
@@ -23,8 +23,6 @@ export const ListRow = memo(function ListRow({
     return <UnavailableRow reason={list.reason} />
   }
 
-  const parts = parseAtUri(list.uri)
-  const socialPath = parts ? socialListPath(parts.did, parts.rkey) : undefined
   const internalPath = listPath(list.uri)
   const date = formatDate(membership?.createdAt ?? list.createdAt)
   const details = (
@@ -69,7 +67,11 @@ export const ListRow = memo(function ListRow({
         {date ?? 'Date unknown'}
       </p>
       <div className="-my-1 col-start-3 row-span-2 row-start-1 self-start sm:col-start-4 sm:row-span-1">
-        <RecordLinksMenu recordUri={membership?.uri ?? list.uri} socialPath={socialPath} label={list.name} />
+        <RecordLinksMenu
+          recordUri={membership?.uri ?? list.uri}
+          socialPath={socialPathForAtUri(list.uri)}
+          label={list.name}
+        />
       </div>
     </article>
   )

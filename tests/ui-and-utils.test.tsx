@@ -36,8 +36,7 @@ const profile: ActorProfile = {
 }
 const actorReference = { kind: 'actorReference' as const, did: identity.did }
 
-function renderWithRouter(element: React.ReactNode) {
-  const queryClient = createTestQueryClient()
+function renderWithRouter(element: React.ReactNode, queryClient = createTestQueryClient()) {
   queryClient.setQueryData(queryKeys.profileView(did), profile)
   return render(
     <QueryClientProvider client={queryClient}>
@@ -98,13 +97,31 @@ describe('plain text links', () => {
 describe('record links', () => {
   const postUri = `at://${did}/app.bsky.feed.post/3example`
 
-  it('offers Skythread in a post links menu', () => {
+  it('derives record destinations and preserves explicit social destinations', () => {
     const view = render(<RecordLinksMenu recordUri={postUri} label="post" />)
     fireEvent.click(screen.getByRole('button', { name: 'Open links for post' }))
     expect(screen.getByRole('link', { name: /Skythread/ })).toHaveAttribute(
       'href',
       `https://skythread.mackuba.eu/?author=did%3Aplc%3Aewvi7nxzyoun6zhxrhs64oiz&post=3example`,
     )
+    expect(screen.getByRole('link', { name: 'Bluesky' })).toHaveAttribute(
+      'href',
+      `https://bsky.app/profile/${did}/post/3example`,
+    )
+    for (const [collection, override, destination] of [
+      ['app.bsky.graph.list', undefined, `/profile/${did}/lists/3example`],
+      ['app.bsky.graph.listitem', '/profile/list-owner/lists/target', '/profile/list-owner/lists/target'],
+      ['app.bsky.graph.block', '/profile/blocked-account', '/profile/blocked-account'],
+      ['app.bsky.feed.repost', undefined, undefined],
+      ['app.bsky.feed.post', '', undefined],
+    ] as const) {
+      view.rerender(
+        <RecordLinksMenu recordUri={`at://${did}/${collection}/3example`} socialPath={override} label="record" />,
+      )
+      if (destination)
+        expect(screen.getByRole('link', { name: 'Bluesky' })).toHaveAttribute('href', `https://bsky.app${destination}`)
+      else expect(screen.queryByRole('link', { name: 'Bluesky' })).not.toBeInTheDocument()
+    }
     view.rerender(<RecordLinksMenu recordUri={`at://${did}/app.bsky.graph.block/3example`} label="block" />)
     expect(screen.queryByRole('link', { name: /Skythread/ })).not.toBeInTheDocument()
   })
@@ -971,6 +988,8 @@ describe('labeled post previews', () => {
   })
 
   it('shows every post label with its custom name', () => {
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
     const postUri = `at://${did}/app.bsky.feed.post/labeled` as const
     const author = actorReference
     const post: FeedPost = {
@@ -995,7 +1014,9 @@ describe('labeled post previews', () => {
       <LabeledPostRow
         item={{ kind: 'labeledPost', post, labels: [label('graphic-media'), label('photography')] }}
         displayNames={new Map([['event-graphic-media', 'Custom warning']])}
+        service={service}
       />,
+      queryClient,
     )
 
     expect(screen.getByRole('heading', { name: 'Post labels' })).toBeInTheDocument()

@@ -2,13 +2,13 @@ import { ArrowUpRightIcon, EllipsisHorizontalIcon } from '@heroicons/react/20/so
 import { useRecordLinksPopup } from './useRecordLinksPopup'
 import { createPortal } from 'react-dom'
 import { SOCIAL_APPS } from '../config/socialApps'
-import { pdslsRecordUrl, skythreadPostUrl } from '../lib/links'
+import { pdslsRecordUrl, skythreadPostUrl, socialPathForAtUri } from '../lib/links'
 
 const PDSLS_FAVICON = '/favicons/pdsls.ico'
 
 export function RecordLinksMenu({
   recordUri,
-  socialPath,
+  socialPath = socialPathForAtUri(recordUri),
   label,
 }: {
   recordUri: string

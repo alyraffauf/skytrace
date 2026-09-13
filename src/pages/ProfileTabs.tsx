@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { FeedRow } from '../components/FeedRow'
 import { LabeledPostRow } from '../components/LabeledPostRow'
@@ -79,9 +79,7 @@ export function ListedOnTab() {
       ) : (
         <RecordList>
           {memberships.map((membership) => (
-            <Fragment key={membership.uri}>
-              <StreamedListedOnRow membershipUri={membership.uri} service={service} />
-            </Fragment>
+            <StreamedListedOnRow key={membership.uri} membershipUri={membership.uri} service={service} />
           ))}
         </RecordList>
       )}

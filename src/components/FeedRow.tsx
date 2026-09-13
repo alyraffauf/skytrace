@@ -13,8 +13,6 @@ import {
 } from './ActorIdentity'
 import { RecordLinksMenu } from './RecordLinksMenu'
 import { formatDateTime } from '../lib/dates'
-import { socialPathForAtUri, socialPostPath } from '../lib/links'
-import { parseAtUri } from '../lib/parse'
 import type { Actor, FeedItem, FeedPost, UnavailableItem } from '../types'
 import type { PublicDataService } from '../data/publicData'
 
@@ -24,11 +22,11 @@ export const FeedRow = memo(function FeedRow({
   footer,
 }: {
   item: FeedItem
-  service?: PublicDataService
+  service: PublicDataService
   footer?: ReactNode
 }) {
   if (item.kind === 'unavailable') return <UnavailableFeedItem item={item} />
-  if (item.kind === 'repost') return <StreamedRepost item={item} service={service} footer={footer} />
+  if (item.kind === 'repost') return <ResolvedRepost item={item} service={service} footer={footer} />
   return <ResolvedFeedRow post={item} service={service} footer={footer} />
 })
 
@@ -40,7 +38,7 @@ function ResolvedFeedRow({
 }: {
   post: FeedPost | UnavailableItem
   repost?: Extract<FeedItem, { kind: 'repost' }>
-  service?: PublicDataService
+  service: PublicDataService
   footer?: ReactNode
 }) {
   if (post.kind === 'unavailable') {
@@ -77,11 +75,9 @@ function FeedRowContent({
   repost?: Extract<FeedItem, { kind: 'repost' }>
   post: FeedPost
   author: Actor
-  service?: PublicDataService
+  service: PublicDataService
   footer?: ReactNode
 }) {
-  const postParts = parseAtUri(post.uri)
-  const socialPath = postParts ? socialPostPath(postParts.did, postParts.rkey) : undefined
   return (
     <article className="feed-row py-2.5">
       {repost && <RepostByline item={repost} />}
@@ -95,11 +91,11 @@ function FeedRowContent({
               <span className="text-xs text-zinc-500 dark:text-zinc-400">{formatDateTime(post.createdAt)}</span>
             </div>
             <div className="absolute right-0 top-1/2 -translate-y-1/2">
-              <RecordLinksMenu recordUri={post.uri} socialPath={socialPath} label="post" />
+              <RecordLinksMenu recordUri={post.uri} label="post" />
             </div>
           </div>
           <PostContent post={post}>
-            {post.quoteUri && service && (
+            {post.quoteUri && (
               <div className="mt-2 overflow-hidden border border-zinc-200 dark:border-zinc-800">
                 <QuotedPostPreview uri={post.quoteUri} service={service} />
               </div>
@@ -110,22 +106,6 @@ function FeedRowContent({
       </div>
     </article>
   )
-}
-
-function StreamedRepost({
-  item,
-  service,
-  footer,
-}: {
-  item: Extract<FeedItem, { kind: 'repost' }>
-  service?: PublicDataService
-  footer?: ReactNode
-}) {
-  if (!service)
-    return (
-      <UnavailableFeedItem item={{ kind: 'unavailable', id: item.subjectUri, reason: 'Reposted post unavailable.' }} />
-    )
-  return <ResolvedRepost item={item} service={service} footer={footer} />
 }
 
 function ResolvedRepost({
@@ -165,7 +145,7 @@ function ReplyByline({ recordUri }: { recordUri: string }) {
     <div className="mb-1 flex items-center gap-1 pl-11 text-xs text-zinc-500 dark:text-zinc-400">
       Reply to a public post
       <div className="-my-2">
-        <RecordLinksMenu recordUri={recordUri} socialPath={socialPathForAtUri(recordUri)} label="parent post" />
+        <RecordLinksMenu recordUri={recordUri} label="parent post" />
       </div>
     </div>
   )

@@ -12,8 +12,6 @@ import { formatDate } from '../lib/dates'
 import { publicDataServiceFor, type PublicDataService } from '../data/publicData'
 import { queryKeys } from '../data/queryKeys'
 import { listPurposeLabel } from '../lib/lists'
-import { socialListPath } from '../lib/links'
-import { parseAtUri } from '../lib/parse'
 import { dedupeBy } from '../lib/collections'
 import { usePagedRecords } from '../lib/usePagedRecords'
 import type { ListSummary } from '../types'
@@ -50,7 +48,6 @@ function UnavailableListPage({ reason }: { reason: string }) {
 }
 
 function ResolvedListPage({ list, service }: { list: ListSummary; service: PublicDataService }) {
-  const listRecord = parseAtUri(list.uri)!
   const moderationListUri = list.purpose.endsWith('#modlist') ? list.uri : undefined
   const listBlockCountQuery = useQuery(service.listBlockCountQueryOptions(moderationListUri))
   const membersQuery = usePagedRecords<{ uri: string }>(queryKeys.listMembers(list.uri), (cursor, signal) =>
@@ -74,11 +71,7 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
             )}
           </div>
         </div>
-        <RecordLinksMenu
-          recordUri={list.uri}
-          socialPath={socialListPath(listRecord.did, listRecord.rkey)}
-          label={list.name}
-        />
+        <RecordLinksMenu recordUri={list.uri} label={list.name} />
         {list.description && (
           <p className="col-span-3 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">{list.description}</p>
         )}
