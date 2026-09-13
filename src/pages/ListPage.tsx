@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { isRecordKey } from '@atcute/lexicons/syntax'
 import { useParams } from 'react-router-dom'
 import { MiniActor } from '../components/ActorIdentity'
-import { InfiniteScroll } from '../components/InfiniteScroll'
+import { PagedQueryView } from '../components/PagedQuery'
 import { ListAvatar } from '../components/ListRow'
 import { RecordLinksMenu } from '../components/RecordLinksMenu'
 import { RecordList } from '../components/RecordList'
@@ -57,7 +57,6 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
     service.listMembers(list.uri, cursor, signal),
   )
   const members = uniqueMembershipReferences(membersQuery.data?.pages.flatMap((page) => page.items) ?? [])
-  const paginationError = membersQuery.isFetchNextPageError ? membersQuery.error : undefined
 
   return (
     <article className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
@@ -101,24 +100,27 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
         </span>
       </div>
 
-      {membersQuery.isPending && <LoadingRows count={6} />}
-      {membersQuery.isError && !membersQuery.data && (
+      {membersQuery.isPending ? (
+        <LoadingRows count={6} />
+      ) : !membersQuery.data ? (
         <ErrorState error={membersQuery.error} retry={() => void membersQuery.refetch()} />
+      ) : (
+        <PagedQueryView query={membersQuery} resourceLabel="members">
+          {membersQuery.isSuccess && members.length === 0 && <EmptyState title="No members found" />}
+          {members.length > 0 && (
+            <RecordList>
+              {members.map((member) => (
+                <StreamedListMemberRow
+                  key={member.uri}
+                  listUri={list.uri}
+                  membershipUri={member.uri}
+                  service={service}
+                />
+              ))}
+            </RecordList>
+          )}
+        </PagedQueryView>
       )}
-      {membersQuery.isSuccess && members.length === 0 && <EmptyState title="No members found" />}
-      {members.length > 0 && (
-        <RecordList>
-          {members.map((member) => (
-            <StreamedListMemberRow key={member.uri} listUri={list.uri} membershipUri={member.uri} service={service} />
-          ))}
-        </RecordList>
-      )}
-      <InfiniteScroll
-        hasMore={membersQuery.hasNextPage}
-        loading={membersQuery.isFetchingNextPage}
-        error={paginationError}
-        load={() => void membersQuery.fetchNextPage()}
-      />
     </article>
   )
 }
