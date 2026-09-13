@@ -11,7 +11,7 @@ const ListedOnTab = lazy(() => loadProfileTabs().then((module) => ({ default: mo
 
 export type ProfileTabSlug = 'labels' | 'labeled-posts' | 'blocking' | 'blocked-by' | 'lists' | 'listed-on'
 
-export type ProfileTabDefinition = {
+type ProfileTabDefinition = {
   id: 'feed' | ProfileTabSlug
   label: string
   path: ProfileTabSlug | null

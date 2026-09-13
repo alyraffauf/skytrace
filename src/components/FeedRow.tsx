@@ -179,5 +179,5 @@ function ReplyByline({ recordUri }: { recordUri: string }) {
 function FeedAuthor({ author }: { author: Actor }) {
   if (author.kind === 'actorReference') return <ActorReferenceText actor={author} />
 
-  return <ActorIdentityText profile={author} inline />
+  return <ActorIdentityText profile={author} />
 }

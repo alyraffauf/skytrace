@@ -79,11 +79,9 @@ function readableError(error: Error): string {
   return error.description || 'The public service rejected this request.'
 }
 
-export function UnavailableCard({ reason, bordered = false }: { reason: string; bordered?: boolean }) {
+export function UnavailableCard({ reason }: { reason: string }) {
   return (
-    <div
-      className={`flex min-h-12 items-center gap-2.5 py-2 text-sm text-zinc-500 dark:text-zinc-400 ${bordered ? 'border-b border-zinc-200 dark:border-zinc-800' : ''}`}
-    >
+    <div className="flex min-h-12 items-center gap-2.5 py-2 text-sm text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
       <ExclamationTriangleIcon className="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
       <span>{reason}</span>
     </div>
