@@ -14,8 +14,8 @@ export const queryKeys = {
   listBlockCount: (uri?: string) => ['listBlockCount', uri ?? null] as const,
   actorBlocksConfiguredAccount: (did?: string, targetDid?: string) =>
     ['actorBlocksConfiguredAccount', did ?? null, targetDid ?? null] as const,
-  backlinks: (subject: string, source: string, cursor: string | undefined) =>
-    ['backlinks', subject, source, cursor ?? null] as const,
+  backlinks: (subject: string, source: string, cursor: string | undefined, did?: string) =>
+    ['backlinks', subject, source, cursor ?? null, did ?? null] as const,
   labelerEndpoint: (did: string) => ['labelerEndpoint', did] as const,
   labelDefinitions: (did: string) => ['labelDefinitions', did] as const,
   labels: (service: string, uriPatterns: string[], sources: string[], cursor: string | undefined, limit: number) =>

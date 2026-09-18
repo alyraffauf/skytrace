@@ -61,6 +61,7 @@ function clientFor(service: string): Client {
 
 const backlinksSchema = v.query('blue.microcosm.links.getBacklinks', {
   params: v.object({
+    did: v.optional(v.array(v.didString())),
     subject: v.genericUriString(),
     source: v.string(),
     limit: v.optional(v.integer()),
@@ -319,19 +320,22 @@ function fetchRecordPage(options: {
 export async function getBacklinks(options: {
   subject: string
   source: BacklinkSource
+  did?: string
   cursor?: string
   signal?: AbortSignal
 }): Promise<Page<{ uri: string }>> {
   if (!isGenericUri(options.subject)) throw new Error('Cannot fetch backlinks for an invalid subject URI.')
   if (!backlinkSources.includes(options.source)) throw new Error('Cannot fetch backlinks for an unsupported source.')
+  if (options.did && !isDid(options.did)) throw new Error('Cannot filter backlinks for an invalid DID.')
   const data = await paginationRequests.run(
     () =>
       ok(
         clientFor(SERVICE_URLS.constellation).call(backlinksSchema, {
           params: {
+            did: options.did ? [options.did as Did] : undefined,
             subject: options.subject as GenericUri,
             source: options.source,
-            limit: 100,
+            limit: options.did ? 1 : 100,
             reverse: false,
             cursor: options.cursor,
           },

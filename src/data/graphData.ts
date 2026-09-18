@@ -25,22 +25,13 @@ export class GraphDataService {
     targetDid: ActorIdentity['did'],
     signal?: AbortSignal,
   ): Promise<boolean> {
-    let cursor: string | undefined
-    const seenCursors = new Set<string>()
-
-    while (true) {
-      const page = await this.core.backlinks({
-        subject: targetDid,
-        source: 'app.bsky.graph.block:subject',
-        cursor,
-        signal,
-      })
-      if (page.items.some((reference) => actorFromAtUri(reference.uri) === did)) return true
-      if (!page.cursor) return false
-      if (seenCursors.has(page.cursor)) throw new Error('Constellation repeated a pagination cursor.')
-      seenCursors.add(page.cursor)
-      cursor = page.cursor
-    }
+    const page = await this.core.backlinks({
+      subject: targetDid,
+      source: 'app.bsky.graph.block:subject',
+      did,
+      signal,
+    })
+    return page.items.some((reference) => actorFromAtUri(reference.uri) === did)
   }
 
   async blocking(

@@ -234,7 +234,7 @@ export class PublicDataCore {
 
   async backlinks(options: Parameters<typeof getBacklinks>[0]): Promise<Page<{ uri: string }>> {
     return this.cachedPage({
-      key: queryKeys.backlinks(options.subject, options.source, options.cursor),
+      key: queryKeys.backlinks(options.subject, options.source, options.cursor, options.did),
       cursor: options.cursor,
       signal: options.signal,
       load: (signal) => getBacklinks({ ...options, signal }),

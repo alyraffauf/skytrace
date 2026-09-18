@@ -185,10 +185,11 @@ describe('profile relationship counts', () => {
   })
 
   it('explains why the profile is unavailable when the account blocks the configured account', async () => {
+    const blockTargetDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
     vi.stubGlobal('__SKYTRACE_CONFIG__', {
       ignoreNoUnauthenticated: false,
-      blockTargetDid: 'did:plc:jwxdvd2mdtdq7la7toiy2rjc',
+      blockTargetDid,
     })
     const requestedUrls: URL[] = []
     vi.stubGlobal(
@@ -243,6 +244,9 @@ describe('profile relationship counts', () => {
     expect(view.queryByText('Feed content')).not.toBeInTheDocument()
     expect(requestedUrls.some((url) => url.hostname === 'pds.example')).toBe(false)
     expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinksCount'))).toBe(false)
+    const blockCheckUrl = requestedUrls.find((url) => url.pathname.endsWith('getBacklinks'))
+    expect(blockCheckUrl?.searchParams.get('did')).toBe(did)
+    expect(blockCheckUrl?.searchParams.get('limit')).toBe('1')
   })
 })
 
