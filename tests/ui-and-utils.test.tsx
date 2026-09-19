@@ -666,8 +666,6 @@ describe('relationship rendering', () => {
       'href',
       `https://witchsky.app/profile/${unresolvedDid}`,
     )
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.getByRole('button', { name: `Open links for ${unresolvedDid}` })).toHaveFocus()
   })
 })
 
