@@ -109,7 +109,7 @@ docker run -e SKYTRACE_IGNORE_NO_UNAUTHENTICATED=true ghcr.io/alyraffauf/skytrac
 
 Only the exact value `true` enables the override. The nginx entrypoint writes the setting to `runtime-config.js` before it starts the server. Restart the container after you change the variable. Non-container static deployments use the checked-in default, which keeps the override disabled.
 
-An operator can hide profiles that block a specific Bluesky account by passing that account's DID at runtime:
+An operator can hide profiles that block or are blocked by a specific Bluesky account by passing that account's DID at runtime:
 
 ```sh
 docker run -e SKYTRACE_BLOCK_TARGET_DID=did:plc:example ghcr.io/alyraffauf/skytrace:latest

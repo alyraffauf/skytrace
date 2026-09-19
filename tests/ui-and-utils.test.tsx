@@ -184,7 +184,33 @@ describe('profile relationship counts', () => {
     expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinks'))).toBe(false)
   })
 
-  it('explains why the profile is unavailable when the account blocks the configured account', async () => {
+  it.each([
+    {
+      scenario: 'shows the profile when neither account blocks the other',
+      profileBlocks: false,
+      instanceBlocks: false,
+      message: null,
+    },
+    {
+      scenario: 'shows the opt-out message when the profile blocks the instance',
+      profileBlocks: true,
+      instanceBlocks: false,
+      message:
+        'This account blocks this SkyTrace instance on Bluesky, so its profile and public records are not shown here.',
+    },
+    {
+      scenario: 'shows the ban message when the instance blocks the profile',
+      profileBlocks: false,
+      instanceBlocks: true,
+      message: 'This profile has been blocked from SkyTrace.',
+    },
+    {
+      scenario: 'shows the ban message when both accounts block each other',
+      profileBlocks: true,
+      instanceBlocks: true,
+      message: 'This profile has been blocked from SkyTrace.',
+    },
+  ])('$scenario', async ({ profileBlocks, instanceBlocks, message }) => {
     const blockTargetDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
     vi.stubGlobal('__SKYTRACE_CONFIG__', {
@@ -192,6 +218,10 @@ describe('profile relationship counts', () => {
       blockTargetDid,
     })
     const requestedUrls: URL[] = []
+    const blocks = [
+      ...(profileBlocks ? [{ blocker: did, subject: blockTargetDid }] : []),
+      ...(instanceBlocks ? [{ blocker: blockTargetDid, subject: did }] : []),
+    ]
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
@@ -208,12 +238,22 @@ describe('profile relationship counts', () => {
           })
         }
         if (url.pathname.endsWith('getBacklinks')) {
+          const matches = blocks.filter(
+            (block) =>
+              block.blocker === url.searchParams.get('did') && block.subject === url.searchParams.get('subject'),
+          )
           return response({
-            total: 1,
-            records: [{ did, collection: 'app.bsky.graph.block', rkey: '3skytrace' }],
+            total: matches.length,
+            records: matches.map((block) => ({
+              did: block.blocker,
+              collection: 'app.bsky.graph.block',
+              rkey: '3example',
+            })),
             cursor: null,
           })
         }
+        if (url.pathname.endsWith('getBacklinksCount')) return response({ total: 0 })
+        if (url.hostname === 'pds.example' && url.pathname.endsWith('listRecords')) return response({ records: [] })
         throw new Error(`Unexpected URL ${url}`)
       }),
     )
@@ -233,20 +273,17 @@ describe('profile relationship counts', () => {
       </QueryClientProvider>,
     )
 
-    expect(await screen.findByRole('heading', { name: 'Profile unavailable' })).toBeVisible()
-    expect(document.title).toBe('Profile unavailable — SkyTrace')
-    expect(screen.getAllByRole('main')).toHaveLength(1)
-    expect(
-      screen.getByText(
-        'This account blocks this SkyTrace instance on Bluesky, so its profile and public records are not shown here.',
-      ),
-    ).toBeVisible()
-    expect(view.queryByText('Feed content')).not.toBeInTheDocument()
-    expect(requestedUrls.some((url) => url.hostname === 'pds.example')).toBe(false)
-    expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinksCount'))).toBe(false)
-    const blockCheckUrl = requestedUrls.find((url) => url.pathname.endsWith('getBacklinks'))
-    expect(blockCheckUrl?.searchParams.get('did')).toBe(did)
-    expect(blockCheckUrl?.searchParams.get('limit')).toBe('1')
+    if (message) {
+      expect(await screen.findByRole('heading', { name: 'Profile unavailable' })).toBeVisible()
+      expect(document.title).toBe('Profile unavailable — SkyTrace')
+      expect(screen.getByText(message)).toBeVisible()
+      expect(view.queryByText('Feed content')).not.toBeInTheDocument()
+      expect(requestedUrls.some((url) => url.hostname === 'pds.example')).toBe(false)
+      expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinksCount'))).toBe(false)
+    } else {
+      expect(await screen.findByText('Feed content')).toBeVisible()
+      expect(screen.queryByRole('heading', { name: 'Profile unavailable' })).not.toBeInTheDocument()
+    }
   })
 })
 

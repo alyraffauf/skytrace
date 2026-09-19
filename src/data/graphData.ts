@@ -10,11 +10,19 @@ import { blobCid, parsedRecord } from './recordParsers'
 export class GraphDataService {
   constructor(private readonly core: PublicDataCore) {}
 
-  actorBlocksConfiguredAccountQueryOptions(did?: ActorIdentity['did'], targetDid?: ActorIdentity['did']) {
+  profileBlockedQueryOptions(did?: ActorIdentity['did'], targetDid?: ActorIdentity['did']) {
     return queryOptions({
-      queryKey: queryKeys.actorBlocksConfiguredAccount(did, targetDid),
-      queryFn: ({ signal }) =>
-        did && targetDid ? this.actorBlocksConfiguredAccount(did, targetDid, signal) : Promise.resolve(false),
+      queryKey: queryKeys.profileBlocked(did, targetDid),
+      queryFn: async ({ signal }) => {
+        if (!did || !targetDid) return false
+        const [actorBlocksInstance, instanceBlocksActor] = await Promise.all([
+          this.actorBlocksConfiguredAccount(did, targetDid, signal),
+          this.actorBlocksConfiguredAccount(targetDid, did, signal),
+        ])
+        if (instanceBlocksActor) return 'instance-block' as const
+        if (actorBlocksInstance) return 'opt-out' as const
+        return false
+      },
       enabled: did !== undefined && targetDid !== undefined,
       staleTime: CACHE_TTL_MS.activity,
     })

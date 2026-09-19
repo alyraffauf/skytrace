@@ -23,10 +23,10 @@ export function ProfileLayout() {
   const profileQuery = useQuery({
     ...service.core.actorProfileQueryOptions(actor),
   })
-  const actorBlocksConfiguredAccountQuery = useQuery(
-    service.graph.actorBlocksConfiguredAccountQueryOptions(profileQuery.data?.identity.did, configuredBlockTargetDid),
+  const profileBlockedQuery = useQuery(
+    service.graph.profileBlockedQueryOptions(profileQuery.data?.identity.did, configuredBlockTargetDid),
   )
-  const blockCheckFinished = configuredBlockTargetDid === undefined || actorBlocksConfiguredAccountQuery.data === false
+  const blockCheckFinished = configuredBlockTargetDid === undefined || profileBlockedQuery.data === false
   const visibleIdentity = blockCheckFinished ? profileQuery.data?.identity : undefined
   const blockedCountQuery = useQuery(service.core.blockedCountQueryOptions(visibleIdentity))
   const blockedByCountQuery = useQuery(service.core.blockedByCountQueryOptions(visibleIdentity?.did))
@@ -41,18 +41,13 @@ export function ProfileLayout() {
   else if (profileQuery.isError) {
     title = 'Profile unavailable — SkyTrace'
     content = <ErrorState error={profileQuery.error} retry={() => void profileQuery.refetch()} />
-  } else if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.isPending) content = <ProfileSkeleton />
-  else if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.isError) {
+  } else if (configuredBlockTargetDid && profileBlockedQuery.isPending) content = <ProfileSkeleton />
+  else if (configuredBlockTargetDid && profileBlockedQuery.isError) {
     title = 'Profile unavailable — SkyTrace'
-    content = (
-      <ErrorState
-        error={actorBlocksConfiguredAccountQuery.error}
-        retry={() => void actorBlocksConfiguredAccountQuery.refetch()}
-      />
-    )
-  } else if (configuredBlockTargetDid && actorBlocksConfiguredAccountQuery.data) {
+    content = <ErrorState error={profileBlockedQuery.error} retry={() => void profileBlockedQuery.refetch()} />
+  } else if (configuredBlockTargetDid && profileBlockedQuery.data) {
     title = 'Profile unavailable — SkyTrace'
-    content = <BlockedProfileState />
+    content = <BlockedProfileState reason={profileBlockedQuery.data} />
   } else {
     const profile = profileQuery.data
     const tabPath = location.pathname.replace(/\/$/, '').split('/')[3]
@@ -92,13 +87,15 @@ export function ProfileLayout() {
   )
 }
 
-function BlockedProfileState() {
+function BlockedProfileState({ reason }: { reason: 'instance-block' | 'opt-out' }) {
   return (
     <div className="grid min-h-[calc(100vh-3rem)] place-items-center px-6 py-12 text-center">
       <div className="max-w-md">
         <h1 className="text-xl font-semibold text-zinc-950 dark:text-zinc-100">Profile unavailable</h1>
         <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-          This account blocks this SkyTrace instance on Bluesky, so its profile and public records are not shown here.
+          {reason === 'instance-block'
+            ? 'This profile has been blocked from SkyTrace.'
+            : 'This account blocks this SkyTrace instance on Bluesky, so its profile and public records are not shown here.'}
         </p>
       </div>
     </div>

@@ -273,19 +273,6 @@ describe('atcute-backed API boundaries', () => {
     expect(requestedUrls[0]?.searchParams.get('limit')).toBe('1')
   })
 
-  it('returns false when the filtered backlink query has no matching record', async () => {
-    const blockingAccountDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
-    const blockTargetDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => response({ total: 0, records: [], cursor: null })),
-    )
-
-    await expect(
-      createTestService().graph.actorBlocksConfiguredAccount(blockingAccountDid, blockTargetDid),
-    ).resolves.toBe(false)
-  })
-
   it('gets a block backlink count without loading backlink records', async () => {
     let requestedUrl: URL | undefined
     vi.stubGlobal(
