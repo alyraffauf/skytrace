@@ -288,6 +288,7 @@ describe('atcute-backed API boundaries', () => {
     const service = createTestService()
     await expect(service.graph.blockedBy(did)).resolves.toEqual({ items: [], cursor: undefined })
     expect(requestedUrl?.searchParams.get('reverse')).toBe('false')
+    expect(requestedUrl?.searchParams.get('limit')).toBe('24')
   })
 
   it('checks whether an account blocks the configured account with a filtered backlink query', async () => {
@@ -430,6 +431,7 @@ describe('atcute-backed API boundaries', () => {
     await expect(service.graph.listMembers(listUri)).resolves.toMatchObject({ items: [{ uri: membershipUri }] })
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('subject')).toBe(listUri)
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('limit')).toBe('24')
     await expect(
       queryClient.fetchQuery(service.graph.listMemberQueryOptions(listUri, membershipUri)),
     ).resolves.toMatchObject({

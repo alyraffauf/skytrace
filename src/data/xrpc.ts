@@ -339,6 +339,7 @@ export async function getBacklinks(options: {
   subject: string
   source: BacklinkSource
   did?: string
+  limit?: number
   cursor?: string
   signal?: AbortSignal
 }): Promise<Page<{ uri: string }>> {
@@ -353,7 +354,7 @@ export async function getBacklinks(options: {
             did: options.did ? [options.did as Did] : undefined,
             subject: options.subject as GenericUri,
             source: options.source,
-            limit: options.did ? 1 : 100,
+            limit: options.did ? 1 : (options.limit ?? 100),
             reverse: false,
             cursor: options.cursor,
           },

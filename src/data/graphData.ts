@@ -7,6 +7,8 @@ import { actorReference, isUnavailableRecord, type PublicDataCore, unavailable }
 import { queryKeys } from './queryKeys'
 import { blobCid, parsedRecord } from './recordParsers'
 
+const RELATIONSHIP_PAGE_SIZE = 24
+
 export class GraphDataService {
   constructor(private readonly core: PublicDataCore) {}
 
@@ -73,7 +75,13 @@ export class GraphDataService {
     cursor?: string,
     signal?: AbortSignal,
   ): Promise<Page<RelationshipEntry | UnavailableItem>> {
-    const page = await this.core.backlinks({ subject: did, source: 'app.bsky.graph.block:subject', cursor, signal })
+    const page = await this.core.backlinks({
+      subject: did,
+      source: 'app.bsky.graph.block:subject',
+      limit: RELATIONSHIP_PAGE_SIZE,
+      cursor,
+      signal,
+    })
     const items = page.items.map((reference) => {
       const blockerDid = actorFromAtUri(reference.uri)
       if (!blockerDid || !isDid(blockerDid))
@@ -156,6 +164,7 @@ export class GraphDataService {
     return this.core.backlinks({
       subject: listUri,
       source: 'app.bsky.graph.listitem:list',
+      limit: RELATIONSHIP_PAGE_SIZE,
       cursor,
       signal,
     })
@@ -181,7 +190,13 @@ export class GraphDataService {
   }
 
   async listedOnReferences(did: string, cursor?: string, signal?: AbortSignal): Promise<Page<{ uri: string }>> {
-    return this.core.backlinks({ subject: did, source: 'app.bsky.graph.listitem:subject', cursor, signal })
+    return this.core.backlinks({
+      subject: did,
+      source: 'app.bsky.graph.listitem:subject',
+      limit: RELATIONSHIP_PAGE_SIZE,
+      cursor,
+      signal,
+    })
   }
 
   listedOnMembershipQueryOptions(membershipUri: string) {
