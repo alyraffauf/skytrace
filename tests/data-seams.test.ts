@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { PublicDataService, publicDataServiceFor } from '../src/data/publicData'
 import type { ActorIdentity } from '../src/types'
 import { RequestScheduler } from '../src/lib/requestScheduler'
-import { createTestQueryClient, createTestService, jsonResponse as response } from './testUtils'
+import { createTestQueryClient, createTestService, jsonResponse as response, repositoryRecord } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const memberDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
@@ -320,11 +320,13 @@ describe('public data seams', () => {
             signal?.addEventListener('abort', () => reject(signal.reason), { once: true })
           })
         }
-        return response({
-          uri,
-          cid,
-          value: { $type: 'app.bsky.feed.post', text: 'Fresh request', createdAt: '2026-01-01T00:00:00Z' },
-        })
+        return response(
+          repositoryRecord(uri, {
+            $type: 'app.bsky.feed.post',
+            text: 'Fresh request',
+            createdAt: '2026-01-01T00:00:00Z',
+          }),
+        )
       }),
     )
 
@@ -384,7 +386,13 @@ describe('public data seams', () => {
     await expect(first).rejects.toMatchObject({ name: 'AbortError' })
     expect(fetchSignal?.aborted).toBe(false)
     finishRequest?.(
-      response({ uri, cid, value: { $type: 'app.bsky.feed.post', text: 'shared', createdAt: '2026-01-01T00:00:00Z' } }),
+      response(
+        repositoryRecord(uri, {
+          $type: 'app.bsky.feed.post',
+          text: 'shared',
+          createdAt: '2026-01-01T00:00:00Z',
+        }),
+      ),
     )
     await expect(second).resolves.toMatchObject({ uri })
   })
@@ -435,28 +443,24 @@ describe('feed paging', () => {
           if (collection === 'app.bsky.feed.post') {
             const month = cursor ? '03' : '04'
             return response({
-              records: Array.from({ length: 50 }, (_, index) => ({
-                uri: `at://${did}/app.bsky.feed.post/${month}${String(index).padStart(2, '0')}`,
-                cid,
-                value: {
+              records: Array.from({ length: 50 }, (_, index) =>
+                repositoryRecord(`at://${did}/app.bsky.feed.post/${month}${String(index).padStart(2, '0')}`, {
                   $type: collection,
                   text: month,
                   createdAt: `2026-${month}-01T00:${String(index).padStart(2, '0')}:00Z`,
-                },
-              })),
+                }),
+              ),
               ...(cursor ? {} : { cursor: 'posts-2' }),
             })
           }
           return response({
-            records: Array.from({ length: 50 }, (_, index) => ({
-              uri: `at://${did}/app.bsky.feed.repost/01${String(index).padStart(2, '0')}`,
-              cid,
-              value: {
+            records: Array.from({ length: 50 }, (_, index) =>
+              repositoryRecord(`at://${did}/app.bsky.feed.repost/01${String(index).padStart(2, '0')}`, {
                 $type: collection,
                 subject: { uri: `at://${memberDid}/app.bsky.feed.post/${index}`, cid },
                 createdAt: `2026-01-01T00:${String(index).padStart(2, '0')}:00Z`,
-              },
-            })),
+              }),
+            ),
           })
         }
         if (method === 'blue.microcosm.identity.resolveMiniDoc') {
@@ -468,11 +472,13 @@ describe('feed paging', () => {
         if (method === 'blue.microcosm.repo.getRecordByUri') {
           targetRequests()
           const uri = url.searchParams.get('at_uri') ?? ''
-          return response({
-            uri,
-            cid,
-            value: { $type: 'app.bsky.feed.post', text: 'Reposted target', createdAt: '2025-12-01T00:00:00Z' },
-          })
+          return response(
+            repositoryRecord(uri, {
+              $type: 'app.bsky.feed.post',
+              text: 'Reposted target',
+              createdAt: '2025-12-01T00:00:00Z',
+            }),
+          )
         }
         return response({ error: 'UnknownRequest' }, 400)
       }),
@@ -536,15 +542,13 @@ describe('feed paging', () => {
           return response({ records: [], cursor: `empty-reposts-${requests}` })
         }
         return response({
-          records: Array.from({ length: 12 }, (_, index) => ({
-            uri: `at://${did}/app.bsky.feed.post/post-${index}`,
-            cid,
-            value: {
+          records: Array.from({ length: 12 }, (_, index) =>
+            repositoryRecord(`at://${did}/app.bsky.feed.post/post-${index}`, {
               $type: 'app.bsky.feed.post',
               text: `Post ${index}`,
               createdAt: `2026-01-01T00:${String(59 - index).padStart(2, '0')}:00Z`,
-            },
-          })),
+            }),
+          ),
         })
       }),
     )

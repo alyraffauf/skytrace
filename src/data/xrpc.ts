@@ -19,6 +19,7 @@ import { SERVICE_URLS } from '../config/serviceUrls'
 import { deadlineSignal } from '../lib/abort'
 import { dedupeBy } from '../lib/collections'
 import { isDid, parseAtUri } from '../lib/parse'
+import { recordCidMatches } from '../lib/recordCid'
 import { hydrationRequests, paginationRequests } from '../lib/requestScheduler'
 import { objectValue, stringValue } from './recordParsers'
 
@@ -149,6 +150,14 @@ function validateRecord(value: unknown, expectedUri?: string): RawRecord {
   ) {
     throw new PublicDataValidationError('The record service returned malformed data.')
   }
+  try {
+    if (!recordCidMatches(recordValue, cid)) {
+      throw new PublicDataValidationError('The record CID does not match its contents.')
+    }
+  } catch (error) {
+    if (error instanceof PublicDataValidationError) throw error
+    throw new PublicDataValidationError('The record contents could not be verified.')
+  }
   return { uri, cid, value: recordValue }
 }
 
@@ -258,8 +267,17 @@ export async function listRecords(options: {
     const envelope = v.safeParse(ComAtprotoRepoListRecords.recordSchema, record)
     if (envelope.ok) {
       const parsedUri = parseAtUri(envelope.value.uri)
-      if (parsedUri?.did === options.identity.did && parsedUri.collection === options.collection)
-        return validateRecord(envelope.value)
+      if (parsedUri?.did === options.identity.did && parsedUri.collection === options.collection) {
+        try {
+          return validateRecord(envelope.value)
+        } catch {
+          return {
+            kind: 'unavailable' as const,
+            id: envelope.value.uri,
+            reason: 'This repository record could not be verified.',
+          }
+        }
+      }
     }
     const pageId = options.cursor ?? 'first'
     return {

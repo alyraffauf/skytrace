@@ -87,13 +87,17 @@ export class GraphDataService {
     return { items, cursor: page.cursor }
   }
 
-  blockDateQueryOptions(blockUri: string) {
+  blockedByRecordQueryOptions(entry: RelationshipEntry | undefined, subjectDid: string) {
     return queryOptions({
-      queryKey: queryKeys.blockDate(blockUri),
+      queryKey: queryKeys.blockedByRecord(entry?.id, subjectDid),
       queryFn: async ({ signal }) => {
-        const record = await this.core.optionalRecord(blockUri, signal)
-        return parsedRecord(AppBskyGraphBlock.mainSchema, record)?.createdAt
+        if (!entry) throw new Error('This block reference is unavailable.')
+        const record = await this.core.record(entry.id, signal)
+        const value = parsedRecord(AppBskyGraphBlock.mainSchema, record)
+        if (!value || value.subject !== subjectDid) return unavailable(entry.id, 'This block record is malformed.')
+        return { ...entry, createdAt: value.createdAt }
       },
+      enabled: entry !== undefined,
       staleTime: CACHE_TTL_MS.activity,
     })
   }

@@ -13,10 +13,9 @@ import {
 import { CACHE_TTL_MS } from '../src/lib/cache'
 import { retryDelay, shouldRetry } from '../src/lib/http'
 import type { ActorIdentity } from '../src/types'
-import { createTestQueryClient, createTestService, jsonResponse as response } from './testUtils'
+import { createTestQueryClient, createTestService, jsonResponse as response, repositoryRecord } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
-const cid = 'bafyreicdwixhubhirckrrt7mqcoiq4u47b7quxlm24r547qcth4bc2ubq4'
 const identity: ActorIdentity = { kind: 'actorIdentity', did, handle: 'atproto.com', pds: 'https://pds.example' }
 
 function stubProfileRecord(body: unknown, status = 200) {
@@ -40,11 +39,10 @@ describe('atcute-backed API boundaries', () => {
         if (url.hostname === 'pds.example')
           return response({
             records: [
-              {
-                uri: `at://${did}/app.bsky.graph.block/3abc`,
-                cid,
-                value: { $type: 'app.bsky.graph.block', createdAt: '2026-01-01T00:00:00Z' },
-              },
+              repositoryRecord(`at://${did}/app.bsky.graph.block/3abc`, {
+                $type: 'app.bsky.graph.block',
+                createdAt: '2026-01-01T00:00:00Z',
+              }),
               { uri: 'not-an-at-uri', value: {} },
             ],
             cursor: 'next',
@@ -54,7 +52,7 @@ describe('atcute-backed API boundaries', () => {
     )
     const page = await listRecords({ identity, collection: 'app.bsky.graph.block', limit: 25 })
     expect(page.cursor).toBe('next')
-    expect(page.items[0]).toMatchObject({ uri: `at://${did}/app.bsky.graph.block/3abc`, cid })
+    expect(page.items[0]).toMatchObject({ uri: `at://${did}/app.bsky.graph.block/3abc` })
     expect(page.items[1]).toEqual({
       kind: 'unavailable',
       id: 'app.bsky.graph.block:first:1',
@@ -62,6 +60,56 @@ describe('atcute-backed API boundaries', () => {
     })
     const servicePage = await createTestService().graph.blocking(identity)
     expect(servicePage.items[1]).toMatchObject({ kind: 'unavailable', reason: 'This repository record is malformed.' })
+  })
+
+  it('contains a record with a mismatched CID to one unavailable row', async () => {
+    const validUri = `at://${did}/app.bsky.graph.block/3valid`
+    const tamperedUri = `at://${did}/app.bsky.graph.block/3tampered`
+    const validRecord = repositoryRecord(validUri, {
+      $type: 'app.bsky.graph.block',
+      subject: 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa',
+      createdAt: '2026-01-01T00:00:00Z',
+    })
+    const tamperedRecord = {
+      ...repositoryRecord(tamperedUri, {
+        $type: 'app.bsky.graph.block',
+        subject: 'did:plc:bbbbbbbbbbbbbbbbbbbbbbbb',
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+      value: {
+        $type: 'app.bsky.graph.block',
+        subject: 'did:plc:cccccccccccccccccccccccc',
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response({ records: [validRecord, tamperedRecord] })),
+    )
+
+    const page = await listRecords({ identity, collection: 'app.bsky.graph.block', limit: 25 })
+
+    expect(page.items[0]).toMatchObject({ uri: validUri })
+    expect(page.items[1]).toEqual({
+      kind: 'unavailable',
+      id: tamperedUri,
+      reason: 'This repository record could not be verified.',
+    })
+  })
+
+  it('rejects a directly fetched record whose CID does not match its contents', async () => {
+    const uri = `at://${did}/app.bsky.feed.post/3tampered`
+    const original = repositoryRecord(uri, {
+      $type: 'app.bsky.feed.post',
+      text: 'Original',
+      createdAt: '2026-01-01T00:00:00Z',
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response({ ...original, value: { ...original.value, text: 'Tampered' } })),
+    )
+
+    await expect(createTestService().core.record(uri)).rejects.toThrow('record CID does not match its contents')
   })
 
   it('counts all repository pages', async () => {
@@ -144,10 +192,8 @@ describe('atcute-backed API boundaries', () => {
     ['unrelated self-labels', [{ val: 'porn' }, { val: '!NO-UNAUTHENTICATED' }], false],
     ['no self-labels', undefined, false],
   ])('reads %s from the profile record', async (_description, labels, expected) => {
-    stubProfileRecord({
-      uri: `at://${did}/app.bsky.actor.profile/self`,
-      cid,
-      value: {
+    stubProfileRecord(
+      repositoryRecord(`at://${did}/app.bsky.actor.profile/self`, {
         $type: 'app.bsky.actor.profile',
         ...(labels && {
           labels: {
@@ -155,8 +201,8 @@ describe('atcute-backed API boundaries', () => {
             values: labels,
           },
         }),
-      },
-    })
+      }),
+    )
 
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
@@ -205,11 +251,13 @@ describe('atcute-backed API boundaries', () => {
       if (url.pathname.endsWith('resolveMiniDoc')) {
         return response({ did, handle: 'atproto.com', pds: 'https://pds.example', signing_key: 'zQ3test' })
       }
-      return response({
-        uri: recordUri,
-        cid,
-        value: { $type: 'app.bsky.feed.post', text: 'Cached', createdAt: '2026-01-01T00:00:00Z' },
-      })
+      return response(
+        repositoryRecord(recordUri, {
+          $type: 'app.bsky.feed.post',
+          text: 'Cached',
+          createdAt: '2026-01-01T00:00:00Z',
+        }),
+      )
     })
     vi.stubGlobal('fetch', fetchMock)
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
@@ -324,6 +372,40 @@ describe('atcute-backed API boundaries', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('verifies a backlink block record before returning its details', async () => {
+    const blockerDid = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
+    const blockUri = `at://${blockerDid}/app.bsky.graph.block/3verified`
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.pathname.endsWith('getBacklinks')) {
+          return response({
+            total: 1,
+            records: [{ did: blockerDid, collection: 'app.bsky.graph.block', rkey: '3verified' }],
+          })
+        }
+        return response(
+          repositoryRecord(blockUri, {
+            $type: 'app.bsky.graph.block',
+            subject: did,
+            createdAt: '2026-01-05T00:00:00Z',
+          }),
+        )
+      }),
+    )
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    const reference = (await service.graph.blockedBy(did)).items[0]
+    expect(reference).toMatchObject({ kind: 'relationship', id: blockUri })
+    if (!reference || reference.kind !== 'relationship') throw new Error('Expected a relationship reference.')
+
+    await expect(queryClient.fetchQuery(service.graph.blockedByRecordQueryOptions(reference, did))).resolves.toEqual({
+      ...reference,
+      createdAt: '2026-01-05T00:00:00Z',
+    })
+  })
+
   it('returns references before requesting a selected list membership', async () => {
     const listUri = `at://${did}/app.bsky.graph.list/3streamed`
     const memberDid = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
@@ -332,16 +414,14 @@ describe('atcute-backed API boundaries', () => {
       const url = new URL(input instanceof Request ? input.url : String(input))
       if (url.pathname.endsWith('getBacklinks'))
         return response({ total: 1, records: [{ did, collection: 'app.bsky.graph.listitem', rkey: '3member' }] })
-      return response({
-        uri: membershipUri,
-        cid,
-        value: {
+      return response(
+        repositoryRecord(membershipUri, {
           $type: 'app.bsky.graph.listitem',
           subject: memberDid,
           list: listUri,
           createdAt: '2026-01-05T00:00:00Z',
-        },
-      })
+        }),
+      )
     })
     vi.stubGlobal('fetch', fetchMock)
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -365,16 +445,14 @@ describe('atcute-backed API boundaries', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
-        response({
-          uri: membershipUri,
-          cid,
-          value: {
+        response(
+          repositoryRecord(membershipUri, {
             $type: 'app.bsky.graph.listitem',
             subject: 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa',
             list: `at://${did}/app.bsky.graph.list/3other`,
             createdAt: '2026-01-05T00:00:00Z',
-          },
-        }),
+          }),
+        ),
       ),
     )
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -401,16 +479,16 @@ describe('atcute-backed API boundaries', () => {
             ? { records: [] }
             : {
                 records: [
-                  {
-                    uri: newerUri,
-                    cid,
-                    value: { $type: 'app.bsky.feed.post', text: 'Newer post', createdAt: '2026-04-02T00:00:00Z' },
-                  },
-                  {
-                    uri: olderUri,
-                    cid,
-                    value: { $type: 'app.bsky.feed.post', text: 'Older post', createdAt: '2026-04-01T00:00:00Z' },
-                  },
+                  repositoryRecord(newerUri, {
+                    $type: 'app.bsky.feed.post',
+                    text: 'Newer post',
+                    createdAt: '2026-04-02T00:00:00Z',
+                  }),
+                  repositoryRecord(olderUri, {
+                    $type: 'app.bsky.feed.post',
+                    text: 'Older post',
+                    createdAt: '2026-04-01T00:00:00Z',
+                  }),
                 ],
                 cursor: 'older-posts',
               }
@@ -464,22 +542,22 @@ describe('atcute-backed API boundaries', () => {
           if (!url.searchParams.has('cursor')) {
             return response({
               records: [
-                {
-                  uri: unlabeledUri,
-                  cid,
-                  value: { $type: 'app.bsky.feed.post', text: 'No labels here', createdAt: '2026-09-02T00:00:00Z' },
-                },
+                repositoryRecord(unlabeledUri, {
+                  $type: 'app.bsky.feed.post',
+                  text: 'No labels here',
+                  createdAt: '2026-09-02T00:00:00Z',
+                }),
               ],
               cursor: 'older-posts',
             })
           }
           return response({
             records: [
-              {
-                uri: labeledUri,
-                cid,
-                value: { $type: 'app.bsky.feed.post', text: 'Found later', createdAt: '2026-09-01T00:00:00Z' },
-              },
+              repositoryRecord(labeledUri, {
+                $type: 'app.bsky.feed.post',
+                text: 'Found later',
+                createdAt: '2026-09-01T00:00:00Z',
+              }),
             ],
           })
         }
@@ -531,15 +609,15 @@ describe('atcute-backed API boundaries', () => {
           return url.searchParams.has('cursor')
             ? response({
                 records: [
-                  {
-                    uri: validUri,
-                    cid,
-                    value: { $type: 'app.bsky.feed.post', text: 'Still reachable', createdAt: '2026-08-01T00:00:00Z' },
-                  },
+                  repositoryRecord(validUri, {
+                    $type: 'app.bsky.feed.post',
+                    text: 'Still reachable',
+                    createdAt: '2026-08-01T00:00:00Z',
+                  }),
                 ],
               })
             : response({
-                records: [{ uri: malformedUri, cid, value: { $type: 'app.bsky.feed.post', text: 42 } }],
+                records: [repositoryRecord(malformedUri, { $type: 'app.bsky.feed.post', text: 42 })],
                 cursor: 'older-posts',
               })
         }
@@ -573,12 +651,12 @@ describe('atcute-backed API boundaries', () => {
         if (url.hostname === 'pds.example') {
           return response({
             records: [
-              {
-                uri: validUri,
-                cid,
-                value: { $type: 'app.bsky.feed.post', text: 'Visible', createdAt: '2026-08-01T00:00:00Z' },
-              },
-              { uri: malformedUri, cid, value: { $type: 'app.bsky.feed.post' } },
+              repositoryRecord(validUri, {
+                $type: 'app.bsky.feed.post',
+                text: 'Visible',
+                createdAt: '2026-08-01T00:00:00Z',
+              }),
+              repositoryRecord(malformedUri, { $type: 'app.bsky.feed.post' }),
             ],
           })
         }
@@ -605,11 +683,11 @@ describe('atcute-backed API boundaries', () => {
       if (url.hostname === 'pds.example') {
         return response({
           records: [
-            {
-              uri: `at://${did}/app.bsky.graph.block/cached`,
-              cid,
-              value: { $type: 'app.bsky.graph.block', subject: blockedDid, createdAt: '2026-01-01T00:00:00Z' },
-            },
+            repositoryRecord(`at://${did}/app.bsky.graph.block/cached`, {
+              $type: 'app.bsky.graph.block',
+              subject: blockedDid,
+              createdAt: '2026-01-01T00:00:00Z',
+            }),
           ],
         })
       }

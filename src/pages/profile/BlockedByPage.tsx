@@ -14,7 +14,7 @@ export function BlockedByPage() {
       emptyTitle="No accounts blocking this profile"
       load={(cursor, signal) => service.graph.blockedBy(profile.identity.did, cursor, signal)}
       itemKey={(item) => item.id}
-      renderItem={(item) => <BlockedByRow entry={item} service={service} />}
+      renderItem={(item) => <BlockedByRow entry={item} subjectDid={profile.identity.did} service={service} />}
     />
   )
 }

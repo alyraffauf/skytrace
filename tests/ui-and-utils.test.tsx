@@ -27,7 +27,7 @@ import { LabeledPostsPage } from '../src/pages/profile/LabeledPostsPage'
 import { AccountLabelsPage } from '../src/pages/profile/AccountLabelsPage'
 import { PublicDataService } from '../src/data/publicData'
 import type { ActorIdentity, ActorProfile, FeedPost, LabeledPost, LabelEvent, ListSummary } from '../src/types'
-import { createTestQueryClient, jsonResponse as response } from './testUtils'
+import { createTestQueryClient, jsonResponse as response, repositoryRecord } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const cid = 'bafyreicdwixhubhirckrrt7mqcoiq4u47b7quxlm24r547qcth4bc2ubq4'
@@ -145,15 +145,13 @@ describe('profile relationship counts', () => {
           return response({ did, handle: identity.handle, pds: identity.pds, signing_key: 'zQ3test' })
         }
         if (url.pathname.endsWith('getRecordByUri')) {
-          return response({
-            uri: `at://${did}/app.bsky.actor.profile/self`,
-            cid,
-            value: {
+          return response(
+            repositoryRecord(`at://${did}/app.bsky.actor.profile/self`, {
               $type: 'app.bsky.actor.profile',
               displayName: profile.displayName,
               pronouns: profile.pronouns,
-            },
-          })
+            }),
+          )
         }
         if (url.hostname === 'pds.example') {
           return response({ records: [{}, {}] })
@@ -231,11 +229,12 @@ describe('profile relationship counts', () => {
           return response({ did, handle: identity.handle, pds: identity.pds, signing_key: 'zQ3test' })
         }
         if (url.pathname.endsWith('getRecordByUri')) {
-          return response({
-            uri: `at://${did}/app.bsky.actor.profile/self`,
-            cid,
-            value: { $type: 'app.bsky.actor.profile', displayName: profile.displayName },
-          })
+          return response(
+            repositoryRecord(`at://${did}/app.bsky.actor.profile/self`, {
+              $type: 'app.bsky.actor.profile',
+              displayName: profile.displayName,
+            }),
+          )
         }
         if (url.pathname.endsWith('getBacklinks')) {
           const matches = blocks.filter(
