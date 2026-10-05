@@ -7,6 +7,8 @@ import { readLabelState, storeLabelState, type LabelPagingState, type ProviderPa
 import { actorReference, type PublicDataCore } from './publicDataCore'
 
 const LABEL_PAGE_SIZE = 250
+// Include Bluesky moderation even when the relay has no events from it.
+const BLUESKY_MODERATION_DID = 'did:plc:ar7c4by46qjdydhdevvrndac'
 const OPTIONAL_LABELER_TIMEOUT_MS = 2_500
 
 export class LabelDataService {
@@ -20,17 +22,45 @@ export class LabelDataService {
     const state = readLabelState(did, cursor)
     const emittedIds = new Set(state.emittedIds)
 
-    if (!state.relayDone) {
-      const page = await this.loadRelayPage({
+    if (!state.discoveryDone) {
+      const discovery = await this.core.labelRecords({
+        service: SERVICE_URLS.labelRelay,
+        uriPatterns: [did],
+        cursor: state.discoveryCursor,
+        repeatedCursorPolicy: 'return-page',
+        limit: LABEL_PAGE_SIZE,
+        signal,
+      })
+      const sources = new Set(state.appViewSources ?? [BLUESKY_MODERATION_DID])
+      for (const label of discovery.items) {
+        if (label.kind !== 'labelEvent') continue
+        sources.add(label.sourceDid)
+        if (!state.providers.some((provider) => provider.did === label.sourceDid)) {
+          state.providers.push({ did: label.sourceDid, done: false, latestEventAt: label.createdAt })
+        }
+      }
+      state.appViewSources = [...sources]
+      const seenCursors = new Set(state.seenDiscoveryCursors ?? [])
+      state.discoveryDone = !discovery.cursor || seenCursors.has(discovery.cursor)
+      state.discoveryCursor = state.discoveryDone ? undefined : discovery.cursor
+      if (discovery.cursor) seenCursors.add(discovery.cursor)
+      state.seenDiscoveryCursors = [...seenCursors]
+      // Save discovery progress before advancing another relay page.
+      if (!state.discoveryDone) return { items: [], cursor: storeLabelState(state) }
+    }
+
+    if (!state.appViewDone) {
+      const page = await this.loadAppViewPage({
         did,
-        cursor: state.relayCursor,
+        cursor: state.appViewCursor,
         providers: state.providers,
+        sources: state.appViewSources ?? [BLUESKY_MODERATION_DID],
         signal,
       })
       const labels = page.items.filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
-      state.relayDone = !page.cursor || state.seenRelayCursors.includes(page.cursor)
-      state.relayCursor = state.relayDone ? undefined : page.cursor
-      if (page.cursor) state.seenRelayCursors.push(page.cursor)
+      state.appViewDone = !page.cursor || state.seenAppViewCursors.includes(page.cursor)
+      state.appViewCursor = state.appViewDone ? undefined : page.cursor
+      if (page.cursor) state.seenAppViewCursors.push(page.cursor)
       const newLabels = labels.filter((label) => !emittedIds.has(label.id))
       for (const label of newLabels) emittedIds.add(label.id)
       state.emittedIds = [...emittedIds]
@@ -41,7 +71,7 @@ export class LabelDataService {
             timestampFor(right.kind === 'unavailable' ? undefined : right.createdAt) -
             timestampFor(left.kind === 'unavailable' ? undefined : left.createdAt),
         ),
-        cursor: !state.relayDone || state.providers.length > 0 ? storeLabelState(state) : undefined,
+        cursor: !state.appViewDone || state.providers.length > 0 ? storeLabelState(state) : undefined,
       }
     }
 
@@ -80,18 +110,22 @@ export class LabelDataService {
     }
   }
 
-  private async loadRelayPage({
+  private async loadAppViewPage({
     did,
     cursor,
     providers,
+    sources,
     signal,
   }: {
     did: string
     cursor?: string
+    sources: string[]
     providers: ProviderPagingState[]
     signal?: AbortSignal
   }) {
     const page = await this.core.labelRecords({
+      service: SERVICE_URLS.blueskyAppView,
+      sources,
       uriPatterns: [did],
       cursor,
       repeatedCursorPolicy: 'return-page',

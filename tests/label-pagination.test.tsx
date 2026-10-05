@@ -13,8 +13,8 @@ const key = queryKeys.profileTab(did, 'labels')
 const cursor: LabelPagingState = {
   kind: 'labels',
   did,
-  relayDone: true,
-  seenRelayCursors: [],
+  appViewDone: true,
+  seenAppViewCursors: [],
   providers: [],
   emittedIds: [],
 }

@@ -10,19 +10,113 @@ const cid = 'bafyreicdwixhubhirckrrt7mqcoiq4u47b7quxlm24r547qcth4bc2ubq4'
 const identity: ActorIdentity = { kind: 'actorIdentity', did, handle: 'atproto.com', pds: 'https://pds.example' }
 
 describe('public data seams', () => {
-  it.each([
-    ['a', 'a'],
-    ['a', 'b', 'a'],
-  ])('retains relay cycle pages and backfills providers: %j', async (...cursors) => {
-    let relayPages = 0
+  it('backfills a relay-discovered provider when AppView has no labels', async () => {
+    const label = { src: memberDid, uri: did, val: 'history', cts: '2026-01-01T00:00:00Z' }
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(input instanceof Request ? input.url : String(input))
+      if (url.hostname === 'labelers.firehose.stream') return response({ labels: [label] })
+      if (url.hostname === 'public.api.bsky.app') return response({ labels: [] })
+      if (url.hostname === 'plc.directory')
+        return response({
+          id: memberDid,
+          service: [{ id: '#atproto_labeler', type: 'AtprotoLabeler', serviceEndpoint: 'https://history.example' }],
+        })
+      if (url.hostname === 'history.example') return response({ labels: [label] })
+      throw new Error(`Unexpected URL ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const service = createTestService()
+    const first = await service.labels.labels(did)
+    expect(first.items).toEqual([])
+    expect(first.cursor?.providers).toMatchObject([{ did: memberDid }])
+    const history = await service.labels.labels(did, first.cursor)
+    expect(history.items).toMatchObject([{ value: 'history', sourceDid: memberDid }])
+    expect(history.cursor).toBeUndefined()
+  })
+
+  it('saves discovery progress one page at a time and stops cursor cycles', async () => {
+    const relayCursors: Array<string | null> = []
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
         if (url.hostname === 'labelers.firehose.stream') {
-          const index = relayPages++
+          const cursor = url.searchParams.get('cursor')
+          relayCursors.push(cursor)
           return response({
-            labels: [{ ver: 1, src: memberDid, uri: did, val: `relay-${index}`, cts: '2026-08-01T00:00:00Z' }],
+            labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }],
+            cursor: cursor === 'a' ? 'b' : 'a',
+          })
+        }
+        if (url.hostname === 'public.api.bsky.app') {
+          expect(url.searchParams.getAll('sources')).toContain(memberDid)
+          return response({ labels: [] })
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+    const service = createTestService()
+    const first = await service.labels.labels(did)
+    expect(relayCursors).toEqual([null])
+    const snapshot = structuredClone(first.cursor)
+    const second = await service.labels.labels(did, first.cursor)
+    expect(first.cursor).toEqual(snapshot)
+    expect(relayCursors).toEqual([null, 'a'])
+    const third = await service.labels.labels(did, second.cursor)
+    expect(relayCursors).toEqual([null, 'a', 'b'])
+    expect(third.cursor?.discoveryDone).toBe(true)
+    expect(third.cursor?.appViewSources).toContain(memberDid)
+    expect(third.items).toEqual([])
+  })
+
+  it('reuses cached discovery when retrying an AppView failure', async () => {
+    let relayRequests = 0
+    let appViewRequests = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'labelers.firehose.stream') {
+          relayRequests += 1
+          return response({
+            labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }],
+          })
+        }
+        if (url.hostname === 'public.api.bsky.app') {
+          appViewRequests += 1
+          if (appViewRequests === 1) return response({ error: 'Unavailable' }, 503)
+          return response({ labels: [] })
+        }
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+    const service = createTestService()
+    await expect(service.labels.labels(did)).rejects.toThrow()
+    const retry = await service.labels.labels(did)
+    expect(relayRequests).toBe(1)
+    expect(retry.cursor?.providers).toMatchObject([{ did: memberDid }])
+  })
+
+  it.each([
+    ['a', 'a'],
+    ['a', 'b', 'a'],
+  ])('retains appView cycle pages and backfills providers: %j', async (...cursors) => {
+    let appViewPages = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'labelers.firehose.stream')
+          return response({
+            labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }],
+          })
+        if (
+          url.hostname === 'public.api.bsky.app' &&
+          url.searchParams.get('sources') === 'did:plc:ar7c4by46qjdydhdevvrndac'
+        ) {
+          const index = appViewPages++
+          return response({
+            labels: [{ ver: 1, src: memberDid, uri: did, val: `appView-${index}`, cts: '2026-08-01T00:00:00Z' }],
             cursor: cursors[index],
           })
         }
@@ -44,13 +138,13 @@ describe('public data seams', () => {
     let page = await service.labels.labels(did)
     for (let index = 1; index < cursors.length; index++) {
       page = await service.labels.labels(did, page.cursor)
-      expect(page.items).toMatchObject([{ value: `relay-${index}` }])
+      expect(page.items).toMatchObject([{ value: `appView-${index}` }])
       expect(page.issues).toBeUndefined()
     }
     const backfill = await service.labels.labels(did, page.cursor)
     expect(backfill.items).toMatchObject([{ value: 'backfill' }])
     expect(backfill.cursor).toBeUndefined()
-    expect(relayPages).toBe(cursors.length)
+    expect(appViewPages).toBe(cursors.length)
   })
 
   it('rejects a repeated repository cursor', async () => {
@@ -68,9 +162,16 @@ describe('public data seams', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
-        if (url.hostname === 'labelers.firehose.stream') {
+        if (url.hostname === 'labelers.firehose.stream')
           return response({
-            labels: [{ ver: 1, src: labelerDid, uri: did, val: 'relay-copy', cts: '2026-08-01T00:00:00Z' }],
+            labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }],
+          })
+        if (
+          url.hostname === 'public.api.bsky.app' &&
+          url.searchParams.get('sources') === 'did:plc:ar7c4by46qjdydhdevvrndac'
+        ) {
+          return response({
+            labels: [{ ver: 1, src: labelerDid, uri: did, val: 'appView-copy', cts: '2026-08-01T00:00:00Z' }],
           })
         }
         if (url.hostname === 'plc.directory') {
@@ -113,11 +214,11 @@ describe('public data seams', () => {
     )
 
     const publicData = createTestService()
-    const relay = await publicData.labels.labels(did)
-    const savedCursor = structuredClone(relay.cursor)
-    await expect(publicData.labels.labels(memberDid, relay.cursor)).rejects.toThrow('belongs to another query')
-    const firstDirect = await publicData.labels.labels(did, relay.cursor)
-    expect(relay.cursor).toEqual(savedCursor)
+    const appView = await publicData.labels.labels(did)
+    const savedCursor = structuredClone(appView.cursor)
+    await expect(publicData.labels.labels(memberDid, appView.cursor)).rejects.toThrow('belongs to another query')
+    const firstDirect = await publicData.labels.labels(did, appView.cursor)
+    expect(appView.cursor).toEqual(savedCursor)
     const secondDirect = await publicData.labels.labels(did, firstDirect.cursor)
     expect(firstDirect.items).toHaveLength(2)
     expect(secondDirect.items).toHaveLength(1)
@@ -131,7 +232,12 @@ describe('public data seams', () => {
     const currentDid = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : String(input))
-      if (url.hostname === 'labelers.firehose.stream') {
+      if (url.hostname === 'labelers.firehose.stream')
+        return response({ labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }] })
+      if (
+        url.hostname === 'public.api.bsky.app' &&
+        url.searchParams.get('sources') === 'did:plc:ar7c4by46qjdydhdevvrndac'
+      ) {
         return response({
           labels: [
             { ver: 1, src: failedDid, uri: did, val: 'stale', cts: '2026-09-02T00:00:00Z' },
@@ -163,8 +269,8 @@ describe('public data seams', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const publicData = createTestService()
-    const relay = await publicData.labels.labels(did)
-    const direct = await publicData.labels.labels(did, relay.cursor)
+    const appView = await publicData.labels.labels(did)
+    const direct = await publicData.labels.labels(did, appView.cursor)
     const requestedHosts = fetchMock.mock.calls.map(
       ([input]) => new URL(input instanceof Request ? input.url : String(input)).hostname,
     )
@@ -179,7 +285,12 @@ describe('public data seams', () => {
     const labelerDid = memberDid
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : String(input))
-      if (url.hostname === 'labelers.firehose.stream') {
+      if (url.hostname === 'labelers.firehose.stream')
+        return response({ labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }] })
+      if (
+        url.hostname === 'public.api.bsky.app' &&
+        url.searchParams.get('sources') === 'did:plc:ar7c4by46qjdydhdevvrndac'
+      ) {
         return response({
           labels: [{ ver: 1, src: labelerDid, uri: did, val: 'renewed', cts: '2026-09-01T00:00:00Z' }],
         })
@@ -205,8 +316,8 @@ describe('public data seams', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const publicData = createTestService()
-    const relay = await publicData.labels.labels(did)
-    const fallback = await publicData.labels.labels(did, relay.cursor)
+    const appView = await publicData.labels.labels(did)
+    const fallback = await publicData.labels.labels(did, appView.cursor)
     expect(fallback.items).toEqual([
       expect.objectContaining({ sourceDid: labelerDid, value: 'renewed', createdAt: '2026-09-03T00:00:00Z' }),
     ])
@@ -223,9 +334,16 @@ describe('public data seams', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
-        if (url.hostname === 'labelers.firehose.stream') {
+        if (url.hostname === 'labelers.firehose.stream')
           return response({
-            labels: [{ ver: 1, src: labelerDid, uri: did, val: 'relay', cts: '2026-09-01T00:00:00Z' }],
+            labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }],
+          })
+        if (
+          url.hostname === 'public.api.bsky.app' &&
+          url.searchParams.get('sources') === 'did:plc:ar7c4by46qjdydhdevvrndac'
+        ) {
+          return response({
+            labels: [{ ver: 1, src: labelerDid, uri: did, val: 'appView', cts: '2026-09-01T00:00:00Z' }],
           })
         }
         if (url.hostname === 'plc.directory') {
@@ -248,22 +366,29 @@ describe('public data seams', () => {
     )
 
     const publicData = createTestService()
-    const relay = await publicData.labels.labels(did)
-    const first = await publicData.labels.labels(did, relay.cursor)
+    const appView = await publicData.labels.labels(did)
+    const first = await publicData.labels.labels(did, appView.cursor)
     const second = await publicData.labels.labels(did, first.cursor)
     const repeated = await publicData.labels.labels(did, second.cursor)
     expect(repeated.cursor).toBeUndefined()
   })
 
-  it('keeps paging after a relay page contains only malformed events', async () => {
-    let relayPages = 0
+  it('keeps paging after an AppView page contains only malformed events', async () => {
+    let appViewPages = 0
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
-        if (url.hostname === 'labelers.firehose.stream') {
-          relayPages += 1
-          return relayPages === 1
+        if (url.hostname === 'labelers.firehose.stream')
+          return response({
+            labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }],
+          })
+        if (
+          url.hostname === 'public.api.bsky.app' &&
+          url.searchParams.get('sources') === 'did:plc:ar7c4by46qjdydhdevvrndac'
+        ) {
+          appViewPages += 1
+          return appViewPages === 1
             ? response({ labels: [{ malformed: true }], cursor: 'next' })
             : response({
                 labels: [{ ver: 1, src: memberDid, uri: did, val: 'recovered', cts: '2026-01-01T00:00:00Z' }],

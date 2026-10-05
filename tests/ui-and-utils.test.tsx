@@ -807,8 +807,8 @@ describe('account labels', () => {
     const cursor = {
       kind: 'labels' as const,
       did,
-      relayDone: false,
-      seenRelayCursors: [],
+      appViewDone: false,
+      seenAppViewCursors: [],
       providers: [],
       emittedIds: [],
     }
@@ -850,8 +850,8 @@ describe('account labels', () => {
         cursor: {
           kind: 'labels',
           did,
-          relayDone: false,
-          seenRelayCursors: [],
+          appViewDone: false,
+          seenAppViewCursors: [],
           providers: [],
           emittedIds: [],
         },
