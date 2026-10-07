@@ -117,6 +117,16 @@ docker run -e SKYTRACE_BLOCK_TARGET_DID=did:plc:example ghcr.io/alyraffauf/skytr
 
 This check is opt-in. When `SKYTRACE_BLOCK_TARGET_DID` is unset or invalid, SkyTrace does not make the Constellation request and shows profiles normally. Restart the container after changing the value.
 
+To require a minimum number of accounts blocking a moderation list before it appears on Listed On, set `MIN_LIST_BLOCKING` at container startup:
+
+```sh
+docker run -e MIN_LIST_BLOCKING=1 ghcr.io/alyraffauf/skytrace:latest
+```
+
+This example shows moderation lists blocked by at least one account. Curation lists remain visible. The count comes from Constellation's list-block backlinks. If the count cannot be loaded, SkyTrace shows a membership error and withholds the moderation list.
+
+When `MIN_LIST_BLOCKING` is unset or invalid, Listed On shows lists without checking their blocker counts. Valid values are whole numbers from `0` through `9007199254740991`. A value of `0` still checks the count but accepts any nonnegative count. Restart the container after changing the value. Non-container static deployments can set `minListBlocking` in `runtime-config.js`; its default is `null`, which disables filtering.
+
 ## License
 
 SkyTrace is licensed under the [GNU Affero General Public License, version 3 only](./LICENSE.md).

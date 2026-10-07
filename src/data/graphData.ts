@@ -199,15 +199,19 @@ export class GraphDataService {
     })
   }
 
-  listedOnMembershipQueryOptions(membershipUri: string) {
+  listedOnMembershipQueryOptions(membershipUri: string, minimumBlocking?: number) {
     return queryOptions({
-      queryKey: queryKeys.listedOnMembership(membershipUri),
+      queryKey: queryKeys.listedOnMembership(membershipUri, minimumBlocking),
       queryFn: async ({ signal }) => {
         const membership = await this.core.record(membershipUri, signal)
         const value = parsedRecord(AppBskyGraphListitem.mainSchema, membership)
         if (!value || !parseAtUri(value.list))
           return unavailable(membershipUri, 'This membership has no valid list reference.')
         const list = this.listFromRecord(await this.core.record(value.list, signal))
+        if (minimumBlocking !== undefined && list.kind === 'list' && list.purpose === 'app.bsky.graph.defs#modlist') {
+          const count = await this.core.listBlockCount(list.uri, signal)
+          if (count < minimumBlocking) return null
+        }
         return { kind: 'membership' as const, uri: membershipUri, createdAt: value.createdAt, list }
       },
       staleTime: CACHE_TTL_MS.activity,

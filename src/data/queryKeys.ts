@@ -31,7 +31,8 @@ export const queryKeys = {
   feed: (did: string) => ['feed', did] as const,
   listMembers: (uri: string) => ['listMembers', uri] as const,
   listMember: (listUri: string, membershipUri: string) => ['listMember', listUri, membershipUri] as const,
-  listedOnMembership: (membershipUri: string) => ['listedOnMembership', membershipUri] as const,
+  listedOnMembership: (membershipUri: string, minimumBlocking?: number) =>
+    ['listedOnMembership', membershipUri, minimumBlocking ?? null] as const,
   blockedByRecord: (uri: string | undefined, subjectDid: string) =>
     ['blockedByRecord', uri ?? null, subjectDid] as const,
   feedPost: (uri: string) => ['feedPost', uri] as const,

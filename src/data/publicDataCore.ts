@@ -131,6 +131,16 @@ export class PublicDataCore {
     })
   }
 
+  async listBlockCount(listUri: string, signal?: AbortSignal): Promise<number> {
+    return this.sharedRequests.query(
+      queryKeys.listBlockCount(listUri),
+      CACHE_TTL_MS.activity,
+      (requestSignal) =>
+        getBacklinksCount({ subject: listUri, source: 'app.bsky.graph.listblock:subject', signal: requestSignal }),
+      signal,
+    )
+  }
+
   private async loadAccountDetails(did: ActorIdentity['did'], signal?: AbortSignal): Promise<AccountDetails> {
     if (isPlcDid(did)) return getPlcAccountDetails(did, signal)
     if (!isWebDid(did)) return { aliases: [], formerHandles: [] }

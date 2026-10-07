@@ -11,3 +11,11 @@ if printf '%s' "${SKYTRACE_BLOCK_TARGET_DID:-}" | grep -Eq '^did:[a-z0-9]+:[A-Za
 else
   export SKYTRACE_BLOCK_TARGET_DID_VALUE=null
 fi
+
+# Emit a JSON integer only for whole counts within JavaScript's safe range.
+export MIN_LIST_BLOCKING_VALUE=null
+if printf '%s' "${MIN_LIST_BLOCKING:-}" | grep -Eq '^(0|[1-9][0-9]{0,15})$'; then
+  if [ "$MIN_LIST_BLOCKING" -le 9007199254740991 ]; then
+    export MIN_LIST_BLOCKING_VALUE="$MIN_LIST_BLOCKING"
+  fi
+fi

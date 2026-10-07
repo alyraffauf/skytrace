@@ -1,6 +1,9 @@
 import { useOutletContext } from 'react-router-dom'
-import { RecordList } from '../../components/records/RecordList'
-import { StreamedListedOnRow } from '../../components/lists/StreamedMembershipRows'
+import { useQueries } from '@tanstack/react-query'
+import { minimumListBlocking } from '../../config/listVisibility'
+import { ListRow } from '../../components/lists/ListRow'
+import { RecordList, UnavailableRow } from '../../components/records/RecordList'
+import { MembershipLoadingRow } from '../../components/lists/StreamedMembershipRows'
 import { EmptyState } from '../../components/ui/States'
 import { PagedQueryView } from '../../components/pagination/PagedQuery'
 import { queryKeys } from '../../data/queryKeys'
@@ -15,15 +18,31 @@ export function ListedOnPage() {
     (cursor, signal) => service.graph.listedOnReferences(profile.identity.did, cursor, signal),
   )
   const memberships = dedupeBy(query.data?.pages.flatMap((page) => page.items) ?? [], (reference) => reference.uri)
+  const minimumBlocking = minimumListBlocking()
+  const membershipQueries = useQueries({
+    queries: memberships.map((membership) =>
+      service.graph.listedOnMembershipQueryOptions(membership.uri, minimumBlocking),
+    ),
+  })
+  const allHidden = membershipQueries.every((membership) => membership.isSuccess && membership.data === null)
   return (
     <PagedQueryView query={query} resourceLabel="list memberships">
-      {memberships.length === 0 ? (
-        <EmptyState title="Not on any lists" />
+      {allHidden ? (
+        <EmptyState
+          title={minimumBlocking === undefined ? 'Not on any lists' : 'No lists match the visibility criteria'}
+        />
       ) : (
         <RecordList>
-          {memberships.map((membership) => (
-            <StreamedListedOnRow key={membership.uri} membershipUri={membership.uri} service={service} />
-          ))}
+          {membershipQueries.map((membership, index) => {
+            const key = memberships[index]!.uri
+            if (membership.isPending) return <MembershipLoadingRow key={key} />
+            if (membership.isError)
+              return <UnavailableRow key={key} reason="This list membership could not be loaded." />
+            if (membership.data === null) return null
+            if (membership.data.kind === 'unavailable')
+              return <UnavailableRow key={key} reason={membership.data.reason} />
+            return <ListRow key={key} list={membership.data.list} membership={membership.data} />
+          })}
         </RecordList>
       )}
     </PagedQueryView>
