@@ -34,7 +34,7 @@ Your browser may cache downloaded files, and the services SkyTrace queries have 
 
 ## How do I opt out?
 
-Block [SkyTrace's Bluesky account]({{optOutAccountUrl}}). Once the block appears in Constellation, SkyTrace hides your profile and its tabs. SkyTrace also hides profiles blocked by its own account. Unblocking allows your profile to appear again, provided SkyTrace has not blocked you.
+Block [SkyTrace's Bluesky account]({{optOutAccountUrl}}). SkyTrace will then hide your profile page from view. SkyTrace also hides profiles blocked by its own account. Unblocking allows your profile to appear again, provided SkyTrace has not blocked you.
 
 This opt-out controls whether your profile appears on SkyTrace; it does not delete public records or remove them from other services, individual list pages, or other accounts' records.
 
