@@ -54,14 +54,22 @@ export function AppLayout() {
       </main>
       <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white pb-[env(safe-area-inset-bottom)] text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto grid min-h-11 max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6 lg:px-8">
-          <a
-            href="https://bsky.app/profile/skytrace.aly.town"
-            target="_blank"
-            rel="noreferrer"
-            className="justify-self-start rounded-sm text-zinc-600 hover:text-violet-700 hover:underline dark:text-zinc-400 dark:hover:text-violet-300"
-          >
-            Bluesky
-          </a>
+          <nav aria-label="About SkyTrace" className="flex items-center gap-3 justify-self-start">
+            <Link
+              to="/faq"
+              className="rounded-sm text-zinc-600 hover:text-violet-700 hover:underline dark:text-zinc-400 dark:hover:text-violet-300"
+            >
+              FAQ
+            </Link>
+            <a
+              href="https://bsky.app/profile/skytrace.aly.town"
+              target="_blank"
+              rel="noreferrer"
+              className="justify-self-start rounded-sm text-zinc-600 hover:text-violet-700 hover:underline dark:text-zinc-400 dark:hover:text-violet-300"
+            >
+              Bluesky
+            </a>
+          </nav>
           <span className="text-center">
             Made by{' '}
             <a

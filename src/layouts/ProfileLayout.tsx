@@ -4,7 +4,7 @@ import { AccountDetails } from '../components/profile/AccountDetails'
 import { ProfileTabsNav } from '../components/profile/ProfileTabsNav'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Suspense, useLayoutEffect } from 'react'
-import { Outlet, useLocation, useNavigationType, useParams } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigationType, useParams } from 'react-router-dom'
 import { LinkifiedText } from '../components/ui/LinkifiedText'
 import { RecordLinksMenu } from '../components/records/RecordLinksMenu'
 import { ActorAvatar, actorHandle, actorLabel } from '../components/actors/ActorIdentity'
@@ -95,8 +95,14 @@ function BlockedProfileState({ reason }: { reason: 'instance-block' | 'opt-out' 
         <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
           {reason === 'instance-block'
             ? 'This profile has been blocked from SkyTrace.'
-            : 'This account blocks this SkyTrace instance on Bluesky, so its profile and public records are not shown here.'}
+            : 'This account blocks SkyTrace on Bluesky, so its profile and public records are not shown here.'}
         </p>
+        <Link
+          to="/faq#opt-out"
+          className="mt-4 inline-block text-sm text-violet-700 underline underline-offset-2 dark:text-violet-400"
+        >
+          Read about profile visibility and opt-outs
+        </Link>
       </div>
     </div>
   )

@@ -59,6 +59,14 @@ Use the narrower commands while you work:
 
 Hooks use data services and utilities without importing rendering components. Keep helpers used only for rendering beside their component. Put new route registration in `routes/router.tsx` and profile tab definitions in `routes/profileTabs.ts`.
 
+## Edit the FAQ
+
+Edit `src/content/faq.md` to change the `/faq` page. The file supports Markdown headings, paragraphs, links, and lists.
+
+Instance-specific answers use `<!-- if NAME -->` and `<!-- endif -->` comment blocks. Supported conditions are `opt-out-enabled`, `opt-out-disabled`, `minimum-enabled`, and `minimum-disabled`. Keep these blocks separate; nesting is not supported.
+
+Keep `{{optOutAccountUrl}}`, `{{minimumBlocking}}`, and `{{blockingAccounts}}` where the answers need the configured account link, blocker count, and singular or plural wording. `FaqPage.tsx` fills these values from runtime settings before rendering the Markdown.
+
 ## Data sources
 
 SkyTrace makes these requests from the browser:

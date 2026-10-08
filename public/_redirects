@@ -1,3 +1,4 @@
+/faq /index.html 200
 /profile/:actor /index.html 200
 /profile/:actor/labels /index.html 200
 /profile/:actor/labeled-posts /index.html 200

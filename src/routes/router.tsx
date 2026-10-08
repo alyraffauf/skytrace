@@ -8,6 +8,7 @@ import { PROFILE_TABS, type ProfileTabSlug } from './profileTabs'
 const ProfileLayout = lazy(() =>
   import('../layouts/ProfileLayout').then((module) => ({ default: module.ProfileLayout })),
 )
+const FaqPage = lazy(() => import('../pages/FaqPage').then((module) => ({ default: module.FaqPage })))
 const ListPage = lazy(() => import('../pages/ListPage').then((module) => ({ default: module.ListPage })))
 
 const profilePages = {
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'faq', element: <FaqPage /> },
       { path: 'list/:actor/:rkey', element: <ListPage /> },
       {
         path: 'profile/:actor',

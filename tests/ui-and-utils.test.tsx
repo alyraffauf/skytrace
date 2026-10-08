@@ -193,8 +193,7 @@ describe('profile relationship counts', () => {
       scenario: 'shows the opt-out message when the profile blocks the instance',
       profileBlocks: true,
       instanceBlocks: false,
-      message:
-        'This account blocks this SkyTrace instance on Bluesky, so its profile and public records are not shown here.',
+      message: 'This account blocks SkyTrace on Bluesky, so its profile and public records are not shown here.',
     },
     {
       scenario: 'shows the ban message when the instance blocks the profile',
