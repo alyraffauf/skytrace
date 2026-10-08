@@ -26,7 +26,7 @@ When you visit SkyTrace, your browser requests data directly from public service
 
 ## Does SkyTrace keep a copy of my data?
 
-SkyTrace runs no content index or archive. Data is fetched as needed. It keeps fetched records in a temporary cache to avoid repeating requests. SkyTrace does not save those records to a database or browser storage.
+SkyTrace does not run a content index or archive. Data is fetched as needed. It keeps fetched records in a temporary cache to avoid repeating requests. SkyTrace does not save those records to a database or browser storage.
 
 Your browser may cache downloaded files, and the services SkyTrace queries have their own caches and retention policies. SkyTrace does not control those copies.
 
