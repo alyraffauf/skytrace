@@ -12,6 +12,19 @@ else
   export SKYTRACE_BLOCK_TARGET_DID_VALUE=null
 fi
 
+# Validate each comma-separated DID before embedding it in runtime JavaScript.
+export SKYTRACE_HIDDEN_DIDS_VALUE="$(printf '%s' "${SKYTRACE_HIDDEN_DIDS:-}" | awk '
+  BEGIN { RS = ","; printf "[" }
+  {
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+    if ($0 ~ /^did:[a-z0-9]+:[A-Za-z0-9._:%-]+(:[A-Za-z0-9._:%-]+)*$/) {
+      printf "%s\"%s\"", separator, $0
+      separator = ","
+    }
+  }
+  END { printf "]" }
+')"
+
 # Emit a JSON integer only for whole counts within JavaScript's safe range.
 export MIN_LIST_BLOCKING_VALUE=null
 if printf '%s' "${MIN_LIST_BLOCKING:-}" | grep -Eq '^(0|[1-9][0-9]{0,15})$'; then

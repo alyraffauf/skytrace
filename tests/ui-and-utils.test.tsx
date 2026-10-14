@@ -213,6 +213,7 @@ describe('profile relationship counts', () => {
     vi.stubGlobal('__SKYTRACE_CONFIG__', {
       ignoreNoUnauthenticated: false,
       blockTargetDid,
+      hiddenDids: ['did:web:unrelated.example'],
     })
     const requestedUrls: URL[] = []
     const blocks = [

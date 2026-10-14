@@ -185,6 +185,15 @@ export class PublicDataCore {
     })
   }
 
+  async profile(identifier: string, signal?: AbortSignal): Promise<ActorProfile> {
+    return this.sharedRequests.query(
+      queryKeys.profileView(identifier),
+      CACHE_TTL_MS.profile,
+      (requestSignal) => this.loadProfile(identifier, requestSignal),
+      signal,
+    )
+  }
+
   labelDefinitionsQueryOptions(did: ActorIdentity['did']) {
     return queryOptions({
       queryKey: queryKeys.labelDefinitions(did),

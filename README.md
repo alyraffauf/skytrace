@@ -123,7 +123,19 @@ An operator can hide profiles that block or are blocked by a specific Bluesky ac
 docker run -e SKYTRACE_BLOCK_TARGET_DID=did:plc:example ghcr.io/alyraffauf/skytrace:latest
 ```
 
-This check is opt-in. When `SKYTRACE_BLOCK_TARGET_DID` is unset or invalid, SkyTrace does not make the Constellation request and shows profiles normally. Restart the container after changing the value.
+This check is opt-in. When `SKYTRACE_BLOCK_TARGET_DID` is unset or invalid, SkyTrace skips the block check. Restart the container after changing the value.
+
+To hide specific profiles regardless of Bluesky blocks, pass a comma-separated list of DIDs:
+
+```sh
+docker run -e SKYTRACE_HIDDEN_DIDS='did:plc:example,did:web:example.com' ghcr.io/alyraffauf/skytrace:latest
+```
+
+SkyTrace trims whitespace around each DID and ignores empty or invalid entries. An unset or empty value hides no additional profiles. Listed profiles show the same unavailable message as profiles blocked by the instance. The list works independently of `SKYTRACE_BLOCK_TARGET_DID` and applies to profile pages opened by DID or handle, including their record tabs.
+
+When reasons overlap, explicit hiding takes precedence over an instance block, and an instance block takes precedence over an account's opt-out. An explicit match skips the Bluesky block checks.
+
+Restart the container after changing the list. For non-container static deployments, set `hiddenDids` to an array of DID strings in `public/runtime-config.js` before building, or in the deployed `runtime-config.js`. Its default is `[]`.
 
 To require a minimum number of accounts blocking a moderation list before it appears on Listed On, set `MIN_LIST_BLOCKING` at container startup:
 

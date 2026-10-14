@@ -12,7 +12,8 @@ export const queryKeys = {
   blockedCount: (identity?: ActorIdentity) => ['blockedCount', identity?.pds ?? null, identity?.did ?? null] as const,
   blockedByCount: (did?: string) => ['blockedByCount', did ?? null] as const,
   listBlockCount: (uri?: string) => ['listBlockCount', uri ?? null] as const,
-  profileBlocked: (did?: string, targetDid?: string) => ['profileBlocked', did ?? null, targetDid ?? null] as const,
+  profileVisibility: (identifier: string, targetDid: string | undefined, hiddenDids: readonly string[]) =>
+    ['profileVisibility', identifier, targetDid ?? null, hiddenDids] as const,
   backlinks: (subject: string, source: string, cursor: string | undefined, limit: number | undefined, did?: string) =>
     ['backlinks', subject, source, cursor ?? null, limit ?? null, did ?? null] as const,
   labelerEndpoint: (did: string) => ['labelerEndpoint', did] as const,

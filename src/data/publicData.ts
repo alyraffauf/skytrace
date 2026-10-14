@@ -3,16 +3,19 @@ import { FeedDataService } from './feedData'
 import { GraphDataService } from './graphData'
 import { LabelDataService } from './labelData'
 import { PublicDataCore } from './publicDataCore'
+import { ProfileVisibilityService } from './profileVisibility'
 
 export class PublicDataService {
   readonly core: PublicDataCore
   readonly graph: GraphDataService
   readonly labels: LabelDataService
   readonly feed: FeedDataService
+  readonly profileVisibility: ProfileVisibilityService
 
   constructor(queryClient: QueryClient, requestTimeoutMs?: number) {
     this.core = new PublicDataCore(queryClient, requestTimeoutMs)
     this.graph = new GraphDataService(this.core)
+    this.profileVisibility = new ProfileVisibilityService(this.core, this.graph)
     this.labels = new LabelDataService(this.core)
     this.feed = new FeedDataService(this.core, this.labels)
   }

@@ -5,5 +5,6 @@ interface Window {
     readonly ignoreNoUnauthenticated: boolean
     readonly minListBlocking?: number | null
     readonly blockTargetDid: string | null
+    readonly hiddenDids?: readonly string[]
   }
 }

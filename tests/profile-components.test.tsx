@@ -112,7 +112,7 @@ it('resets page scroll for pushes but leaves back and forward restoration alone'
   expect(scroll).toHaveBeenCalledTimes(1)
 })
 
-it('updates the browser title between profile tabs and restores it on the homepage', () => {
+it('updates the browser title between profile tabs and restores it on the homepage', async () => {
   vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
   vi.stubGlobal(
     'fetch',
@@ -139,7 +139,7 @@ it('updates the browser title between profile tabs and restores it on the homepa
       </MemoryRouter>
     </QueryClientProvider>,
   )
-  expect(document.title).toBe('@example.com — Feed — SkyTrace')
+  await waitFor(() => expect(document.title).toBe('@example.com — Feed — SkyTrace'))
   fireEvent.click(screen.getByRole('link', { name: 'Account labels' }))
   expect(document.title).toBe('@example.com — Account labels — SkyTrace')
   fireEvent.click(screen.getByText('Home'))

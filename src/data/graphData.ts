@@ -12,24 +12,6 @@ const RELATIONSHIP_PAGE_SIZE = 24
 export class GraphDataService {
   constructor(private readonly core: PublicDataCore) {}
 
-  profileBlockedQueryOptions(did?: ActorIdentity['did'], targetDid?: ActorIdentity['did']) {
-    return queryOptions({
-      queryKey: queryKeys.profileBlocked(did, targetDid),
-      queryFn: async ({ signal }) => {
-        if (!did || !targetDid) return false
-        const [actorBlocksInstance, instanceBlocksActor] = await Promise.all([
-          this.actorBlocksConfiguredAccount(did, targetDid, signal),
-          this.actorBlocksConfiguredAccount(targetDid, did, signal),
-        ])
-        if (instanceBlocksActor) return 'instance-block' as const
-        if (actorBlocksInstance) return 'opt-out' as const
-        return false
-      },
-      enabled: did !== undefined && targetDid !== undefined,
-      staleTime: CACHE_TTL_MS.activity,
-    })
-  }
-
   async actorBlocksConfiguredAccount(
     did: ActorIdentity['did'],
     targetDid: ActorIdentity['did'],

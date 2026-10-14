@@ -34,7 +34,7 @@ Your browser may cache downloaded files, and the services SkyTrace queries have 
 
 ## How do I opt out?
 
-Block [SkyTrace's Bluesky account]({{optOutAccountUrl}}). SkyTrace will then hide your profile page from view. SkyTrace also hides profiles blocked by its own account. Unblocking allows your profile to appear again, provided SkyTrace has not blocked you.
+Block [SkyTrace's Bluesky account]({{optOutAccountUrl}}). SkyTrace will then hide your profile page from view. SkyTrace also hides profiles blocked by its own account. Unblocking allows your profile to appear again, provided SkyTrace has not blocked or otherwise hidden your profile.
 
 This opt-out controls whether your profile appears on SkyTrace; it does not delete public records or remove them from other services, individual list pages, or other accounts' records.
 
@@ -55,5 +55,7 @@ The minimum applies only to moderation lists on Listed On. Curation lists remain
 ## Why is something missing or out of date?
 
 Servers and indexes update at different times. Records may be deleted, services may be unavailable, and results load in pages. An empty result is not proof that a record never existed. Refresh or retry after a short wait if something looks wrong.
+
+An administrator can also explicitly hide an account's profile page.
 
 SkyTrace also respects the profile's request to hide posts from logged-out viewers by default. This affects Feed and Labeled posts, rather than making the underlying public records private.
