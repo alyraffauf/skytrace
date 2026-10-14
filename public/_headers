@@ -1,4 +1,18 @@
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/faq
+  Cache-Control: no-cache
+/faq/
+  Cache-Control: no-cache
 /profile/*
+  Cache-Control: no-cache
   X-Robots-Tag: noindex
 /list/*
+  Cache-Control: no-cache
   X-Robots-Tag: noindex
+/runtime-config.js
+  Cache-Control: no-store
+/404.html
+  Cache-Control: no-store

@@ -1,24 +1,45 @@
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router-dom'
+import { isPreloadError } from './preloadRecovery'
 
 export function RouteError() {
   const routeError = useRouteError()
-  const message = isRouteErrorResponse(routeError)
-    ? routeError.statusText
-    : routeError instanceof Error
-      ? routeError.message
-      : 'This page could not be opened.'
+  const isNotFound = isRouteErrorResponse(routeError) && routeError.status === 404
+  const preloadFailed = isPreloadError(routeError)
+  const heading = isNotFound
+    ? 'That route went missing'
+    : preloadFailed
+      ? 'This page needs a refresh'
+      : 'This page could not be opened'
+  const message = preloadFailed
+    ? 'Part of this page could not be downloaded. Refresh the page to try again.'
+    : isRouteErrorResponse(routeError)
+      ? routeError.statusText
+      : routeError instanceof Error
+        ? routeError.message
+        : 'This page could not be opened.'
   return (
     <main className="grid min-h-screen place-items-center bg-white px-4 dark:bg-zinc-950 dark:text-zinc-100">
-      <title>Page not found — SkyTrace</title>
+      <title>{isNotFound ? 'Page not found — SkyTrace' : 'Page unavailable — SkyTrace'}</title>
       <div className="max-w-md text-center">
-        <h1 className="text-2xl font-semibold">That route went missing</h1>
+        <h1 className="text-2xl font-semibold">{heading}</h1>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">{message}</p>
-        <Link
-          to="/"
-          className="mt-5 inline-block border border-zinc-300 px-4 py-2 font-medium text-violet-700 hover:border-violet-300 hover:bg-violet-50 dark:border-zinc-700 dark:text-violet-300 dark:hover:border-violet-700 dark:hover:bg-violet-950/40"
-        >
-          Back to search
-        </Link>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          {!isNotFound && (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-block border border-zinc-300 px-4 py-2 font-medium text-violet-700 hover:border-violet-300 hover:bg-violet-50 dark:border-zinc-700 dark:text-violet-300 dark:hover:border-violet-700 dark:hover:bg-violet-950/40"
+            >
+              Refresh page
+            </button>
+          )}
+          <Link
+            to="/"
+            className="inline-block border border-zinc-300 px-4 py-2 font-medium text-violet-700 hover:border-violet-300 hover:bg-violet-50 dark:border-zinc-700 dark:text-violet-300 dark:hover:border-violet-700 dark:hover:bg-violet-950/40"
+          >
+            Back to search
+          </Link>
+        </div>
       </div>
     </main>
   )

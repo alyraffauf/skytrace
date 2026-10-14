@@ -109,6 +109,8 @@ The homepage is indexable. Profile and list responses carry `X-Robots-Tag: noind
 
 After deployment, check `/`, a profile tab, and a list URL for the expected status and indexing header. Check an unknown route and a missing asset for 404 responses. Use Search Console's URL Inspection to confirm the homepage can be rendered and indexed. The local Vite development server does not apply production hosting rules.
 
+The container makes HTML revalidate and caches fingerprinted assets for one year. Runtime configuration and missing assets use `Cache-Control: no-store`. Static hosts can use the included `_headers` rules for HTML and runtime configuration. If an older tab requests a removed JavaScript module, SkyTrace tries one automatic reload per build in that tab, then offers a manual refresh if the download still fails.
+
 SkyTrace respects the `!no-unauthenticated` profile self-label by default and does not load that account's Feed or Labeled posts tabs. To ignore the label in the container, set `SKYTRACE_IGNORE_NO_UNAUTHENTICATED` when you start it:
 
 ```sh
