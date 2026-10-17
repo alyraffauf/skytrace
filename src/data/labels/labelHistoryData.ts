@@ -1,5 +1,5 @@
 import { SERVICE_URLS } from '../../config/serviceUrls'
-import { timestampFor } from '../../lib/sorting'
+import { newestFirst, timestampFor } from '../../lib/sorting'
 import type { LabelEvent, Page, UnavailableItem } from '../../types'
 import type { PublicDataCore } from '../publicDataCore'
 import type { LabelerDataService } from './labelerData'
@@ -64,17 +64,11 @@ export class LabelHistoryDataService {
         sources: state.appViewSources ?? [BLUESKY_MODERATION_DID],
         signal,
       })
-      const labels = page.items.filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
       state.appViewDone = !page.cursor || state.seenAppViewCursors.includes(page.cursor)
       state.appViewCursor = state.appViewDone ? undefined : page.cursor
       if (page.cursor) state.seenAppViewCursors.push(page.cursor)
-      const unavailableItems = page.items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
       return {
-        items: [...hydrateLabelSources(labels, signal), ...unavailableItems].sort(
-          (left, right) =>
-            timestampFor(right.kind === 'unavailable' ? undefined : right.createdAt) -
-            timestampFor(left.kind === 'unavailable' ? undefined : left.createdAt),
-        ),
+        items: hydrateHistoryItems(page.items, signal),
         cursor: !state.appViewDone || state.providers.length > 0 ? snapshotLabelState(state) : undefined,
       }
     }
@@ -106,16 +100,9 @@ export class LabelHistoryDataService {
       provider.cursor = provider.done ? undefined : nextCursor
       if (nextCursor) seenCursors.add(nextCursor)
       provider.seenCursors = [...seenCursors]
-      const labels = page.items.filter(
-        (item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent' && item.sourceDid === provider.did,
-      )
-      const unavailableItems = page.items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
+      const items = page.items.filter((item) => item.kind === 'unavailable' || item.sourceDid === provider.did)
       return {
-        items: [...hydrateLabelSources(labels, signal), ...unavailableItems].sort(
-          (left, right) =>
-            timestampFor(right.kind === 'unavailable' ? undefined : right.createdAt) -
-            timestampFor(left.kind === 'unavailable' ? undefined : left.createdAt),
-        ),
+        items: hydrateHistoryItems(items, signal),
         cursor: state.providers.some((candidate) => !candidate.done) ? snapshotLabelState(state) : undefined,
       }
     }
@@ -155,4 +142,13 @@ export class LabelHistoryDataService {
     providers.sort((left, right) => timestampFor(right.latestEventAt) - timestampFor(left.latestEventAt))
     return page
   }
+}
+
+function hydrateHistoryItems(
+  items: Array<Omit<LabelEvent, 'source'> | UnavailableItem>,
+  signal?: AbortSignal,
+): Array<LabelEvent | UnavailableItem> {
+  const labels = items.filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
+  const unavailableItems = items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
+  return newestFirst([...hydrateLabelSources(labels, signal), ...unavailableItems])
 }

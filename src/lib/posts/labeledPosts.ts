@@ -1,5 +1,5 @@
 import type { LabeledPost, LabelEvent } from '../../types'
-import { timestampFor } from '../sorting'
+import { newestFirst, timestampFor } from '../sorting'
 
 // Keep the first-seen post when a later page adds no labels.
 export function mergeLabeledPosts(items: LabeledPost[]): LabeledPost[] {
@@ -15,7 +15,7 @@ export function mergeLabeledPosts(items: LabeledPost[]): LabeledPost[] {
     if (labels.size === current.labels.length) continue
     posts.set(item.post.uri, {
       ...current,
-      labels: [...labels.values()].sort((left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt)),
+      labels: newestFirst([...labels.values()]),
     })
   }
   return [...posts.values()].sort(compareLabeledPostsNewestFirst)

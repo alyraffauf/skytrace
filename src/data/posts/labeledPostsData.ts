@@ -1,5 +1,5 @@
 import type { ActorIdentity, FeedPost, LabeledPost, LabelEvent, Page, RawRecord } from '../../types'
-import { timestampFor } from '../../lib/sorting'
+import { newestFirst } from '../../lib/sorting'
 import { compareLabeledPostsNewestFirst } from '../../lib/posts/labeledPosts'
 import type { SubjectLabelsDataService } from '../labels/subjectLabelsData'
 import type { PostDataService } from './postData'
@@ -78,7 +78,6 @@ function groupLabelsByPost(labels: LabelEvent[]): Map<string, LabelEvent[]> {
     postLabels.push(label)
     grouped.set(label.subject, postLabels)
   }
-  for (const postLabels of grouped.values())
-    postLabels.sort((left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt))
+  for (const [subject, postLabels] of grouped) grouped.set(subject, newestFirst(postLabels))
   return grouped
 }

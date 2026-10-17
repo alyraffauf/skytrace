@@ -8,8 +8,7 @@ import { queryKeys } from '../queryKeys'
 
 export type ProfileHiddenReason = 'explicit-hide' | 'instance-block' | 'opt-out'
 
-export type ProfileVisibility =
-  { visible: true; profile: ActorProfile } | { visible: false; reason: ProfileHiddenReason }
+type ProfileVisibility = { visible: true; profile: ActorProfile } | { visible: false; reason: ProfileHiddenReason }
 
 export class ProfileVisibilityService {
   constructor(
