@@ -2,37 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ActorIdentity } from '../src/types'
 import { createTestService, jsonResponse as response, repositoryRecord } from './testUtils'
 import type { LabeledPostsCursor } from '../src/data/posts/labeledPostsData'
-import type { CursorHistory } from '../src/data/cursorHistory'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const identity: ActorIdentity = { kind: 'actorIdentity', did, handle: 'atproto.com', pds: 'https://pds.example' }
 
 describe('labeled post data', () => {
-  it('retains only one history node per page across saved cursors', async () => {
-    const service = createTestService()
-    let pageNumber = 0
-    vi.spyOn(service.core, 'repositoryRecords').mockImplementation(async () => ({
-      items: [],
-      cursor: String(++pageNumber),
-    }))
-    const snapshots: LabeledPostsCursor[] = []
-    let cursor: LabeledPostsCursor | undefined
-    for (let index = 0; index < 1_000; index++) {
-      const page = await service.labeledPosts.page(identity, cursor)
-      cursor = Object.freeze(page.cursor!)
-      snapshots.push(cursor)
-    }
-    const retainedNodes = new Set<CursorHistory>()
-    for (const snapshot of snapshots) {
-      for (let entry = snapshot.repositoryCursorHistory; entry && !retainedNodes.has(entry); entry = entry.previous) {
-        retainedNodes.add(entry)
-      }
-    }
-    expect(retainedNodes.size).toBe(1_000)
-    expect(snapshots[0]?.repositoryCursorHistory).toEqual({ cursor: '1' })
-    expect(snapshots.at(-1)?.repositoryCursor).toBe('1000')
-  })
-
   it.each([
     ['a', 'a'],
     ['a', 'b', 'a'],

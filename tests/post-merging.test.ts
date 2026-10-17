@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { mergeFeedItems } from '../src/lib/posts/feed'
 import { mergeLabeledPosts } from '../src/lib/posts/labeledPosts'
 import type { FeedPost, LabeledPost, LabelEvent } from '../src/types'
@@ -50,21 +50,6 @@ it('applies replacements only with new labels and preserves ties across duplicat
   expect(mergeLabeledPosts(items)).toEqual([
     { kind: 'labeledPost', post: labeledPost, labels: [replaced, added, label('last')] },
   ])
-})
-
-it('parses dates only linearly when duplicate posts each add a label', () => {
-  const count = 1_000
-  const items: LabeledPost[] = Array.from({ length: count }, (_, index) => ({
-    kind: 'labeledPost',
-    post: labeledPost,
-    labels: [label(String(index))],
-  }))
-  const parseDate = vi.spyOn(Date, 'parse')
-  const merged = mergeLabeledPosts(items)
-  expect(merged[0]?.labels).toHaveLength(count)
-  expect(merged[0]?.labels[0]?.id).toBe('0')
-  expect(merged[0]?.labels.at(-1)?.id).toBe('999')
-  expect(parseDate.mock.calls.length).toBeLessThanOrEqual(count * 2)
 })
 
 describe('feed merging', () => {

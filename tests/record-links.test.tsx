@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { RecordLinksMenu } from '../src/components/records/RecordLinksMenu'
 import { did } from './actorFixtures'
+import { SOCIAL_APPS } from '../src/config/socialApps'
 
 describe('record links', () => {
   const postUri = `at://${did}/app.bsky.feed.post/3example`
@@ -13,10 +14,12 @@ describe('record links', () => {
       'href',
       `https://skythread.mackuba.eu/?author=did%3Aplc%3Aewvi7nxzyoun6zhxrhs64oiz&post=3example`,
     )
-    expect(screen.getByRole('menuitem', { name: 'Bluesky' })).toHaveAttribute(
-      'href',
-      `https://bsky.app/profile/${did}/post/3example`,
-    )
+    for (const app of SOCIAL_APPS) {
+      expect(screen.getByRole('menuitem', { name: app.label })).toHaveAttribute(
+        'href',
+        `${app.origin}/profile/${did}/post/3example`,
+      )
+    }
     for (const [collection, override, destination] of [
       ['app.bsky.graph.list', undefined, `/profile/${did}/lists/3example`],
       ['app.bsky.graph.listitem', '/profile/list-owner/lists/target', '/profile/list-owner/lists/target'],

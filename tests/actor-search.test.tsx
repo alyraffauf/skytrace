@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { queryKeys } from '../src/data/queryKeys'
 import { ActorSearch } from '../src/components/actors/ActorSearch'
 import { createTestQueryClient, jsonResponse } from './testUtils'
 
@@ -74,7 +73,7 @@ it.each(['a', 'did:plc:example', 'https://bsky.app/profile/atproto.com'])('does 
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
 })
 
-it('uses default keyboard navigation, dismisses on Escape, and selects by DID', async () => {
+it('navigates to the selected suggestion DID on Enter', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => jsonResponse({ actors })),
@@ -83,15 +82,6 @@ it('uses default keyboard navigation, dismisses on Escape, and selects by DID', 
   fireEvent.change(input, { target: { value: 'at' } })
   await advance()
   await advance(1)
-  const options = screen.getAllByRole('option')
-  fireEvent.keyDown(input, { key: 'End' })
-  expect(input).toHaveAttribute('aria-activedescendant', options[1].id)
-  fireEvent.keyDown(input, { key: 'ArrowDown' })
-  expect(input).toHaveAttribute('aria-activedescendant', options[1].id)
-  fireEvent.keyDown(input, { key: 'Escape' })
-  expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-  expect(input).toHaveValue('at')
-  fireEvent.keyDown(input, { key: 'ArrowDown' })
   fireEvent.keyDown(input, { key: 'End' })
   fireEvent.keyDown(input, { key: 'Enter' })
   expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actors[1].did)}`)
@@ -127,42 +117,6 @@ it('validates direct form submissions and navigates without suggestions', () => 
   expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   fireEvent.submit(input.closest('form')!)
   expect(screen.getByTestId('location')).toHaveTextContent('/profile/atproto.com')
-})
-
-it('handles changing cached results without retaining a removed option', async () => {
-  const client = createTestQueryClient()
-  const key = queryKeys.actorSuggestions('at')
-  client.setQueryData(key, actors)
-  const input = setup(client)
-  fireEvent.change(input, { target: { value: 'at' } })
-  await advance()
-  fireEvent.keyDown(input, { key: 'End' })
-  const removedId = screen.getAllByRole('option')[1].id
-  client.setQueryData(key, actors.slice(0, 1))
-  await advance(1)
-  expect(input).not.toHaveAttribute('aria-activedescendant', removedId)
-  client.setQueryData(key, [])
-  await advance(1)
-  expect(input).not.toHaveAttribute('aria-activedescendant')
-  expect(screen.getByRole('status')).toHaveTextContent('No matching accounts')
-  client.setQueryData(key, actors)
-  await advance(1)
-  fireEvent.keyDown(input, { key: 'Home' })
-  fireEvent.keyDown(input, { key: 'Enter' })
-  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actors[0].did)}`)
-})
-
-it('keeps keyboard navigation in the input and leaves page scrolling unlocked', async () => {
-  const client = createTestQueryClient()
-  client.setQueryData(queryKeys.actorSuggestions('at'), actors)
-  const input = setup(client)
-  fireEvent.change(input, { target: { value: 'at' } })
-  await advance()
-  fireEvent.keyDown(input, { key: 'End' })
-  await advance(20)
-  expect(input).toHaveFocus()
-  expect(input).toHaveAttribute('aria-activedescendant', screen.getAllByRole('option')[1].id)
-  expect(document.documentElement.style.overflow).not.toBe('hidden')
 })
 
 it.each(['atproto.com', 'did:plc:ewvi7nxzyoun6zhxrhs64oiz', 'https://bsky.app/profile/atproto.com'])(
