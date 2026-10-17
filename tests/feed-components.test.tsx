@@ -54,6 +54,7 @@ describe('relationship rendering', () => {
     expect(screen.getByRole('link', { name: unresolvedDid })).toBeInTheDocument()
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
     expect(screen.getByRole('link', { name: unresolvedDid })).toBeInTheDocument()
+    expect(screen.getByTitle(unresolvedDid)).toHaveAttribute('aria-hidden', 'true')
     fireEvent.click(screen.getByRole('button', { name: `Open links for ${unresolvedDid}` }))
     expect(screen.getByRole('link', { name: /PDSls/ })).toHaveAttribute(
       'href',

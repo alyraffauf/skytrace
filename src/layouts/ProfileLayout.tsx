@@ -106,7 +106,7 @@ function ProfileIdentity({ profile, service }: { profile: ActorProfile; service:
   return (
     <div className="p-6 sm:px-8 lg:py-8">
       <header className="relative flex items-center gap-4">
-        <ActorAvatar profile={profile} size="profile" />
+        <ActorAvatar actor={profile} size="profile" />
         <div className="min-w-0 flex-1">
           <h1 className="break-words text-xl font-semibold leading-tight tracking-[-0.02em] text-zinc-950 dark:text-zinc-100">
             {profile.displayName || visibleHandle}

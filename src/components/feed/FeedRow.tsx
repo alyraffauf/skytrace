@@ -4,14 +4,9 @@ import { UnavailableFeedItem } from './UnavailableFeedItem'
 import { ArrowPathRoundedSquareIcon } from '@heroicons/react/24/outline'
 import { memo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  DecorativeActorAvatar,
-  ActorHandle,
-  ActorIdentityText,
-  ActorReferenceText,
-  HydratedActor,
-} from '../actors/ActorIdentity'
+import { ActorAvatar, ActorHandle, ActorIdentityText, ActorReferenceText } from '../actors/ActorIdentity'
 import { RecordLinksMenu } from '../records/RecordLinksMenu'
+import { useActorProfile } from '../../hooks/useActorProfile'
 import { formatDateTime } from '../../lib/dates'
 import type { Actor, FeedItem, FeedPost } from '../../types'
 import type { PublicDataService } from '../../data/publicData'
@@ -41,32 +36,13 @@ function ResolvedFeedRow({
   service: PublicDataService
   footer?: ReactNode
 }) {
-  return (
-    <HydratedActor actor={post.author}>
-      {(author) => <FeedRowContent repost={repost} post={post} author={author} service={service} footer={footer} />}
-    </HydratedActor>
-  )
-}
-
-function FeedRowContent({
-  repost,
-  post,
-  author,
-  service,
-  footer,
-}: {
-  repost?: Extract<FeedItem, { kind: 'repost' }>
-  post: FeedPost
-  author: Actor
-  service: PublicDataService
-  footer?: ReactNode
-}) {
+  const author = useActorProfile(post.author.did).data ?? post.author
   return (
     <article className="feed-row py-2.5">
       {repost && <RepostByline item={repost} />}
       {post.replyTo && <ReplyByline recordUri={post.replyTo} />}
       <div className="flex gap-3">
-        <DecorativeActorAvatar actor={author} size="row" />
+        <ActorAvatar actor={author} size="row" decorative />
         <div className="min-w-0 flex-1">
           <div className="relative mb-1 min-w-0 pr-10">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -123,12 +99,7 @@ function ResolvedRepost({
 }
 
 function RepostByline({ item }: { item: Extract<FeedItem, { kind: 'repost' }> }) {
-  return (
-    <HydratedActor actor={item.author}>{(author) => <RepostBylineContent item={item} author={author} />}</HydratedActor>
-  )
-}
-
-function RepostBylineContent({ item, author }: { item: Extract<FeedItem, { kind: 'repost' }>; author: Actor }) {
+  const author = useActorProfile(item.author.did).data ?? item.author
   return (
     <div className="mb-1 flex min-w-0 items-center gap-1.5 pl-11 text-xs text-zinc-500 dark:text-zinc-400">
       <ArrowPathRoundedSquareIcon className="size-3.5 shrink-0" aria-hidden="true" />

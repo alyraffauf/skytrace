@@ -53,6 +53,7 @@ describe('profile relationship counts', () => {
     expect(await screen.findByRole('link', { name: 'Blocked (2)' })).toBeVisible()
     expect(await screen.findByRole('link', { name: 'Blocked by (3,000)' })).toBeVisible()
     expect(screen.getByText('they/them')).toBeVisible()
+    expect(screen.getByRole('img', { name: `${profile.displayName}'s avatar` })).toBeVisible()
     expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinks'))).toBe(false)
   })
 

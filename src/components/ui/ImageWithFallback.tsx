@@ -21,6 +21,7 @@ export function ImageWithFallback({
     const isDecorative = props.alt === ''
     return (
       <span
+        title={props.title}
         role={isDecorative ? undefined : 'img'}
         aria-hidden={isDecorative || undefined}
         aria-label={

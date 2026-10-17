@@ -1,10 +1,9 @@
 import { ImageWithFallback } from '../ui/ImageWithFallback'
 import { cdnImageUrl } from '../../lib/cdn'
 import { profilePath } from '../../routes/paths'
-import type { ActorIdentity, ActorProfile } from '../../types'
+import type { Actor, ActorIdentity, ActorProfile, ActorReference } from '../../types'
 import { Link } from 'react-router-dom'
 import { useActorProfile } from '../../hooks/useActorProfile'
-import type { Actor, ActorReference } from '../../types'
 import type { ReactNode } from 'react'
 
 export function actorLabel(profile: ActorProfile): string {
@@ -39,19 +38,21 @@ export function ActorIdentityText({ profile }: { profile: ActorProfile }) {
 }
 
 export function ActorAvatar({
-  profile,
+  actor,
   size,
   decorative = false,
 }: {
-  profile: ActorProfile
+  actor: Actor
   size: ActorAvatarSize
   decorative?: boolean
 }) {
   const sizeClass = actorAvatarSizeClass[size]
+  const profile = actor.kind === 'actorProfile' ? actor : undefined
   return (
     <ImageWithFallback
-      src={profile.avatarCid ? cdnImageUrl('avatar', profile.identity.did, profile.avatarCid) : undefined}
-      alt={decorative ? '' : `${actorLabel(profile)}'s avatar`}
+      src={profile?.avatarCid ? cdnImageUrl('avatar', profile.identity.did, profile.avatarCid) : undefined}
+      alt={decorative || !profile ? '' : `${actorLabel(profile)}'s avatar`}
+      title={actor.kind === 'actorReference' ? actor.did : undefined}
       fallback="avatar"
       fallbackClassName={`${sizeClass} shrink-0 rounded-full`}
       className={`${sizeClass} shrink-0 rounded-full bg-zinc-100 object-cover dark:bg-zinc-900`}
@@ -69,27 +70,6 @@ export function HydratedActor({
 }) {
   const query = useActorProfile(actor.did)
   return children(query.data ?? actor)
-}
-
-function ActorReferenceAvatar({ actor, size = 'row' }: { actor: ActorReference; size?: 'small' | 'row' }) {
-  const sizeClass = size === 'small' ? 'size-6' : 'size-8'
-  return (
-    <ImageWithFallback
-      alt=""
-      title={actor.did}
-      fallback="avatar"
-      fallbackClassName={`${sizeClass} shrink-0 rounded-full`}
-      className={`${sizeClass} rounded-full`}
-    />
-  )
-}
-
-export function DecorativeActorAvatar({ actor, size }: { actor: Actor; size: 'small' | 'row' }) {
-  return actor.kind === 'actorReference' ? (
-    <ActorReferenceAvatar actor={actor} size={size} />
-  ) : (
-    <ActorAvatar profile={actor} size={size} decorative />
-  )
 }
 
 export function ActorReferenceText({ actor }: { actor: ActorReference }) {
@@ -133,7 +113,7 @@ function MiniActorView({ actor, label }: { actor: Actor; label?: string }) {
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
       {label && <span>{label}</span>}
-      <DecorativeActorAvatar actor={actor} size="small" />
+      <ActorAvatar actor={actor} size="small" decorative />
       <ActorHandle actor={actor} compact />
     </span>
   )
