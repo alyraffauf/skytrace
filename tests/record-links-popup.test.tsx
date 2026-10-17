@@ -1,8 +1,34 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { RecordLinksMenu } from '../src/components/records/RecordLinksMenu'
+import { SOCIAL_APPS } from '../src/config/socialApps'
+import { socialProfilePath } from '../src/lib/links'
 
 const uri = 'at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/example'
+
+it.each([
+  ['app.bsky.actor.profile', 'self', ''],
+  ['app.bsky.feed.post', 'test:post', '/post/test:post'],
+  ['app.bsky.graph.list', 'test:list', '/lists/test:list'],
+])('uses client-compatible URLs for %s in every social app menu link', (collection, rkey, suffix) => {
+  const did = 'did:plc:3355xpqovrs7rngoid6job4m'
+  render(
+    <RecordLinksMenu
+      recordUri={`at://${did}/${collection}/${rkey}`}
+      socialPath={collection === 'app.bsky.actor.profile' ? socialProfilePath(did) : undefined}
+      label="record"
+    />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Open links for record' }))
+
+  for (const app of SOCIAL_APPS) {
+    expect(screen.getByRole('link', { name: app.label })).toHaveAttribute(
+      'href',
+      `${app.origin}/profile/did:plc:3355xpqovrs7rngoid6job4m${suffix}`,
+    )
+  }
+})
+
 function setup() {
   const view = render(
     <>
