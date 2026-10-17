@@ -5,7 +5,7 @@ import { RecordList } from '../../components/records/RecordList'
 import { EmptyState } from '../../components/ui/States'
 import { PagedQueryView } from '../../components/pagination/PagedQuery'
 import { shouldHideProfilePosts } from '../../config/privacy'
-import { type LabeledPostsCursor } from '../../data/feedData'
+import { type LabeledPostsCursor } from '../../data/labeledPostsData'
 import { queryKeys } from '../../data/queryKeys'
 import { mergeLabeledPosts } from '../../lib/labeledPosts'
 import { usePagedRecords } from '../../hooks/usePagedRecords'
@@ -23,7 +23,7 @@ function LabeledPostsQuery() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
   const query = usePagedRecords<LabeledPost, LabeledPostsCursor>(
     queryKeys.labeledPosts(profile.identity.did),
-    (cursor, signal) => service.feed.labeledPosts(profile.identity, cursor, signal),
+    (cursor, signal) => service.labeledPosts.page(profile.identity, cursor, signal),
     { retry: false },
   )
   const items = mergeLabeledPosts(query.data?.pages.flatMap((page) => page.items) ?? [])

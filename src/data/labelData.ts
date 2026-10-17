@@ -1,19 +1,62 @@
-import type { LabelEvent, Page, UnavailableItem } from '../types'
+import { loadProviderLabelPage } from './providerLabels'
+import type { ActorIdentity, LabelEvent, LabelValueDefinition, Page, UnavailableItem } from '../types'
 import { SERVICE_URLS } from '../config/serviceUrls'
-import { deadlineSignal, throwIfAborted } from '../lib/abort'
+import { throwIfAborted } from '../lib/abort'
 import { dedupeBy } from '../lib/collections'
 import { timestampFor } from '../lib/sorting'
-import { readLabelState, snapshotLabelState, type LabelPagingState, type ProviderPagingState } from './labelPaging'
-import { actorReference, type PublicDataCore } from './publicDataCore'
-import { PublicDataValidationError } from './xrpc'
+import {
+  LABEL_PAGE_SIZE,
+  readLabelState,
+  snapshotLabelState,
+  type LabelPagingState,
+  type ProviderPagingState,
+} from './labelPaging'
+import type { PublicDataCore } from './publicDataCore'
+import { actorReference } from './recordResults'
+import { queryOptions } from '@tanstack/react-query'
+import { getLabelerEndpoint, isPlcDid, isWebDid } from '@atcute/identity'
+import { CACHE_TTL_MS } from '../lib/cache'
+import { didDocumentResolver } from './didDocumentResolver'
+import { queryKeys } from './queryKeys'
+import { labelDefinitionsFromRecord } from './recordParsers'
+import type { SharedQueryRequests } from './sharedQueryRequests'
+import { PublicDataValidationError } from './validationError'
 
-const LABEL_PAGE_SIZE = 250
 // Include Bluesky moderation even when the relay has no events from it.
 const BLUESKY_MODERATION_DID = 'did:plc:ar7c4by46qjdydhdevvrndac'
-const OPTIONAL_LABELER_TIMEOUT_MS = 2_500
 
 export class LabelDataService {
-  constructor(private readonly core: PublicDataCore) {}
+  constructor(
+    private readonly core: PublicDataCore,
+    private readonly sharedRequests: SharedQueryRequests,
+  ) {}
+
+  labelDefinitionsQueryOptions(did: ActorIdentity['did']) {
+    return queryOptions({
+      queryKey: queryKeys.labelDefinitions(did),
+      queryFn: async ({ signal }): Promise<LabelValueDefinition[]> => {
+        const uri = `at://${did}/app.bsky.labeler.service/self`
+        return labelDefinitionsFromRecord(await this.core.record(uri, signal))
+      },
+      staleTime: CACHE_TTL_MS.identity,
+    })
+  }
+
+  async labelerEndpoint(did: string, signal?: AbortSignal): Promise<string | undefined> {
+    return this.sharedRequests.query(
+      queryKeys.labelerEndpoint(did),
+      CACHE_TTL_MS.identity,
+      async (requestSignal) => {
+        if (!isPlcDid(did) && !isWebDid(did)) return undefined
+        const document = await didDocumentResolver.resolve(did, { signal: requestSignal })
+        const rawEndpoint = getLabelerEndpoint(document)
+        if (!rawEndpoint) return undefined
+        const url = new URL(rawEndpoint)
+        return url.protocol === 'https:' ? url.origin : undefined
+      },
+      signal,
+    )
+  }
 
   async labels(
     did: string,
@@ -73,8 +116,8 @@ export class LabelDataService {
     }
 
     while (true) {
-      const provider = state.providers.find((candidate) => !candidate.done && !candidate.failed)
-      if (!provider) {
+      const providerIndex = state.providers.findIndex((candidate) => !candidate.done && !candidate.failed)
+      if (providerIndex < 0) {
         const failedProviders = state.providers.filter((candidate) => candidate.failed)
         if (failedProviders.length === 0) return { items: [] }
         for (const failedProvider of failedProviders) failedProvider.failed = false
@@ -84,7 +127,14 @@ export class LabelDataService {
           issues: failedProviders.map((failedProvider) => failedProvider.did),
         }
       }
-      const page = await this.loadProviderPage({ provider, did, signal })
+      const { provider, page } = await loadProviderLabelPage({
+        provider: state.providers[providerIndex],
+        did,
+        signal,
+        loadLabels: (options) => this.core.labelRecords(options),
+        resolveEndpoint: (sourceDid, requestSignal) => this.labelerEndpoint(sourceDid, requestSignal),
+      })
+      state.providers[providerIndex] = provider
       if (!page) continue
       const nextCursor = page.cursor
       const seenCursors = new Set(provider.seenCursors ?? [])
@@ -140,57 +190,6 @@ export class LabelDataService {
     }
     providers.sort((left, right) => timestampFor(right.latestEventAt) - timestampFor(left.latestEventAt))
     return page
-  }
-
-  private async loadProviderPage({
-    provider,
-    did,
-    signal,
-  }: {
-    provider: ProviderPagingState
-    did: string
-    signal?: AbortSignal
-  }) {
-    while (true) {
-      try {
-        if (!provider.useAppView && !provider.service) {
-          try {
-            provider.service = await this.core.labelerEndpoint(
-              provider.did,
-              deadlineSignal(signal, OPTIONAL_LABELER_TIMEOUT_MS),
-            )
-          } catch {
-            throwIfAborted(signal)
-            provider.useAppView = true
-          }
-        }
-        if (!provider.service || provider.service === SERVICE_URLS.labelRelay) provider.useAppView = true
-
-        let page: Awaited<ReturnType<PublicDataCore['labelRecords']>>
-        try {
-          page = await this.core.labelRecords({
-            service: provider.useAppView ? SERVICE_URLS.blueskyAppView : provider.service,
-            sources: provider.useAppView ? [provider.did] : undefined,
-            uriPatterns: [did],
-            cursor: provider.cursor,
-            limit: LABEL_PAGE_SIZE,
-            signal: deadlineSignal(signal, OPTIONAL_LABELER_TIMEOUT_MS),
-          })
-        } catch {
-          throwIfAborted(signal)
-          if (provider.useAppView) throw new Error('The label provider and AppView fallback are unavailable.')
-          provider.useAppView = true
-          provider.cursor = undefined
-          provider.seenCursors = undefined
-          continue
-        }
-        return page
-      } catch {
-        throwIfAborted(signal)
-        provider.failed = true
-        return undefined
-      }
-    }
   }
 
   async labelsForSubjects(subjects: string[], signal?: AbortSignal): Promise<LabelEvent[]> {

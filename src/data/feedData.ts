@@ -1,152 +1,22 @@
-import { AppBskyFeedPost, AppBskyFeedRepost } from '@atcute/bluesky'
-import { queryOptions } from '@tanstack/react-query'
-import type {
-  ActorIdentity,
-  FeedItem,
-  FeedPost,
-  LabeledPost,
-  LabelEvent,
-  Page,
-  RawRecord,
-  RepositoryRecord,
-  UnavailableItem,
-} from '../types'
+import { AppBskyFeedRepost } from '@atcute/bluesky'
+import type { ActorIdentity, FeedItem, FeedPost, Page, RepositoryRecord } from '../types'
 import { dedupeBy } from '../lib/collections'
-import { CACHE_TTL_MS } from '../lib/cache'
-import { actorFromAtUri, parseAtUri } from '../lib/parse'
-import { compareLabeledPostsNewestFirst, timestampFor } from '../lib/sorting'
+import { timestampFor } from '../lib/sorting'
 import { readFeedState, snapshotFeedState, type FeedPagingState, type FeedStreamState } from './feedPaging'
-import { type LabelDataService } from './labelData'
-import { actorReference, isUnavailableRecord, type PublicDataCore, unavailable } from './publicDataCore'
-import { blobCid, objectValue, parseFacets, parseImages, parsedRecord, stringValue } from './recordParsers'
-import { PublicDataValidationError } from './xrpc'
-import { queryKeys } from './queryKeys'
+import type { PostDataService } from './postData'
+import type { PublicDataCore } from './publicDataCore'
+import { actorReference, isUnavailableRecord, unavailable } from './recordResults'
+import { objectValue, parsedRecord } from './recordParsers'
+import { PublicDataValidationError } from './validationError'
 
-const LABELED_POST_BATCH_SIZE = 12
 const FEED_BATCH_SIZE = 12
 const MAX_EMPTY_FEED_PAGES = 4
-
-export type LabeledPostsCursor = {
-  kind: 'labeledPosts'
-  did: string
-  repositoryCursor?: string
-  seenRepositoryCursors: string[]
-}
 
 export class FeedDataService {
   constructor(
     private readonly core: PublicDataCore,
-    private readonly labels: LabelDataService,
+    private readonly posts: PostDataService,
   ) {}
-
-  async labeledPosts(
-    identity: ActorIdentity,
-    cursor?: LabeledPostsCursor,
-    signal?: AbortSignal,
-  ): Promise<Page<LabeledPost, LabeledPostsCursor>> {
-    if (cursor && cursor.did !== identity.did) throw new Error('This labeled-post cursor belongs to another account.')
-    const postsPage = await this.core.repositoryRecords({
-      identity,
-      collection: 'app.bsky.feed.post',
-      cursor: cursor?.repositoryCursor,
-      limit: LABELED_POST_BATCH_SIZE,
-      signal,
-    })
-    const records = postsPage.items.filter((record): record is RawRecord => !isUnavailableRecord(record))
-    const labels = await this.labels.labelsForSubjects(
-      records.map((record) => record.uri),
-      signal,
-    )
-    const labelsByPost = groupLabelsByPost(labels)
-    const parsedItems = await Promise.all(
-      records
-        .filter((record) => labelsByPost.has(record.uri))
-        .map(async (record) => ({
-          post: await this.loadPostFromRecord({ record, repository: identity, signal }),
-          labels: labelsByPost.get(record.uri)!,
-        })),
-    )
-    const items: LabeledPost[] = parsedItems
-      .filter((item): item is { post: FeedPost; labels: LabelEvent[] } => item.post.kind === 'post')
-      .map((item) => ({ kind: 'labeledPost', ...item }))
-    items.sort(compareLabeledPostsNewestFirst)
-    if (!postsPage.cursor) return { items }
-    const seenCursors = new Set(cursor?.seenRepositoryCursors ?? [])
-    if (seenCursors.has(postsPage.cursor))
-      throw new PublicDataValidationError('The PDS repeated a labeled-post cursor.')
-    seenCursors.add(postsPage.cursor)
-    return {
-      items,
-      cursor: {
-        kind: 'labeledPosts',
-        did: identity.did,
-        repositoryCursor: postsPage.cursor,
-        seenRepositoryCursors: [...seenCursors],
-      },
-    }
-  }
-
-  private async loadPostFromRecord(options: {
-    record: RawRecord
-    repository?: ActorIdentity
-    signal?: AbortSignal
-  }): Promise<FeedPost | UnavailableItem> {
-    const { record, repository, signal } = options
-    const authorDid = actorFromAtUri(record.uri)
-    const value = parsedRecord(AppBskyFeedPost.mainSchema, record)
-    if (!authorDid || !value) return unavailable(record.uri, 'This post is malformed or unavailable.')
-    const embed = objectValue(value.embed)
-    let mediaEmbed = embed
-    let quoteUri: string | undefined
-    if (embed?.['$type'] === 'app.bsky.embed.recordWithMedia') {
-      mediaEmbed = objectValue(embed.media)
-      quoteUri = stringValue(objectValue(objectValue(embed.record)?.record)?.uri)
-    } else if (embed?.['$type'] === 'app.bsky.embed.record') {
-      quoteUri = stringValue(objectValue(embed.record)?.uri)
-    }
-    const video =
-      mediaEmbed?.['$type'] === 'app.bsky.embed.video'
-        ? {
-            cid: blobCid(mediaEmbed.video),
-            alt: stringValue(mediaEmbed.alt),
-            mimeType: stringValue(objectValue(mediaEmbed.video)?.mimeType),
-          }
-        : undefined
-    const reply = objectValue(value.reply)
-    const rawReplyTo = stringValue(objectValue(reply?.parent)?.uri)
-    const replyTo = rawReplyTo && parseAtUri(rawReplyTo) ? (rawReplyTo as FeedPost['uri']) : undefined
-    const author = actorReference(authorDid as ActorIdentity['did'])
-    const repositoryPdsPromise =
-      repository?.did === authorDid
-        ? Promise.resolve(repository.pds)
-        : this.core.optionalIdentity(authorDid, signal).then((identity) => identity?.pds)
-    return {
-      kind: 'post',
-      uri: record.uri,
-      author,
-      repositoryPds: await repositoryPdsPromise,
-      createdAt: value.createdAt,
-      text: value.text,
-      facets: parseFacets(value.text, value.facets),
-      replyTo,
-      quoteUri: quoteUri && parseAtUri(quoteUri) ? (quoteUri as FeedPost['uri']) : undefined,
-      images: parseImages(mediaEmbed),
-      video: video?.cid ? { cid: video.cid, alt: video.alt, mimeType: video.mimeType } : undefined,
-    }
-  }
-
-  feedPostQueryOptions(uri: FeedPost['uri']) {
-    return queryOptions({
-      queryKey: queryKeys.feedPost(uri),
-      queryFn: async ({ signal }) => {
-        const record = await this.core.optionalRecord(uri, signal)
-        if (!record) return unavailable(uri, 'This post could not be loaded.')
-        const post = await this.loadPostFromRecord({ record, signal })
-        return post.kind === 'post' ? post : unavailable(uri, 'This post is malformed.')
-      },
-      staleTime: CACHE_TTL_MS.activity,
-    })
-  }
 
   async feed(
     identity: ActorIdentity,
@@ -178,7 +48,7 @@ export class FeedDataService {
     const items = await Promise.all(
       selected.map(async ({ type, record }): Promise<FeedItem> => {
         if (isUnavailableRecord(record)) return record
-        if (type === 'post') return this.loadPostFromRecord({ record, repository: identity, signal })
+        if (type === 'post') return this.posts.loadFromRecord({ record, repository: identity, signal })
         const value = parsedRecord(AppBskyFeedRepost.mainSchema, record)
         if (!value) return unavailable(record.uri, 'This repost record is malformed.')
         const subjectUri = value.subject.uri
@@ -221,18 +91,6 @@ export class FeedDataService {
       emptyPageBudget.remaining -= 1
     }
   }
-}
-
-function groupLabelsByPost(labels: LabelEvent[]): Map<string, LabelEvent[]> {
-  const grouped = new Map<string, LabelEvent[]>()
-  for (const label of labels) {
-    const postLabels = grouped.get(label.subject) ?? []
-    postLabels.push(label)
-    grouped.set(label.subject, postLabels)
-  }
-  for (const postLabels of grouped.values())
-    postLabels.sort((left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt))
-  return grouped
 }
 
 function rawRecordDate(record: RepositoryRecord): number {

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { parsePlcAccountDetails, searchActorsTypeahead } from '../src/data/xrpc'
+import { parsePlcAccountDetails } from '../src/data/api/plcHistory'
+import { searchActorsTypeahead } from '../src/data/api/actorSearch'
 import { jsonResponse as response } from './testUtils'
 
 describe('actor typeahead', () => {

@@ -1,6 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { combinedSignal, deadlineSignal, throwIfAborted } from '../lib/abort'
 
+export type DataRequestContext = {
+  queryClient: QueryClient
+  sharedRequests: SharedQueryRequests
+  requestTimeoutMs: number
+}
+
 export class SharedQueryRequests {
   private readonly inFlight = new Map<
     string,

@@ -3,5 +3,5 @@ import { publicDataServiceFor } from '../data/publicData'
 
 export function useActorProfile(identifier: string) {
   const service = publicDataServiceFor(useQueryClient())
-  return useQuery(service.core.actorProfileQueryOptions(identifier))
+  return useQuery(service.actors.actorProfileQueryOptions(identifier))
 }

@@ -16,7 +16,7 @@ export function ListPage() {
   const actor = useRouteActor()
   const { rkey = '' } = useParams()
   const service = publicDataServiceFor(useQueryClient())
-  const identityQuery = useQuery(service.core.identityQueryOptions(actor))
+  const identityQuery = useQuery(service.actors.identityQueryOptions(actor))
   const listUri =
     identityQuery.data && isRecordKey(rkey) ? `at://${identityQuery.data.did}/app.bsky.graph.list/${rkey}` : undefined
   const listQuery = useQuery({
@@ -56,7 +56,7 @@ function UnavailableListPage({ reason }: { reason: string }) {
 
 function ResolvedListPage({ list, service }: { list: ListSummary; service: PublicDataService }) {
   const moderationListUri = list.purpose.endsWith('#modlist') ? list.uri : undefined
-  const listBlockCountQuery = useQuery(service.core.listBlockCountQueryOptions(moderationListUri))
+  const listBlockCountQuery = useQuery(service.graph.listBlockCountQueryOptions(moderationListUri))
 
   return (
     <article className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">

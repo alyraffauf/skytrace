@@ -188,7 +188,7 @@ describe('Listed On minimum blocking', () => {
 
   it('uses the existing list count cache', async () => {
     const { client, service, fetchMock } = setup()
-    await client.fetchQuery(service.core.listBlockCountQueryOptions(listUri))
+    await client.fetchQuery(service.graph.listBlockCountQueryOptions(listUri))
     expect(await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, did, 1))).toBeNull()
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })

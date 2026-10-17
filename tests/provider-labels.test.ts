@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { queryLabels } from '../src/data/xrpc'
+import { queryLabels } from '../src/data/api/labels'
 import { createTestService, jsonResponse } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'

@@ -3,14 +3,81 @@ import { queryOptions } from '@tanstack/react-query'
 import type { ActorIdentity, ListSummary, Page, RawRecord, RelationshipEntry, UnavailableItem } from '../types'
 import { CACHE_TTL_MS } from '../lib/cache'
 import { actorFromAtUri, isDid, parseAtUri } from '../lib/parse'
-import { actorReference, isUnavailableRecord, type PublicDataCore, unavailable } from './publicDataCore'
+import type { PublicDataCore } from './publicDataCore'
+import { actorReference, isUnavailableRecord, unavailable } from './recordResults'
+import type { DataRequestContext } from './sharedQueryRequests'
+import { deadlineSignal } from '../lib/abort'
+import { countRecords } from './api/repository'
+import { getBacklinksCount } from './api/backlinks'
 import { queryKeys } from './queryKeys'
 import { blobCid, parsedRecord } from './recordParsers'
 
 const RELATIONSHIP_PAGE_SIZE = 24
 
 export class GraphDataService {
-  constructor(private readonly core: PublicDataCore) {}
+  constructor(
+    private readonly core: PublicDataCore,
+    private readonly context: Pick<DataRequestContext, 'sharedRequests' | 'requestTimeoutMs'>,
+  ) {}
+
+  blockedCountQueryOptions(identity?: ActorIdentity) {
+    return queryOptions({
+      queryKey: queryKeys.blockedCount(identity),
+      queryFn: ({ signal }) =>
+        identity
+          ? countRecords({
+              identity,
+              collection: 'app.bsky.graph.block',
+              signal,
+              requestTimeoutMs: this.context.requestTimeoutMs,
+            })
+          : Promise.resolve(undefined),
+      enabled: identity !== undefined,
+      staleTime: CACHE_TTL_MS.activity,
+    })
+  }
+
+  blockedByCountQueryOptions(did?: ActorIdentity['did']) {
+    return queryOptions({
+      queryKey: queryKeys.blockedByCount(did),
+      queryFn: ({ signal }) =>
+        did
+          ? getBacklinksCount({
+              subject: did,
+              source: 'app.bsky.graph.block:subject',
+              signal: deadlineSignal(signal, this.context.requestTimeoutMs),
+            })
+          : Promise.resolve(undefined),
+      enabled: did !== undefined,
+      staleTime: CACHE_TTL_MS.activity,
+    })
+  }
+
+  listBlockCountQueryOptions(listUri?: string) {
+    return queryOptions({
+      queryKey: queryKeys.listBlockCount(listUri),
+      queryFn: ({ signal }) =>
+        listUri
+          ? getBacklinksCount({
+              subject: listUri,
+              source: 'app.bsky.graph.listblock:subject',
+              signal: deadlineSignal(signal, this.context.requestTimeoutMs),
+            })
+          : Promise.resolve(undefined),
+      enabled: listUri !== undefined,
+      staleTime: CACHE_TTL_MS.activity,
+    })
+  }
+
+  async listBlockCount(listUri: string, signal?: AbortSignal): Promise<number> {
+    return this.context.sharedRequests.query(
+      queryKeys.listBlockCount(listUri),
+      CACHE_TTL_MS.activity,
+      (requestSignal) =>
+        getBacklinksCount({ subject: listUri, source: 'app.bsky.graph.listblock:subject', signal: requestSignal }),
+      signal,
+    )
+  }
 
   async actorBlocksConfiguredAccount(
     did: ActorIdentity['did'],
@@ -193,7 +260,7 @@ export class GraphDataService {
           return unavailable(membershipUri, 'This membership has no valid list reference.')
         const list = this.listFromRecord(await this.core.record(value.list, signal))
         if (minimumBlocking !== undefined && list.kind === 'list' && list.purpose === 'app.bsky.graph.defs#modlist') {
-          const count = await this.core.listBlockCount(list.uri, signal)
+          const count = await this.listBlockCount(list.uri, signal)
           if (count < minimumBlocking) return null
         }
         return { kind: 'membership' as const, uri: membershipUri, createdAt: value.createdAt, list }

@@ -1,3 +1,5 @@
+export const LABEL_PAGE_SIZE = 250
+
 export type ProviderPagingState = {
   did: string
   service?: string

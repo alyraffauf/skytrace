@@ -3,7 +3,7 @@ import { blockTargetDid, hiddenProfileDids } from '../config/privacy'
 import { CACHE_TTL_MS } from '../lib/cache'
 import type { ActorProfile } from '../types'
 import type { GraphDataService } from './graphData'
-import type { PublicDataCore } from './publicDataCore'
+import type { ActorDataService } from './actorData'
 import { queryKeys } from './queryKeys'
 
 export type ProfileHiddenReason = 'explicit-hide' | 'instance-block' | 'opt-out'
@@ -13,7 +13,7 @@ export type ProfileVisibility =
 
 export class ProfileVisibilityService {
   constructor(
-    private readonly core: PublicDataCore,
+    private readonly actors: ActorDataService,
     private readonly graph: GraphDataService,
   ) {}
 
@@ -27,7 +27,7 @@ export class ProfileVisibilityService {
       queryFn: async ({ signal }): Promise<ProfileVisibility> => {
         if (explicitlyHiddenDids.has(identifier)) return { visible: false, reason: 'explicit-hide' }
 
-        const profile = await this.core.profile(identifier, signal)
+        const profile = await this.actors.profile(identifier, signal)
         const did = profile.identity.did
         if (explicitlyHiddenDids.has(did)) return { visible: false, reason: 'explicit-hide' }
 

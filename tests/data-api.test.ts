@@ -2,14 +2,10 @@ import { ClientResponseError } from '@atcute/client'
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { PublicDataService } from '../src/data/publicData'
-import {
-  countRecords,
-  getBacklinks,
-  getBacklinksCount,
-  listRecords,
-  queryLabels,
-  validateIdentity,
-} from '../src/data/xrpc'
+import { countRecords, listRecords } from '../src/data/api/repository'
+import { getBacklinks, getBacklinksCount } from '../src/data/api/backlinks'
+import { queryLabels } from '../src/data/api/labels'
+import { validateIdentity } from '../src/data/api/identity'
 import { CACHE_TTL_MS } from '../src/lib/cache'
 import { retryDelay, shouldRetry } from '../src/lib/http'
 import type { ActorIdentity } from '../src/types'
@@ -206,16 +202,18 @@ describe('atcute-backed API boundaries', () => {
 
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions('atproto.com'))).resolves.toMatchObject({
-      hasNoUnauthenticatedSelfLabel: expected,
-    })
+    await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions('atproto.com'))).resolves.toMatchObject(
+      {
+        hasNoUnauthenticatedSelfLabel: expected,
+      },
+    )
   })
 
   it('returns an identity-only profile when the profile record was deleted', async () => {
     stubProfileRecord({ error: 'NotFound', message: 'Deleted' }, 404)
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
+    await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
       kind: 'actorProfile',
       identity,
       hasNoUnauthenticatedSelfLabel: false,
@@ -238,7 +236,7 @@ describe('atcute-backed API boundaries', () => {
 
       const queryClient = createTestQueryClient()
       const service = new PublicDataService(queryClient)
-      await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions(did))).resolves.toMatchObject({
+      await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions(did))).resolves.toMatchObject({
         hasNoUnauthenticatedSelfLabel: true,
         displayName: undefined,
         description: undefined,
@@ -260,7 +258,7 @@ describe('atcute-backed API boundaries', () => {
 
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions(did))).resolves.toMatchObject({
+    await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions(did))).resolves.toMatchObject({
       hasNoUnauthenticatedSelfLabel: false,
     })
   })
@@ -269,7 +267,7 @@ describe('atcute-backed API boundaries', () => {
     stubProfileRecord({ uri: 'not-an-at-uri', value: {} })
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
+    await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
       kind: 'actorProfile',
       identity,
       hasNoUnauthenticatedSelfLabel: false,
@@ -280,7 +278,7 @@ describe('atcute-backed API boundaries', () => {
     stubProfileRecord({ error: 'UpstreamFailure', message: 'Try later' }, 503)
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions('atproto.com'))).rejects.toMatchObject({
+    await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions('atproto.com'))).rejects.toMatchObject({
       status: 503,
     })
   })
@@ -306,14 +304,14 @@ describe('atcute-backed API boundaries', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
     const service = new PublicDataService(queryClient)
 
-    await service.core.identity('atproto.com')
-    await service.core.identity('atproto.com')
+    await service.actors.identity('atproto.com')
+    await service.actors.identity('atproto.com')
     await service.core.record(recordUri)
     await service.core.record(recordUri)
     expect(fetchMock).toHaveBeenCalledTimes(2)
 
     vi.setSystemTime(Date.now() + CACHE_TTL_MS.identity + 1)
-    await service.core.identity('atproto.com')
+    await service.actors.identity('atproto.com')
     await service.core.record(recordUri)
     expect(fetchMock).toHaveBeenCalledTimes(4)
   })
@@ -399,8 +397,8 @@ describe('atcute-backed API boundaries', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const service = new PublicDataService(queryClient)
     const [blocked, blockedBy] = await Promise.allSettled([
-      queryClient.fetchQuery(service.core.blockedCountQueryOptions(identity)),
-      queryClient.fetchQuery(service.core.blockedByCountQueryOptions(did)),
+      queryClient.fetchQuery(service.graph.blockedCountQueryOptions(identity)),
+      queryClient.fetchQuery(service.graph.blockedByCountQueryOptions(did)),
     ])
 
     expect(blocked.status).toBe('rejected')
@@ -562,7 +560,7 @@ describe('atcute-backed API boundaries', () => {
     )
 
     const service = createTestService()
-    const page = await service.feed.labeledPosts(identity)
+    const page = await service.labeledPosts.page(identity)
     expect(repositoryLimit).toBe('12')
     expect(labelSubjects).toEqual(expect.arrayContaining([newerUri, olderUri]))
     expect(labelSubjects).toHaveLength(2)
@@ -628,11 +626,11 @@ describe('atcute-backed API boundaries', () => {
     )
 
     const service = createTestService()
-    const firstPage = await service.feed.labeledPosts(identity)
+    const firstPage = await service.labeledPosts.page(identity)
     expect(firstPage.items).toEqual([])
     expect(firstPage.cursor).toBeDefined()
 
-    const secondPage = await service.feed.labeledPosts(identity, firstPage.cursor)
+    const secondPage = await service.labeledPosts.page(identity, firstPage.cursor)
     expect(secondPage.items).toMatchObject([
       {
         post: { kind: 'post', uri: labeledUri, text: 'Found later' },
@@ -677,11 +675,11 @@ describe('atcute-backed API boundaries', () => {
     )
 
     const publicData = createTestService()
-    const malformedPage = await publicData.feed.labeledPosts(identity)
+    const malformedPage = await publicData.labeledPosts.page(identity)
     expect(malformedPage.items).toEqual([])
     expect(malformedPage.cursor).toBeDefined()
 
-    const validPage = await publicData.feed.labeledPosts(identity, malformedPage.cursor)
+    const validPage = await publicData.labeledPosts.page(identity, malformedPage.cursor)
     expect(validPage.items).toMatchObject([{ post: { uri: validUri, text: 'Still reachable' } }])
   })
 
@@ -715,7 +713,7 @@ describe('atcute-backed API boundaries', () => {
       }),
     )
 
-    const page = await createTestService().feed.labeledPosts(identity)
+    const page = await createTestService().labeledPosts.page(identity)
     expect(page.items.map((item) => item.post.uri)).toEqual([validUri])
   })
 
