@@ -1,20 +1,30 @@
-import { useQueries } from '@tanstack/react-query'
+import { useQueries, type UseQueryResult } from '@tanstack/react-query'
 import type { PublicDataService } from '../data/publicData'
 import type { LabelEvent, LabelValueDefinition } from '../types'
 import { labelDisplayName } from '../lib/labels/names'
+import { usePreferredLanguages } from './usePreferredLanguages'
+
+function collectDefinitionData(results: UseQueryResult<LabelValueDefinition[]>[]) {
+  return results.map((result) => result.data)
+}
+
+function useLabelDefinitions(sourceDids: LabelEvent['sourceDid'][], service: PublicDataService) {
+  return useQueries({
+    queries: sourceDids.map((did) => service.labelers.definitionsQueryOptions(did)),
+    combine: collectDefinitionData,
+  })
+}
 
 export function useLabelDisplayNames(
   labels: readonly LabelEvent[],
   service: PublicDataService,
 ): ReadonlyMap<string, string> {
-  const languages = typeof navigator === 'undefined' ? ['en'] : navigator.languages
+  const languages = usePreferredLanguages()
   const sourceDids = [...new Set(labels.map((label) => label.sourceDid))]
-  const definitionQueries = useQueries({
-    queries: sourceDids.map((did) => service.labelers.definitionsQueryOptions(did)),
-  })
+  const definitions = useLabelDefinitions(sourceDids, service)
   const definitionsBySource = new Map<string, LabelValueDefinition[] | undefined>()
   for (const [index, sourceDid] of sourceDids.entries()) {
-    definitionsBySource.set(sourceDid, definitionQueries[index]?.data)
+    definitionsBySource.set(sourceDid, definitions[index])
   }
 
   const displayNames = new Map<string, string>()

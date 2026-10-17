@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { PagedQueryPagination, PagedQueryRefreshNotice } from '../../components/pagination/PagedQuery'
 import { LabelRow } from '../../components/labels/LabelRow'
@@ -14,12 +13,10 @@ import type { ProfileOutletContext } from '../../layouts/profileContext'
 export function AccountLabelsPage() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
   const query = useAccountLabels(profile.identity.did, service.labelHistory)
-  const items = useMemo(() => {
-    const entriesById = new Map(query.data?.pages.flatMap((page) => page.items).map((entry) => [entry.id, entry]))
-    return groupLabelHistory(Array.from(entriesById.values()))
-  }, [query.data?.pages])
   if (query.isPending) return <LoadingRows />
   if (!query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />
+  const entriesById = new Map(query.data.pages.flatMap((page) => page.items).map((entry) => [entry.id, entry]))
+  const items = groupLabelHistory(Array.from(entriesById.values()))
   const issues = query.data.pages.at(-1)?.issues ?? []
   return (
     <div>
@@ -44,7 +41,7 @@ function ResolvedLabelRows({
   items: Array<LabelHistoryEvent | UnavailableItem>
   service: ProfileOutletContext['service']
 }) {
-  const labels = useMemo(() => items.filter((item): item is LabelHistoryEvent => item.kind === 'labelEvent'), [items])
+  const labels = items.filter((item): item is LabelHistoryEvent => item.kind === 'labelEvent')
   const displayNames = useLabelDisplayNames(labels, service)
   return items.map((item) => (
     <LabelRow

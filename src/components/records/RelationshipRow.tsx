@@ -1,4 +1,3 @@
-import { memo } from 'react'
 import { ActorAvatar, ActorHandle, actorLabel } from '../actors/ActorIdentity'
 import { useActorProfile } from '../../hooks/useActorProfile'
 import { RecordLinksMenu } from './RecordLinksMenu'
@@ -7,16 +6,12 @@ import { socialProfilePath } from '../../lib/links'
 import type { RelationshipEntry, UnavailableItem } from '../../types'
 import { compactRowClassName, UnavailableRow } from './RecordList'
 
-export const RelationshipRow = memo(function RelationshipRow({
-  entry,
-}: {
-  entry: RelationshipEntry | UnavailableItem
-}) {
+export function RelationshipRow({ entry }: { entry: RelationshipEntry | UnavailableItem }) {
   if (entry.kind === 'unavailable') {
     return <UnavailableRow reason={entry.reason} />
   }
   return <RelationshipRowContent entry={entry} />
-})
+}
 
 function RelationshipRowContent({ entry }: { entry: RelationshipEntry }) {
   const actor = useActorProfile(entry.actor.did).data ?? entry.actor

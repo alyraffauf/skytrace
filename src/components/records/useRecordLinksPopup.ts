@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from 'react'
 
 export function useRecordLinksPopup() {
   const [isOpen, setIsOpen] = useState(false)
@@ -9,7 +9,7 @@ export function useRecordLinksPopup() {
   const firstLinkRef = useRef<HTMLAnchorElement>(null)
   const [popupPosition, setPopupPosition] = useState({ left: 0, top: 0 })
 
-  const positionPopup = useCallback(() => {
+  const positionPopup = useEffectEvent(() => {
     const button = buttonRef.current
     const popup = popupRef.current
     if (!button || !popup) return
@@ -27,12 +27,12 @@ export function useRecordLinksPopup() {
         ? below
         : Math.max(margin, buttonBounds.top - popupBounds.height - gap)
     setPopupPosition({ left, top })
-  }, [])
+  })
 
   useLayoutEffect(() => {
     if (!isOpen) return
     positionPopup()
-  }, [isOpen, positionPopup])
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -57,14 +57,14 @@ export function useRecordLinksPopup() {
       window.removeEventListener('resize', positionPopup)
       window.removeEventListener('scroll', positionPopup, true)
     }
-  }, [isOpen, positionPopup])
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen) firstLinkRef.current?.focus()
   }, [isOpen])
 
-  const close = useCallback(() => setIsOpen(false), [])
-  const toggle = useCallback(() => setIsOpen((open) => !open), [])
+  const close = () => setIsOpen(false)
+  const toggle = () => setIsOpen((open) => !open)
 
   return { containerRef, buttonRef, popupRef, firstLinkRef, popupId, isOpen, popupPosition, toggle, close }
 }

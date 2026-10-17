@@ -60,7 +60,7 @@ export function PagedQueryRefreshNotice({
 
 export function PagedQueryPagination({
   query,
-  hasMore = query.hasNextPage,
+  hasMore,
 }: {
   query: UseInfiniteQueryResult<unknown, Error>
   hasMore?: boolean
@@ -69,7 +69,7 @@ export function PagedQueryPagination({
   if (query.isRefetchError) return null
   return (
     <InfiniteScroll
-      hasMore={hasMore}
+      hasMore={hasMore ?? query.hasNextPage}
       resetKey={query.data}
       disabled={query.isFetching}
       loading={query.isFetchingNextPage}

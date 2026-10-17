@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode, useMemo } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { PagedQueryView } from './PagedQuery'
 import { RecordList } from '../records/RecordList'
 import { EmptyState } from '../ui/States'
@@ -24,23 +24,33 @@ export function RecordTab<T extends TabRecord>({
   renderItem: (item: T) => ReactNode
 }) {
   const query = usePagedRecords(queryKey, load)
-  const items = useMemo(() => {
-    const entries = query.data?.pages.flatMap((page) => page.items) ?? []
-    const entriesByKey = new Map(entries.map((entry) => [itemKey(entry), entry]))
-    return newestFirst(Array.from(entriesByKey.values()))
-  }, [query.data?.pages, itemKey])
-
   return (
     <PagedQueryView query={query} resourceLabel={resourceLabel}>
-      {items.length === 0 ? (
-        <EmptyState title={emptyTitle} />
-      ) : (
-        <RecordList>
-          {items.map((item) => (
-            <Fragment key={itemKey(item)}>{renderItem(item)}</Fragment>
-          ))}
-        </RecordList>
-      )}
+      <RecordTabContents pages={query.data?.pages} emptyTitle={emptyTitle} itemKey={itemKey} renderItem={renderItem} />
     </PagedQueryView>
+  )
+}
+
+function RecordTabContents<T extends TabRecord>({
+  pages,
+  emptyTitle,
+  itemKey,
+  renderItem,
+}: {
+  pages: Page<T>[] | undefined
+  emptyTitle: string
+  itemKey: (item: T) => string
+  renderItem: (item: T) => ReactNode
+}) {
+  const entries = pages?.flatMap((page) => page.items) ?? []
+  const entriesByKey = new Map(entries.map((entry) => [itemKey(entry), entry]))
+  const items = newestFirst(Array.from(entriesByKey.values()))
+  if (items.length === 0) return <EmptyState title={emptyTitle} />
+  return (
+    <RecordList>
+      {items.map((item) => (
+        <Fragment key={itemKey(item)}>{renderItem(item)}</Fragment>
+      ))}
+    </RecordList>
   )
 }

@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { LabeledPostRow } from '../../components/labels/LabeledPostRow'
 import { useLabelDisplayNames } from '../../hooks/useLabelDisplayNames'
@@ -26,10 +25,7 @@ function LabeledPostsQuery() {
     queryKeys.labeledPosts(profile.identity.did),
     (cursor, signal) => service.labeledPosts.page(profile.identity, cursor, signal),
   )
-  const items = useMemo(
-    () => mergeLabeledPosts(query.data?.pages.flatMap((page) => page.items) ?? []),
-    [query.data?.pages],
-  )
+  const items = mergeLabeledPosts(query.data?.pages.flatMap((page) => page.items) ?? [])
   const isSearching = items.length === 0 && query.hasNextPage
   const showEmptyState = items.length === 0 && !query.hasNextPage
   return (
@@ -56,7 +52,7 @@ function ResolvedLabeledPostRows({
   items: LabeledPost[]
   service: ProfileOutletContext['service']
 }) {
-  const labels = useMemo(() => items.flatMap((item) => item.labels), [items])
+  const labels = items.flatMap((item) => item.labels)
   const displayNames = useLabelDisplayNames(labels, service)
   return items.map((item) => (
     <LabeledPostRow key={item.post.uri} item={item} displayNames={displayNames} service={service} />

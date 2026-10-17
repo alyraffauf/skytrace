@@ -2,7 +2,7 @@ import { PostContent } from './PostContent'
 import { QuotedPostPreview } from './QuotedPostPreview'
 import { UnavailableFeedItem } from './UnavailableFeedItem'
 import { ArrowPathRoundedSquareIcon } from '@heroicons/react/24/outline'
-import { memo, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ActorAvatar, ActorHandle, ActorIdentityText, ActorReferenceText } from '../actors/ActorIdentity'
 import { RecordLinksMenu } from '../records/RecordLinksMenu'
@@ -11,19 +11,11 @@ import { formatDateTime } from '../../lib/dates'
 import type { Actor, FeedItem, FeedPost } from '../../types'
 import type { PublicDataService } from '../../data/publicData'
 
-export const FeedRow = memo(function FeedRow({
-  item,
-  service,
-  footer,
-}: {
-  item: FeedItem
-  service: PublicDataService
-  footer?: ReactNode
-}) {
+export function FeedRow({ item, service, footer }: { item: FeedItem; service: PublicDataService; footer?: ReactNode }) {
   if (item.kind === 'unavailable') return <UnavailableFeedItem item={item} />
   if (item.kind === 'repost') return <ResolvedRepost item={item} service={service} footer={footer} />
   return <ResolvedFeedRow post={item} service={service} footer={footer} />
-})
+}
 
 function ResolvedFeedRow({
   post,

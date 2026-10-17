@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { FeedRow } from '../../components/feed/FeedRow'
 import { RecordList } from '../../components/records/RecordList'
@@ -24,10 +23,7 @@ function FeedQuery() {
   const query = usePagedRecords<FeedItem, FeedPagingState>(queryKeys.feed(profile.identity.did), (cursor, signal) =>
     service.feed.feed(profile.identity, cursor, signal),
   )
-  const items = useMemo(
-    () => mergeFeedItems(query.data?.pages.flatMap((page) => page.items) ?? []),
-    [query.data?.pages],
-  )
+  const items = mergeFeedItems(query.data?.pages.flatMap((page) => page.items) ?? [])
   return (
     <PagedQueryView query={query} resourceLabel="feed" loadingCount={4}>
       {items.length === 0 ? (
