@@ -117,3 +117,16 @@ describe('repository cursor validation', () => {
     await expect(createTestService().blocks.blocking(identity, 'same')).rejects.toThrow('repeated a pagination cursor')
   })
 })
+
+it('keeps an invalid record value scoped to its stable record URI', async () => {
+  const uri = `at://${did}/app.bsky.graph.block/invalid-value`
+  const record = repositoryRecord(uri, { $type: 'app.bsky.graph.block', createdAt: '2026-01-01T00:00:00Z' })
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => response({ records: [{ ...record, value: [] }] })),
+  )
+  const page = await listRecords({ identity, collection: 'app.bsky.graph.block', limit: 25 })
+  expect(page.items).toEqual([
+    { kind: 'unavailable', id: uri, reason: 'This repository record could not be verified.' },
+  ])
+})

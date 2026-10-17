@@ -1,78 +1,64 @@
 import { ComAtprotoRepoListRecords } from '@atcute/atproto'
 import { ok } from '@atcute/client'
-import type { ActorIdentifier, CanonicalResourceUri, Nsid } from '@atcute/lexicons/syntax'
-import { isCanonicalResourceUri, isCid } from '@atcute/lexicons/syntax'
+import type { ActorIdentifier, Nsid } from '@atcute/lexicons/syntax'
+import { isCanonicalResourceUri } from '@atcute/lexicons/syntax'
 import * as v from '@atcute/lexicons/validations'
 import type {} from '@atcute/microcosm'
 import type { ActorIdentity, Page, RawRecord, RepositoryRecord } from '../../types'
 import { SERVICE_URLS } from '../../config/serviceUrls'
 import { deadlineSignal } from '../../lib/abort'
 import { parseAtUri } from '../../lib/atproto/uri'
-import { recordCidMatches } from '../../lib/atproto/recordCid'
+import { recordValueCid } from '../../lib/atproto/recordCid'
 import { hydrationRequests, paginationRequests } from '../runtime/requestScheduler'
-import { objectValue, stringValue } from '../recordValues'
+import { objectValue } from '../recordValues'
 import { PublicDataValidationError } from '../validationError'
 import { clientFor } from './client'
 
 const RECORD_COUNT_PAGE_SIZE = 100
 
 // A loose page envelope keeps one malformed PDS record from discarding its peers.
-const listRecordsSchema = v.query('com.atproto.repo.listRecords', {
-  params: v.object({
-    repo: v.actorIdentifierString(),
-    collection: v.nsidString(),
-    limit: v.optional(v.integer()),
-    cursor: v.optional(v.string()),
-    reverse: v.optional(v.boolean()),
-  }),
+const listRecordsSchema = v.query(ComAtprotoRepoListRecords.mainSchema.nsid, {
+  params: ComAtprotoRepoListRecords.mainSchema.params,
   output: {
-    type: 'lex',
+    ...ComAtprotoRepoListRecords.mainSchema.output,
     schema: v.object({
+      ...ComAtprotoRepoListRecords.mainSchema.output.schema.shape,
       records: v.array(v.unknown()),
-      cursor: v.optional(v.string()),
     }),
   },
 })
 
-function validateRecord(value: unknown, expectedUri?: string): RawRecord {
-  const data = objectValue(value)
-  const uri = stringValue(data?.uri)
-  const cid = stringValue(data?.cid)
-  const recordValue = objectValue(data?.value)
-  if (
-    !uri ||
-    !isCanonicalResourceUri(uri) ||
-    !cid ||
-    !isCid(cid) ||
-    !recordValue ||
-    (expectedUri && uri !== expectedUri)
-  ) {
+function verifyRecord(record: ComAtprotoRepoListRecords.Record): RawRecord {
+  const value = objectValue(record.value)
+  if (!isCanonicalResourceUri(record.uri) || !value)
     throw new PublicDataValidationError('The record service returned malformed data.')
-  }
   try {
-    if (!recordCidMatches(recordValue, cid)) {
+    if (recordValueCid(value) !== record.cid) {
       throw new PublicDataValidationError('The record CID does not match its contents.')
     }
   } catch (error) {
     if (error instanceof PublicDataValidationError) throw error
     throw new PublicDataValidationError('The record contents could not be verified.')
   }
-  return { uri, cid, value: recordValue }
+  return { uri: record.uri, cid: record.cid, value }
 }
 
 export async function getRecordByUri(uri: string, signal?: AbortSignal): Promise<RawRecord> {
-  if (!parseAtUri(uri)) throw new Error('Cannot fetch an invalid AT URI.')
+  if (!isCanonicalResourceUri(uri)) throw new Error('Cannot fetch an invalid AT URI.')
   const data = await hydrationRequests.run(
     () =>
       ok(
         clientFor(SERVICE_URLS.slingshot).get('blue.microcosm.repo.getRecordByUri', {
-          params: { at_uri: uri as CanonicalResourceUri },
+          params: { at_uri: uri },
           signal,
         }),
       ),
     signal,
   )
-  return validateRecord(data, uri)
+  const envelope = v.safeParse(ComAtprotoRepoListRecords.recordSchema, data)
+  if (!envelope.ok || envelope.value.uri !== uri)
+    throw new PublicDataValidationError('The record service returned malformed data.')
+  return verifyRecord(envelope.value)
 }
 
 export async function listRecords(options: {
@@ -83,17 +69,18 @@ export async function listRecords(options: {
   signal?: AbortSignal
 }): Promise<Page<RepositoryRecord>> {
   const data = await fetchRecordPage(options)
-  const items = data.records.map((record, index) => {
-    const envelope = v.safeParse(ComAtprotoRepoListRecords.recordSchema, record)
+  const items = data.records.map((value, index) => {
+    const envelope = v.safeParse(ComAtprotoRepoListRecords.recordSchema, value)
     if (envelope.ok) {
-      const parsedUri = parseAtUri(envelope.value.uri)
+      const record = envelope.value
+      const parsedUri = parseAtUri(record.uri)
       if (parsedUri?.did === options.identity.did && parsedUri.collection === options.collection) {
         try {
-          return validateRecord(envelope.value)
+          return verifyRecord(record)
         } catch {
           return {
             kind: 'unavailable' as const,
-            id: envelope.value.uri,
+            id: record.uri,
             reason: 'This repository record could not be verified.',
           }
         }

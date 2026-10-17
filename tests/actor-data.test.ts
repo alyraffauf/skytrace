@@ -1,6 +1,7 @@
+import { ClientValidationError } from '@atcute/client'
 import { describe, expect, it, vi } from 'vitest'
 import { PublicDataService } from '../src/data/publicData'
-import { validateIdentity } from '../src/data/api/identity'
+import { resolveActor } from '../src/data/api/identity'
 import type { ActorIdentity } from '../src/types'
 import { createTestQueryClient, jsonResponse as response, repositoryRecord } from './testUtils'
 
@@ -20,15 +21,19 @@ function stubProfileRecord(body: unknown, status = 200) {
 }
 
 describe('actor data', () => {
-  it('keeps handle.invalid identities and rejects unsafe PDS addresses', () => {
-    expect(validateIdentity({ did, handle: 'handle.invalid', pds: 'https://pds.example' }).handle).toBe(
-      'handle.invalid',
-    )
-    expect(validateIdentity({ did, handle: 'atproto.com', pds: 'http://localhost:3000' }).pds).toBe(
-      'http://localhost:3000',
-    )
-    expect(() => validateIdentity({ did, handle: 'atproto.com', pds: 'http://pds.example' })).toThrow('unsafe PDS')
-    expect(() => validateIdentity({ did, handle: 'atproto.com', pds: 'ftp://localhost' })).toThrow('unsafe PDS')
+  it('keeps handle.invalid identities and rejects unsafe PDS addresses', async () => {
+    const responseIdentity = { did, handle: 'handle.invalid', pds: 'https://pds.example', signing_key: 'zQ3test' }
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(response(responseIdentity))
+      .mockResolvedValueOnce(response({ ...responseIdentity, pds: 'http://localhost:3000' }))
+      .mockResolvedValueOnce(response({ ...responseIdentity, pds: 'http://pds.example' }))
+      .mockResolvedValueOnce(response({ ...responseIdentity, pds: 'ftp://localhost' }))
+    vi.stubGlobal('fetch', fetch)
+    await expect(resolveActor(did)).resolves.toMatchObject({ handle: 'handle.invalid' })
+    await expect(resolveActor(did)).resolves.toMatchObject({ pds: 'http://localhost:3000' })
+    await expect(resolveActor(did)).rejects.toThrow('unsafe PDS')
+    await expect(resolveActor(did)).rejects.toThrow('unsafe PDS')
   })
 
   it.each([
@@ -131,3 +136,14 @@ describe('actor data', () => {
     })
   })
 })
+
+it.each([{ did: 'not-a-did' }, { handle: 'invalid handle' }, { pds: 'not-a-uri' }])(
+  'rejects malformed identity fields before loading records: %j',
+  async (invalidFields) => {
+    const fetch = vi.fn(async () => response({ ...identity, signing_key: 'zQ3test', ...invalidFields }))
+    vi.stubGlobal('fetch', fetch)
+    const service = new PublicDataService(createTestQueryClient())
+    await expect(service.actors.profile(did)).rejects.toBeInstanceOf(ClientValidationError)
+    expect(fetch).toHaveBeenCalledOnce()
+  },
+)

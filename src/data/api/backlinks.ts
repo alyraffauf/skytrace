@@ -2,7 +2,7 @@ import { ok } from '@atcute/client'
 import type { Did, GenericUri } from '@atcute/lexicons/syntax'
 import { isGenericUri } from '@atcute/lexicons/syntax'
 import * as v from '@atcute/lexicons/validations'
-import type {} from '@atcute/microcosm'
+import { BlueMicrocosmLinksGetBacklinks, BlueMicrocosmLinksGetBacklinksCount } from '@atcute/microcosm'
 import type { Page } from '../../types'
 import { SERVICE_URLS } from '../../config/serviceUrls'
 import { dedupeBy } from '../../lib/collections'
@@ -18,23 +18,14 @@ const backlinkSources = [
 ] as const
 type BacklinkSource = (typeof backlinkSources)[number]
 
-const backlinksSchema = v.query('blue.microcosm.links.getBacklinks', {
+// The deployed endpoint also accepts cursor and reverse, absent from the published params.
+const backlinksSchema = v.query(BlueMicrocosmLinksGetBacklinks.mainSchema.nsid, {
   params: v.object({
-    did: v.optional(v.array(v.didString())),
-    subject: v.genericUriString(),
-    source: v.string(),
-    limit: v.optional(v.integer()),
+    ...BlueMicrocosmLinksGetBacklinks.mainSchema.params.shape,
     cursor: v.optional(v.string()),
     reverse: v.optional(v.boolean()),
   }),
-  output: {
-    type: 'lex',
-    schema: v.object({
-      total: v.integer(),
-      records: v.array(v.object({ did: v.didString(), collection: v.nsidString(), rkey: v.recordKeyString() })),
-      cursor: v.optional(v.nullable(v.string())),
-    }),
-  },
+  output: BlueMicrocosmLinksGetBacklinks.mainSchema.output,
 })
 
 export async function getBacklinks(options: {
@@ -79,7 +70,7 @@ export async function getBacklinksCount(options: {
   const data = await hydrationRequests.run(
     () =>
       ok(
-        clientFor(SERVICE_URLS.constellation).get('blue.microcosm.links.getBacklinksCount', {
+        clientFor(SERVICE_URLS.constellation).call(BlueMicrocosmLinksGetBacklinksCount, {
           params: {
             subject: options.subject as GenericUri,
             source: options.source,

@@ -1,4 +1,4 @@
-import { ComAtprotoLabelDefs } from '@atcute/atproto'
+import { ComAtprotoLabelDefs, ComAtprotoLabelQueryLabels } from '@atcute/atproto'
 import { ok } from '@atcute/client'
 import type { Did } from '@atcute/lexicons/syntax'
 import { isGenericUri } from '@atcute/lexicons/syntax'
@@ -12,18 +12,13 @@ import { objectValue } from '../recordValues'
 import { clientFor } from './client'
 
 // Keep the page envelope loose so a single bad label becomes an unavailable row.
-const queryLabelsSchema = v.query('com.atproto.label.queryLabels', {
-  params: v.object({
-    cursor: v.optional(v.string()),
-    limit: v.optional(v.integer()),
-    sources: v.optional(v.array(v.didString())),
-    uriPatterns: v.array(v.string()),
-  }),
+const queryLabelsSchema = v.query(ComAtprotoLabelQueryLabels.mainSchema.nsid, {
+  params: ComAtprotoLabelQueryLabels.mainSchema.params,
   output: {
-    type: 'lex',
+    ...ComAtprotoLabelQueryLabels.mainSchema.output,
     schema: v.object({
+      ...ComAtprotoLabelQueryLabels.mainSchema.output.schema.shape,
       labels: v.array(v.unknown()),
-      cursor: v.optional(v.string()),
     }),
   },
 })

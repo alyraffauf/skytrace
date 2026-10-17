@@ -1,3 +1,4 @@
+import { isPlcDid } from '@atcute/identity'
 import type { AccountDetails } from '../../types'
 import { SERVICE_URLS } from '../../config/serviceUrls'
 import { hydrationRequests } from '../runtime/requestScheduler'
@@ -5,7 +6,7 @@ import { objectValue, stringValue } from '../recordValues'
 import { PublicDataValidationError } from '../validationError'
 
 export async function getPlcAccountDetails(did: string, signal?: AbortSignal): Promise<AccountDetails> {
-  if (!/^did:plc:[a-z2-7]{24}$/.test(did)) throw new Error('Cannot fetch PLC history for an invalid DID.')
+  if (!isPlcDid(did)) throw new Error('Cannot fetch PLC history for an invalid DID.')
   const response = await hydrationRequests.run(
     () => fetch(`${SERVICE_URLS.plcDirectory}/${did}/log/audit`, { signal, headers: { Accept: 'application/json' } }),
     signal,

@@ -1,5 +1,5 @@
 import { ok } from '@atcute/client'
-import type {} from '@atcute/bluesky'
+import { AppBskyActorSearchActorsTypeahead } from '@atcute/bluesky'
 import type { ActorSuggestion } from '../../types'
 import { SERVICE_URLS } from '../../config/serviceUrls'
 import { hydrationRequests } from '../runtime/requestScheduler'
@@ -12,8 +12,9 @@ export async function searchActorsTypeahead(query: string, signal?: AbortSignal)
   const data = await hydrationRequests.run(
     () =>
       ok(
-        clientFor(SERVICE_URLS.typeahead).get('app.bsky.actor.searchActorsTypeahead', {
+        clientFor(SERVICE_URLS.typeahead).call(AppBskyActorSearchActorsTypeahead, {
           params: { q: normalizedQuery, limit: 8 },
+          headers: { 'X-Client': 'skytrace' },
           signal,
         }),
       ),
