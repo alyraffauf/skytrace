@@ -1,156 +1,32 @@
 # SkyTrace
 
-SkyTrace displays public AT Protocol records for Bluesky accounts. Search by handle, DID, or `bsky.app` profile URL. SkyTrace resolves the account and shows:
+Browse public Bluesky records by handle, DID, or `bsky.app` profile URL. SkyTrace shows posts, labels, blocks, lists, and account history without a login.
 
-- posts and reposts in one chronological feed
-- account labels, including removed and expired labels
-- labeled posts
-- accounts that the profile blocks and accounts that block it
-- lists owned by the profile, lists that include it, and list members
-- the account DID, PDS host, aliases, former handles, and creation date when available
+The app is a static React frontend. Your browser contacts account PDS hosts and [AT Protocol services](src/config/serviceUrls.ts) directly.
 
-SkyTrace does not require a Bluesky login. SkyTrace is a static frontend and has no backend of its own. It depends on Bluesky infrastructure, account PDS hosts, and community-run AT Protocol services. The browser sends requests directly to those servers.
+## Run locally
 
-## Run the app locally
-
-Install [Bun 1.3.14](https://bun.sh/), then run:
+With [Bun 1.3.14](https://bun.sh/) installed, run:
 
 ```sh
 bun install
 bun run dev
 ```
 
-Vite prints the local URL in the terminal. Open that URL and search for an account.
-
-## Check a change
-
-Run the full check before you commit:
+## Check changes
 
 ```sh
 bun run check
 ```
 
-The command runs Oxlint, checks Prettier formatting, runs the Vitest suite in JSDOM, type-checks the code, and creates a production build.
+This runs lint, formatting checks, tests, type checking, and a production build. See [package.json](package.json) for individual commands.
 
-Use the narrower commands while you work:
+## Deploy
 
-| Command                | Purpose                                                            |
-| ---------------------- | ------------------------------------------------------------------ |
-| `bun run lint`         | Check `src`, `tests`, `scripts`, and `vite.config.ts` with Oxlint. |
-| `bun run format`       | Format the repository with Prettier.                               |
-| `bun run format:check` | Check formatting without changing files.                           |
-| `bun run test`         | Run the test suite once.                                           |
-| `bun run test:watch`   | Run tests after file changes.                                      |
-| `bun run typecheck`    | Check TypeScript without emitting files.                           |
-| `bun run build`        | Type-check the app and write the production build to `dist`.       |
-| `bun run preview`      | Serve the production build locally.                                |
+Follow the [deployment guide](docs/deployment.md). See [runtime configuration](docs/configuration.md) for profile visibility and list filters.
 
-## Source organization
-
-- `src/main.tsx` mounts React and installs application providers.
-- `src/routes/` defines routes, lazy page loading, route errors, and internal URL helpers.
-- `src/layouts/` contains the application shell and profile layout, including the profile outlet context.
-- `src/pages/` contains route screens, with one file per profile tab under `pages/profile/`.
-- `src/components/` contains reusable rendering. Feature components are grouped by actors, profile, feed, labels, lists, and blocks. Shared display elements live in `ui/`, record rows and menus in `records/`, and paging components in `pagination/`.
-- `src/hooks/` contains custom React hooks for queries, timers, and interaction behavior.
-- `src/data/` groups services and parsers under `actors/`, `graph/`, `labels/`, and `posts/`. API adapters live in `api/`. Query and request infrastructure lives in `runtime/`.
-- `src/lib/` contains non-React utilities, with actor, AT Protocol, label, and post helpers grouped by domain.
-- `src/config/` contains application settings; `src/types.ts` defines shared domain types.
-
-Hooks use data services and utilities without importing rendering components. Keep helpers used only for rendering beside their component. Put new route registration in `routes/router.tsx` and profile tab definitions in `routes/profileTabs.ts`.
-
-`data/publicData.ts` constructs the services and connects their dependencies. Shared record helpers and query keys stay at the data root.
-
-## Edit the FAQ
-
-Edit `src/content/faq.md` to change the `/faq` page. The file supports Markdown headings, paragraphs, links, and lists.
-
-Instance-specific answers use `<!-- if NAME -->` and `<!-- endif -->` comment blocks. Supported conditions are `opt-out-enabled`, `opt-out-disabled`, `minimum-enabled`, and `minimum-disabled`. Keep these blocks separate; nesting is not supported.
-
-Keep `{{optOutAccountUrl}}`, `{{minimumBlocking}}`, and `{{blockingAccounts}}` where the answers need the configured account link, blocker count, and singular or plural wording. `FaqPage.tsx` fills these values from runtime settings before rendering the Markdown.
-
-## Data sources
-
-SkyTrace makes these requests from the browser:
-
-| Data                                       | Source                                                                                |
-| ------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Account resolution and record lookup       | `slingshot.cute.haus`                                                                 |
-| Search suggestions                         | `typeahead.waow.tech`                                                                 |
-| Posts, reposts, lists, and outgoing blocks | The account's PDS                                                                     |
-| Incoming blocks and list memberships       | `constellation.microcosm.blue`                                                        |
-| Label events                               | `labelers.firehose.stream`, labeler services, and `public.api.bsky.app` as a fallback |
-| PLC account history                        | `plc.directory`                                                                       |
-| Avatars and post images                    | `cdn.bsky.app`                                                                        |
-| Video files                                | The post author's PDS                                                                 |
-
-SkyTrace runs up to six lookup requests and two pagination requests at once. `PublicDataCore` stops its main requests after 15 seconds, and the cache lives only in memory. If a successful page contains a malformed record, the UI keeps the usable records and marks the bad one. Label-source failures appear separately with a retry action.
-
-## Project layout
-
-The frontend uses React 19, TypeScript, Vite 8, Tailwind CSS 4, and TanStack Query.
-
-- `tests` covers the data clients, pagination seams, record parsing, and UI behavior.
-- `scripts/generate-og.tsx` creates `public/og.png`.
-
-To regenerate the social preview image, run:
-
-```sh
-bun run generate:og
-```
-
-The script uses its bundled Inter font file and replaces `public/og.png`.
-
-## Deploy the static build
-
-Run `bun run build`, then publish `dist` with a static host. The container's nginx configuration and the included `_redirects` file serve the app for profile pages, the named profile tabs, the legacy feed alias, and individual lists. Other paths and missing files must return HTTP 404 using `404.html`. Adding a route requires updating these hosting rules too.
-
-The homepage is indexable. Profile and list responses carry `X-Robots-Tag: noindex`; their content remains accessible through the app and shared links. The container sets this header in nginx. Static hosts that support `_headers` can use the included file; other hosts must configure the equivalent response headers. Verify these headers on the original URL after any internal rewrite.
-
-`robots.txt` allows crawling so search engines can read the indexing headers. Cloudflare may prepend its managed crawler policy; keep that policy and verify the response contains plain text without application HTML. No sitemap is generated, and `/sitemap.xml` must return 404.
-
-After deployment, check `/`, a profile tab, and a list URL for the expected status and indexing header. Check an unknown route and a missing asset for 404 responses. Use Search Console's URL Inspection to confirm the homepage can be rendered and indexed. The local Vite development server does not apply production hosting rules.
-
-The container makes HTML revalidate and caches fingerprinted assets for one year. Runtime configuration and missing assets use `Cache-Control: no-store`. Static hosts can use the included `_headers` rules for HTML and runtime configuration. If an older tab requests a removed JavaScript module, SkyTrace tries one automatic reload per build in that tab, then offers a manual refresh if the download still fails.
-
-SkyTrace respects the `!no-unauthenticated` profile self-label by default and does not load that account's Feed or Labeled posts tabs. To ignore the label in the container, set `SKYTRACE_IGNORE_NO_UNAUTHENTICATED` when you start it:
-
-```sh
-docker run -e SKYTRACE_IGNORE_NO_UNAUTHENTICATED=true ghcr.io/alyraffauf/skytrace:latest
-```
-
-Only the exact value `true` enables the override. The nginx entrypoint writes the setting to `runtime-config.js` before it starts the server. Restart the container after you change the variable. Non-container static deployments use the checked-in default, which keeps the override disabled.
-
-An operator can hide profiles that block or are blocked by a specific Bluesky account by passing that account's DID at runtime:
-
-```sh
-docker run -e SKYTRACE_BLOCK_TARGET_DID=did:plc:example ghcr.io/alyraffauf/skytrace:latest
-```
-
-This check is opt-in. When `SKYTRACE_BLOCK_TARGET_DID` is unset or invalid, SkyTrace skips the block check. Restart the container after changing the value.
-
-To hide specific profiles regardless of Bluesky blocks, pass a comma-separated list of DIDs:
-
-```sh
-docker run -e SKYTRACE_HIDDEN_DIDS='did:plc:example,did:web:example.com' ghcr.io/alyraffauf/skytrace:latest
-```
-
-SkyTrace trims whitespace around each DID and ignores empty or invalid entries. An unset or empty value hides no additional profiles. Listed profiles show the same unavailable message as profiles blocked by the instance. The list works independently of `SKYTRACE_BLOCK_TARGET_DID` and applies to profile pages opened by DID or handle, including their record tabs.
-
-When reasons overlap, explicit hiding takes precedence over an instance block, and an instance block takes precedence over an account's opt-out. An explicit match skips the Bluesky block checks.
-
-Restart the container after changing the list. For non-container static deployments, set `hiddenDids` to an array of DID strings in `public/runtime-config.js` before building, or in the deployed `runtime-config.js`. Its default is `[]`.
-
-To require a minimum number of accounts blocking a moderation list before it appears on Listed On, set `MIN_LIST_BLOCKING` at container startup:
-
-```sh
-docker run -e MIN_LIST_BLOCKING=1 ghcr.io/alyraffauf/skytrace:latest
-```
-
-This example shows moderation lists blocked by at least one account. Curation lists remain visible. The count comes from Constellation's list-block backlinks. If the count cannot be loaded, SkyTrace shows a membership error and withholds the moderation list.
-
-When `MIN_LIST_BLOCKING` is unset or invalid, Listed On shows lists without checking their blocker counts. Valid values are whole numbers from `0` through `9007199254740991`. A value of `0` still checks the count but accepts any nonnegative count. Restart the container after changing the value. Non-container static deployments can set `minListBlocking` in `runtime-config.js`; its default is `null`, which disables filtering.
+Edit [src/content/faq.md](src/content/faq.md) to change the FAQ. Its [template syntax](docs/configuration.md#faq-template) uses the instance settings.
 
 ## License
 
-SkyTrace is licensed under the [GNU Affero General Public License, version 3 only](./LICENSE.md).
+[AGPL-3.0-only](LICENSE.md).
