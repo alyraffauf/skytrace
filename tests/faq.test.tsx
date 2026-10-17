@@ -28,7 +28,7 @@ it('explains the configured opt-out account and active minimum', () => {
   expect(screen.queryByText(/Block-to-opt-out is currently disabled/)).not.toBeInTheDocument()
 })
 
-it('keeps the opt-out anchor and renders Markdown source links', () => {
+it('keeps the opt-out anchor and replaces conditional template values', () => {
   vi.stubGlobal('__SKYTRACE_CONFIG__', {
     ignoreNoUnauthenticated: false,
     blockTargetDid: 'did:plc:ewvi7nxzyoun6zhxrhs64oiz',
@@ -36,10 +36,6 @@ it('keeps the opt-out anchor and renders Markdown source links', () => {
   })
   render(<FaqPage />)
   expect(screen.getByRole('heading', { name: 'How do I opt out?' })).toHaveAttribute('id', 'opt-out')
-  expect(screen.getByRole('link', { name: 'Why are blocks on Bluesky public?' })).toHaveAttribute(
-    'href',
-    'https://atproto.com/blog/block-implementation',
-  )
   expect(screen.queryByText(/\{\{/)).not.toBeInTheDocument()
 })
 

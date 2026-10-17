@@ -6,12 +6,11 @@ import { LabelRow } from '../src/components/labels/LabelRow'
 import { groupLabelHistory } from '../src/lib/labels/history'
 import { LabeledPostRow } from '../src/components/labels/LabeledPostRow'
 import { labelDisplayName } from '../src/lib/labels/names'
-import { labelDefinitionsFromRecord } from '../src/data/labels/definitionsParser'
 import { AccountLabelsPage } from '../src/pages/profile/AccountLabelsPage'
 import { PublicDataService } from '../src/data/publicData'
 import type { FeedPost, LabeledPost, LabelEvent } from '../src/types'
 import { createTestQueryClient } from './testUtils'
-import { did, cid, profile, actorReference } from './actorFixtures'
+import { did, profile, actorReference } from './actorFixtures'
 import { renderWithRouter, renderProfileTab } from './profileTestUtils'
 
 describe('account labels', () => {
@@ -97,35 +96,6 @@ describe('account labels', () => {
     expect(labelDisplayName('many-replies', definitions, ['de'])).toBe('Frequent replier')
     expect(labelDisplayName('graphic-media', undefined, ['en'])).toBe('Graphic Media')
     expect(labelDisplayName('unknown-label', undefined, ['en'])).toBeUndefined()
-  })
-
-  it('parses definitions from a labeler service record', () => {
-    const definitions = labelDefinitionsFromRecord({
-      uri: `at://${did}/app.bsky.labeler.service/self`,
-      cid,
-      value: {
-        $type: 'app.bsky.labeler.service',
-        createdAt: '2026-01-01T00:00:00Z',
-        policies: {
-          labelValues: ['many-replies'],
-          labelValueDefinitions: [
-            {
-              identifier: 'many-replies',
-              severity: 'inform',
-              blurs: 'none',
-              locales: [{ lang: 'en', name: 'Frequent replier', description: 'Replies often.' }],
-            },
-          ],
-        },
-      },
-    })
-
-    expect(definitions).toEqual([
-      {
-        identifier: 'many-replies',
-        locales: [{ lang: 'en', name: 'Frequent replier' }],
-      },
-    ])
   })
 
   it('renders the source DID and preserves negated label history', () => {

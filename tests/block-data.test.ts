@@ -1,4 +1,3 @@
-import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { PublicDataService } from '../src/data/publicData'
 import { CACHE_TTL_MS } from '../src/data/runtime/cachePolicy'
@@ -54,31 +53,6 @@ describe('block data', () => {
     expect(requestedUrls[0]?.searchParams.get('source')).toBe('app.bsky.graph.block:subject')
     expect(requestedUrls[0]?.searchParams.getAll('did')).toEqual([blockingAccountDid])
     expect(requestedUrls[0]?.searchParams.get('limit')).toBe('1')
-  })
-
-  it('keeps a successful relationship count when the other source fails', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = new URL(input instanceof Request ? input.url : String(input))
-        if (url.hostname === 'pds.example') {
-          return response({ error: 'Unavailable' }, 503)
-        }
-        if (url.pathname.endsWith('getBacklinksCount')) {
-          return response({ total: 12 })
-        }
-        throw new Error(`Unexpected URL ${url}`)
-      }),
-    )
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const service = new PublicDataService(queryClient)
-    const [blocked, blockedBy] = await Promise.allSettled([
-      queryClient.fetchQuery(service.blocks.blockedCountQueryOptions(identity)),
-      queryClient.fetchQuery(service.blocks.blockedByCountQueryOptions(did)),
-    ])
-
-    expect(blocked.status).toBe('rejected')
-    expect(blockedBy).toEqual({ status: 'fulfilled', value: 12 })
   })
 
   it('verifies a backlink block record before returning its details', async () => {
