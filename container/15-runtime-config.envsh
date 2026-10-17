@@ -6,7 +6,14 @@ else
   export SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE=false
 fi
 
-if printf '%s' "${SKYTRACE_BLOCK_TARGET_DID:-}" | grep -Eq '^did:[a-z0-9]+:[A-Za-z0-9._:%-]+(:[A-Za-z0-9._:%-]+)*$'; then
+is_valid_did() {
+  case "$1" in
+    *[!A-Za-z0-9._:%-]*) return 1 ;;
+  esac
+  printf '%s' "$1" | grep -Eq '^did:[a-z0-9]+:[A-Za-z0-9._:%-]+(:[A-Za-z0-9._:%-]+)*$'
+}
+
+if is_valid_did "${SKYTRACE_BLOCK_TARGET_DID:-}"; then
   export SKYTRACE_BLOCK_TARGET_DID_VALUE="\"${SKYTRACE_BLOCK_TARGET_DID}\""
 else
   export SKYTRACE_BLOCK_TARGET_DID_VALUE=null
