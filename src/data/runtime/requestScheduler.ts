@@ -15,10 +15,17 @@ export class RequestScheduler {
   run<T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<T> {
     throwIfAborted(signal)
     return new Promise<T>((resolve, reject) => {
+      const cancelQueuedRequest = () => {
+        const index = this.waiting.indexOf(request)
+        if (index < 0) return
+        this.waiting.splice(index, 1)
+        reject(abortError(signal))
+      }
       const request: WaitingRequest = {
         signal,
         reject,
         start: () => {
+          signal?.removeEventListener('abort', cancelQueuedRequest)
           this.active += 1
           Promise.resolve()
             .then(operation)
@@ -32,16 +39,7 @@ export class RequestScheduler {
       if (this.active < this.limit) request.start()
       else {
         this.waiting.push(request)
-        signal?.addEventListener(
-          'abort',
-          () => {
-            const index = this.waiting.indexOf(request)
-            if (index < 0) return
-            this.waiting.splice(index, 1)
-            reject(abortError(signal))
-          },
-          { once: true },
-        )
+        signal?.addEventListener('abort', cancelQueuedRequest, { once: true })
       }
     })
   }
