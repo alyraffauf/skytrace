@@ -21,13 +21,13 @@ export function ProfileTabsNav({
       className="sticky top-12 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
     >
       <div ref={tabListRef} className="tabs-scroll flex gap-6 overflow-x-auto px-4 sm:px-6 lg:px-7">
-        {PROFILE_TABS.map(({ id, path, label }) => {
+        {PROFILE_TABS.map(({ id, label }) => {
           const count = id === 'blocking' ? blockedCount : id === 'blocked-by' ? blockedByCount : undefined
           return (
             <NavLink
               key={id}
-              to={path ? profileTabPath(actor, path) : profilePath(actor)}
-              end={!path}
+              to={id === 'feed' ? profilePath(actor) : profileTabPath(actor, id)}
+              end={id === 'feed'}
               className={({ isActive }) =>
                 `flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-0.5 text-sm font-medium sm:min-h-0 sm:py-3 ${isActive ? 'border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-300' : 'border-transparent text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'}`
               }

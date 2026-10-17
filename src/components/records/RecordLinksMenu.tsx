@@ -44,7 +44,6 @@ export function RecordLinksMenu({
             style={{
               left: popupPosition.left,
               top: popupPosition.top,
-              visibility: popupPosition.ready ? 'visible' : 'hidden',
             }}
             className="fixed z-[100] w-40 max-w-[calc(100vw-1rem)] overflow-hidden rounded-sm border border-zinc-300 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/40"
           >

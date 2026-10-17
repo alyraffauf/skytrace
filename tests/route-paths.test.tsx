@@ -1,7 +1,16 @@
 import { fireEvent, render, renderHook, screen } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
-import { Link, MemoryRouter, Route, Routes, useParams } from 'react-router-dom'
+import {
+  createMemoryRouter,
+  Link,
+  matchRoutes,
+  MemoryRouter,
+  Route,
+  RouterProvider,
+  Routes,
+  useParams,
+} from 'react-router-dom'
 import { SOCIAL_APPS } from '../src/config/socialApps'
 import { socialListPath, socialPathForAtUri, socialPostPath, socialProfilePath } from '../src/lib/links'
 import { normalizeActorInput } from '../src/lib/actors/input'
@@ -12,6 +21,7 @@ import { FaqPage } from '../src/pages/FaqPage'
 import { ListPage } from '../src/pages/ListPage'
 import { listPath, profilePath, profileTabPath } from '../src/routes/paths'
 import { createTestQueryClient } from './testUtils'
+import { identity, profile } from './actorFixtures'
 
 const actors = [
   'did:plc:ewvi7nxzyoun6zhxrhs64oiz',
@@ -119,6 +129,86 @@ describe('generated internal routes', () => {
 
     expect(await screen.findByText('The original list address was preserved.')).toBeVisible()
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('profile tab navigation', () => {
+  const tabs = [
+    ['', 'Feed', 'Feed'],
+    ['/labels', 'Account labels', 'Account labels'],
+    ['/labeled-posts', 'Labeled posts', 'Labeled posts'],
+    ['/blocking', 'Blocked', 'Blocked (2)'],
+    ['/blocked-by', 'Blocked by', 'Blocked by (3)'],
+    ['/lists', 'Lists', 'Lists'],
+    ['/listed-on', 'Listed on', 'Listed on'],
+  ] as const
+
+  it.each(tabs)('preserves the URL, title, and active tab for %s', (suffix, label, linkLabel) => {
+    const actor = 'did:web:example.com:user%2Fname'
+    const actorIdentity = { ...identity, did: actor } as const
+    const client = createTestQueryClient()
+    client.setQueryData(queryKeys.profileVisibility(actor, undefined, []), {
+      visible: true,
+      profile: { ...profile, identity: actorIdentity },
+    })
+    client.setQueryData(queryKeys.blockedCount(actorIdentity), 2)
+    client.setQueryData(queryKeys.blockedByCount(actor), 3)
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={[`${profilePath(actor)}${suffix}`]}>
+          <Routes>
+            <Route path="/profile/:actor" element={<ProfileLayout />}>
+              <Route index element={<div>Tab content</div>} />
+              <Route path=":tab" element={<div>Tab content</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    expect(document.title).toBe(`@${identity.handle} — ${label} — SkyTrace`)
+    expect(screen.getByRole('link', { name: linkLabel })).toHaveAttribute('aria-current', 'page')
+    for (const [path, , name] of tabs) {
+      expect(screen.getByRole('link', { name })).toHaveAttribute('href', `${profilePath(actor)}${path}`)
+    }
+  })
+})
+
+describe('profile feed alias', () => {
+  it('routes each tab and redirects the feed alias to the profile index', async () => {
+    const actor = 'did:web:example.com:user%2Fname'
+    const actorIdentity = { ...identity, did: actor } as const
+    const client = createTestQueryClient()
+    client.setQueryData(queryKeys.profileVisibility(actor, undefined, []), {
+      visible: true,
+      profile: { ...profile, identity: actorIdentity },
+    })
+    client.setQueryData(queryKeys.blockedCount(actorIdentity), 2)
+    client.setQueryData(queryKeys.blockedByCount(actor), 3)
+    client.setQueryData(queryKeys.feed(actor), { pages: [{ items: [] }], pageParams: [undefined] })
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    const { router } = await import('../src/routes/router')
+    router.dispose()
+    for (const suffix of ['', '/labels', '/labeled-posts', '/blocking', '/blocked-by', '/lists', '/listed-on']) {
+      const route = matchRoutes(router.routes, `${profilePath(actor)}${suffix}`)?.at(-1)?.route
+      expect(route).toBeDefined()
+      if (suffix) expect(route!.path).toBe(suffix.slice(1))
+      else expect(route!.index).toBe(true)
+    }
+    const memoryRouter = createMemoryRouter(router.routes, { initialEntries: [`${profilePath(actor)}/feed`] })
+    const view = render(
+      <QueryClientProvider client={client}>
+        <RouterProvider router={memoryRouter} />
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'No posts or reposts found' })).toBeVisible()
+    expect(decodeURIComponent(memoryRouter.state.location.pathname)).toBe(`/profile/${actor}`)
+    expect(document.title).toBe(`@${identity.handle} — Feed — SkyTrace`)
+    view.unmount()
+    memoryRouter.dispose()
   })
 })
 

@@ -23,8 +23,7 @@ export function RecordTab<T extends TabRecord>({
   itemKey: (item: T) => string
   renderItem: (item: T) => ReactNode
 }) {
-  // Underlying record and page queries own automatic retries.
-  const query = usePagedRecords(queryKey, load, { retry: false })
+  const query = usePagedRecords(queryKey, load)
   const entries = query.data?.pages.flatMap((page) => page.items) ?? []
   const entriesByKey = new Map(entries.map((entry) => [itemKey(entry), entry]))
   const items = newestFirst(Array.from(entriesByKey.values()))

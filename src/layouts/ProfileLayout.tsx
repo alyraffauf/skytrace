@@ -40,7 +40,7 @@ export function ProfileLayout() {
   } else {
     const profile = visibilityQuery.data.profile
     const tabPath = location.pathname.replace(/\/$/, '').split('/')[3]
-    const tab = PROFILE_TABS.find((tab) => tab.path === (tabPath || null)) ?? PROFILE_TABS[0]
+    const tab = PROFILE_TABS.find((tab) => tab.id === (tabPath || 'feed')) ?? PROFILE_TABS[0]
     title = `${actorHandle(profile.identity)} — ${tab.label} — SkyTrace`
     content = (
       <article className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">

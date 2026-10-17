@@ -21,10 +21,8 @@ export function FeedPage() {
 
 function FeedQuery() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
-  const query = usePagedRecords<FeedItem, FeedPagingState>(
-    queryKeys.feed(profile.identity.did),
-    (cursor, signal) => service.feed.feed(profile.identity, cursor, signal),
-    { retry: false },
+  const query = usePagedRecords<FeedItem, FeedPagingState>(queryKeys.feed(profile.identity.did), (cursor, signal) =>
+    service.feed.feed(profile.identity, cursor, signal),
   )
   const items = useMemo(
     () => mergeFeedItems(query.data?.pages.flatMap((page) => page.items) ?? []),

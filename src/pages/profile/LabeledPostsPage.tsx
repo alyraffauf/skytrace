@@ -24,7 +24,6 @@ function LabeledPostsQuery() {
   const query = usePagedRecords<LabeledPost, LabeledPostsCursor>(
     queryKeys.labeledPosts(profile.identity.did),
     (cursor, signal) => service.labeledPosts.page(profile.identity, cursor, signal),
-    { retry: false },
   )
   const items = mergeLabeledPosts(query.data?.pages.flatMap((page) => page.items) ?? [])
   const isSearching = items.length === 0 && query.hasNextPage

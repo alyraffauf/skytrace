@@ -80,7 +80,7 @@ it('positions within viewport edges and repositions on resize and captured scrol
   })
   const { button } = setup()
   const popup = document.getElementById(button.getAttribute('aria-controls')!)!
-  expect(popup).toHaveStyle({ visibility: 'visible' })
+  expect(popup).toBeVisible()
   expect(parseFloat(popup.style.left)).toBeGreaterThanOrEqual(0)
   expect(parseFloat(popup.style.left) + 160).toBeLessThanOrEqual(390)
   expect(parseFloat(popup.style.top)).toBeGreaterThanOrEqual(0)

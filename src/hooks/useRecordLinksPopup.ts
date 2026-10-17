@@ -7,7 +7,7 @@ export function useRecordLinksPopup() {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const popupRef = useRef<HTMLDivElement>(null)
   const firstLinkRef = useRef<HTMLAnchorElement>(null)
-  const [popupPosition, setPopupPosition] = useState({ left: 0, top: 0, ready: false })
+  const [popupPosition, setPopupPosition] = useState({ left: 0, top: 0 })
 
   const positionPopup = useCallback(() => {
     const button = buttonRef.current
@@ -26,7 +26,7 @@ export function useRecordLinksPopup() {
       below + popupBounds.height <= window.innerHeight - margin
         ? below
         : Math.max(margin, buttonBounds.top - popupBounds.height - gap)
-    setPopupPosition({ left, top, ready: true })
+    setPopupPosition({ left, top })
   }, [])
 
   useLayoutEffect(() => {
@@ -60,14 +60,11 @@ export function useRecordLinksPopup() {
   }, [isOpen, positionPopup])
 
   useEffect(() => {
-    if (isOpen && popupPosition.ready) firstLinkRef.current?.focus()
-  }, [isOpen, popupPosition.ready])
+    if (isOpen) firstLinkRef.current?.focus()
+  }, [isOpen])
 
   const close = useCallback(() => setIsOpen(false), [])
-  const toggle = useCallback(() => {
-    setPopupPosition((position) => ({ ...position, ready: false }))
-    setIsOpen((open) => !open)
-  }, [])
+  const toggle = useCallback(() => setIsOpen((open) => !open), [])
 
   return { containerRef, buttonRef, popupRef, firstLinkRef, popupId, isOpen, popupPosition, toggle, close }
 }

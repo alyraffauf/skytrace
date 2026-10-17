@@ -3,7 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '../layouts/AppLayout'
 import { RouteError } from './RouteError'
 import { HomePage } from '../pages/HomePage'
-import { PROFILE_TABS, type ProfileTabSlug } from './profileTabs'
+import { PROFILE_TABS, type ProfileTabId } from './profileTabs'
 
 const ProfileLayout = lazy(() =>
   import('../layouts/ProfileLayout').then((module) => ({ default: module.ProfileLayout })),
@@ -25,7 +25,7 @@ const profilePages = {
   ),
   lists: lazy(() => import('../pages/profile/ListsPage').then((module) => ({ default: module.ListsPage }))),
   'listed-on': lazy(() => import('../pages/profile/ListedOnPage').then((module) => ({ default: module.ListedOnPage }))),
-} satisfies Record<'feed' | ProfileTabSlug, ComponentType>
+} satisfies Record<ProfileTabId, ComponentType>
 
 export const router = createBrowserRouter([
   {
@@ -39,9 +39,9 @@ export const router = createBrowserRouter([
         path: 'profile/:actor',
         element: <ProfileLayout />,
         children: [
-          ...PROFILE_TABS.map(({ id, path }) => {
+          ...PROFILE_TABS.map(({ id }) => {
             const Component = profilePages[id]
-            return path ? { path, element: <Component /> } : { index: true, element: <Component />, id }
+            return id === 'feed' ? { index: true, element: <Component />, id } : { path: id, element: <Component /> }
           }),
           { path: 'feed', element: <Navigate to=".." relative="path" replace /> },
         ],
