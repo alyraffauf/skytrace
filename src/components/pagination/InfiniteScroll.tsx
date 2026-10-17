@@ -12,7 +12,11 @@ type InfiniteScrollProps = {
 }
 
 export function InfiniteScroll({ hasMore, loading, disabled = false, error, load, resetKey }: InfiniteScrollProps) {
-  const sentinelRef = useInfiniteScrollTrigger({ hasMore, loading, disabled, error, resetKey, load })
+  const sentinelRef = useInfiniteScrollTrigger({
+    enabled: hasMore && !loading && !disabled && !error,
+    resetKey,
+    load,
+  })
   const loadingIndicatorVisible = useDelayedFlag(loading)
 
   if (!hasMore) return null
