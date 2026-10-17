@@ -239,9 +239,9 @@ describe('minimum blocking configuration', () => {
   ])('validates container env value %s', (value, expected) => {
     const output = execFileSync(
       'sh',
-      ['-c', '. ./container/15-runtime-config.envsh; printf "%s" "$MIN_LIST_BLOCKING_VALUE"'],
+      ['-c', '. ./container/15-runtime-config.envsh; printf "%s" "$SKYTRACE_MIN_LIST_BLOCKING_VALUE"'],
       {
-        env: { ...process.env, MIN_LIST_BLOCKING: value },
+        env: { ...process.env, SKYTRACE_MIN_LIST_BLOCKING: value },
         encoding: 'utf8',
       },
     )

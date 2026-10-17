@@ -10,7 +10,7 @@ const entrypointPath = fileURLToPath(new URL('../container/15-runtime-config.env
 const template = readFileSync(new URL('../container/runtime-config.js.template', import.meta.url), 'utf8')
 const variableNames = [
   'SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE',
-  'MIN_LIST_BLOCKING_VALUE',
+  'SKYTRACE_MIN_LIST_BLOCKING_VALUE',
   'SKYTRACE_BLOCK_TARGET_DID_VALUE',
   'SKYTRACE_HIDDEN_DIDS_VALUE',
   'SKYTRACE_DONATE_REMINDER_DAYS_VALUE',
@@ -21,7 +21,7 @@ function runtimeConfig(environment: Record<string, string>) {
     'sh',
     [
       '-c',
-      '. "$1"; printf "%s\\0" "$SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE" "$MIN_LIST_BLOCKING_VALUE" "$SKYTRACE_BLOCK_TARGET_DID_VALUE" "$SKYTRACE_HIDDEN_DIDS_VALUE" "$SKYTRACE_DONATE_REMINDER_DAYS_VALUE"',
+      '. "$1"; printf "%s\\0" "$SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE" "$SKYTRACE_MIN_LIST_BLOCKING_VALUE" "$SKYTRACE_BLOCK_TARGET_DID_VALUE" "$SKYTRACE_HIDDEN_DIDS_VALUE" "$SKYTRACE_DONATE_REMINDER_DAYS_VALUE"',
       'runtime-config-test',
       entrypointPath,
     ],
@@ -30,7 +30,7 @@ function runtimeConfig(environment: Record<string, string>) {
         ...process.env,
         SKYTRACE_BLOCK_TARGET_DID: '',
         SKYTRACE_IGNORE_NO_UNAUTHENTICATED: 'true',
-        MIN_LIST_BLOCKING: '3',
+        SKYTRACE_MIN_LIST_BLOCKING: '3',
         SKYTRACE_HIDDEN_DIDS: 'did:plc:hidden,did:web:example.com',
         SKYTRACE_DONATE_REMINDER_DAYS: '',
         ...environment,

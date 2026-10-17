@@ -43,5 +43,5 @@ json_count() {
   printf 'null'
 }
 
-export MIN_LIST_BLOCKING_VALUE="$(json_count "${MIN_LIST_BLOCKING:-}")"
+export SKYTRACE_MIN_LIST_BLOCKING_VALUE="$(json_count "${SKYTRACE_MIN_LIST_BLOCKING:-}")"
 export SKYTRACE_DONATE_REMINDER_DAYS_VALUE="$(json_count "${SKYTRACE_DONATE_REMINDER_DAYS:-}" 400)"
