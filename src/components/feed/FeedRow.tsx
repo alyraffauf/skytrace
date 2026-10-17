@@ -13,7 +13,7 @@ import {
 } from '../actors/ActorIdentity'
 import { RecordLinksMenu } from '../records/RecordLinksMenu'
 import { formatDateTime } from '../../lib/dates'
-import type { Actor, FeedItem, FeedPost, UnavailableItem } from '../../types'
+import type { Actor, FeedItem, FeedPost } from '../../types'
 import type { PublicDataService } from '../../data/publicData'
 
 export const FeedRow = memo(function FeedRow({
@@ -36,28 +36,11 @@ function ResolvedFeedRow({
   service,
   footer,
 }: {
-  post: FeedPost | UnavailableItem
+  post: FeedPost
   repost?: Extract<FeedItem, { kind: 'repost' }>
   service: PublicDataService
   footer?: ReactNode
 }) {
-  if (post.kind === 'unavailable') {
-    if (!repost) return <UnavailableFeedItem item={post} />
-    return (
-      <div className="py-2.5">
-        <div className="mb-2 flex items-center justify-between gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-          <span className="flex items-center gap-2">
-            <ArrowPathRoundedSquareIcon className="size-4" /> Reposted
-          </span>
-          <div className="flex items-center gap-1">
-            {formatDateTime(repost.createdAt)}
-            <RecordLinksMenu recordUri={repost.uri} label="repost record" />
-          </div>
-        </div>
-        <UnavailableFeedItem item={post} />
-      </div>
-    )
-  }
   return (
     <HydratedActor actor={post.author}>
       {(author) => <FeedRowContent repost={repost} post={post} author={author} service={service} footer={footer} />}
@@ -120,6 +103,22 @@ function ResolvedRepost({
   const targetQuery = useQuery(service.posts.feedPostQueryOptions(item.subjectUri))
   if (targetQuery.isPending || !targetQuery.data)
     return <div className="py-5 text-sm text-zinc-500 dark:text-zinc-400">Loading reposted post…</div>
+  if (targetQuery.data.kind === 'unavailable') {
+    return (
+      <div className="py-2.5">
+        <div className="mb-2 flex items-center justify-between gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          <span className="flex items-center gap-2">
+            <ArrowPathRoundedSquareIcon className="size-4" /> Reposted
+          </span>
+          <div className="flex items-center gap-1">
+            {formatDateTime(item.createdAt)}
+            <RecordLinksMenu recordUri={item.uri} label="repost record" />
+          </div>
+        </div>
+        <UnavailableFeedItem item={targetQuery.data} />
+      </div>
+    )
+  }
   return <ResolvedFeedRow repost={item} post={targetQuery.data} service={service} footer={footer} />
 }
 

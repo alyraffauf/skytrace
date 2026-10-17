@@ -116,22 +116,29 @@ describe('list member pagination', () => {
     return { ...view, queryClient }
   }
 
-  it('shows loading and the initial error without showing an empty result', async () => {
+  it('shows loading and an initial error, then retries to an empty result', async () => {
     let reject!: (error: Error) => void
-    vi.spyOn(ListDataService.prototype, 'listMembers').mockImplementation(
-      () =>
-        new Promise((_resolve, fail) => {
-          reject = fail
-        }),
-    )
+    const members = vi
+      .spyOn(ListDataService.prototype, 'listMembers')
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, fail) => {
+            reject = fail
+          }),
+      )
+      .mockResolvedValue({ items: [] })
     renderMembers()
     expect(screen.getByLabelText('Loading')).toBeVisible()
     await act(async () => {
       reject(new Error('Membership service explanation'))
     })
-    expect(await screen.findByText('Membership service explanation')).toBeVisible()
+    expect(await screen.findByRole('heading', { name: "Couldn't load members" })).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Members test' })).toBeVisible()
     expect(screen.queryByText('No members found')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByRole('heading', { name: 'No members found' })).toBeVisible()
+    expect(screen.queryByText("Couldn't load members")).not.toBeInTheDocument()
+    expect(members).toHaveBeenCalledTimes(2)
   })
 
   it('retains members after refresh failure and prevents pagination during refresh', async () => {

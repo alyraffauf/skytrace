@@ -4,7 +4,7 @@ import { dedupeBy } from '../../lib/collections'
 import { usePagedRecords } from '../../hooks/usePagedRecords'
 import { PagedQueryView } from '../pagination/PagedQuery'
 import { RecordList } from '../records/RecordList'
-import { EmptyState, ErrorState, LoadingRows } from '../ui/States'
+import { EmptyState } from '../ui/States'
 import { StreamedListMemberRow } from './StreamedMembershipRows'
 
 export function ListMembers({ listUri, lists }: { listUri: string; lists: ListDataService }) {
@@ -22,22 +22,16 @@ export function ListMembers({ listUri, lists }: { listUri: string; lists: ListDa
         </span>
       </div>
 
-      {membersQuery.isPending ? (
-        <LoadingRows count={6} />
-      ) : !membersQuery.data ? (
-        <ErrorState error={membersQuery.error} retry={() => void membersQuery.refetch()} />
-      ) : (
-        <PagedQueryView query={membersQuery} resourceLabel="members">
-          {membersQuery.isSuccess && members.length === 0 && <EmptyState title="No members found" />}
-          {members.length > 0 && (
-            <RecordList>
-              {members.map((member) => (
-                <StreamedListMemberRow key={member.uri} listUri={listUri} membershipUri={member.uri} lists={lists} />
-              ))}
-            </RecordList>
-          )}
-        </PagedQueryView>
-      )}
+      <PagedQueryView query={membersQuery} resourceLabel="members" loadingCount={6}>
+        {membersQuery.isSuccess && members.length === 0 && <EmptyState title="No members found" />}
+        {members.length > 0 && (
+          <RecordList>
+            {members.map((member) => (
+              <StreamedListMemberRow key={member.uri} listUri={listUri} membershipUri={member.uri} lists={lists} />
+            ))}
+          </RecordList>
+        )}
+      </PagedQueryView>
     </>
   )
 }

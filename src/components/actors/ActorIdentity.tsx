@@ -71,7 +71,7 @@ export function HydratedActor({
   return children(query.data ?? actor)
 }
 
-export function ActorReferenceAvatar({ actor, size = 'row' }: { actor: ActorReference; size?: 'small' | 'row' }) {
+function ActorReferenceAvatar({ actor, size = 'row' }: { actor: ActorReference; size?: 'small' | 'row' }) {
   const sizeClass = size === 'small' ? 'size-6' : 'size-8'
   return (
     <ImageWithFallback
