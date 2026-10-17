@@ -2,7 +2,6 @@ import { Fragment, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ImageWithFallback } from '../ui/ImageWithFallback'
 import { cdnImageUrl, pdsBlobUrl } from '../../lib/cdn'
-import { parseAtUri } from '../../lib/atproto/uri'
 import { safeHttpUrl } from '../../lib/urls'
 import { profilePath } from '../../routes/paths'
 import type { Facet, FeedPost } from '../../types'
@@ -61,7 +60,7 @@ export function PostContent({
   children?: ReactNode
   quoted?: boolean
 }) {
-  const authorDid = parseAtUri(post.uri)?.did ?? ''
+  const authorDid = post.author.did
   return (
     <div className={quoted ? 'p-2.5' : ''}>
       <RichText

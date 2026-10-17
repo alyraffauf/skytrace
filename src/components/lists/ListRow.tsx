@@ -6,7 +6,6 @@ import { cdnImageUrl } from '../../lib/cdn'
 import { formatDate } from '../../lib/dates'
 import { listPurposeLabel } from '../../lib/lists'
 import { socialPathForAtUri } from '../../lib/links'
-import { parseAtUri } from '../../lib/atproto/uri'
 import { listPath } from '../../routes/paths'
 import type { ListMembership, ListSummary, UnavailableItem } from '../../types'
 import { Link } from 'react-router-dom'
@@ -78,7 +77,7 @@ export const ListRow = memo(function ListRow({
 })
 
 export function ListAvatar({ list, size }: { list: ListSummary; size: 'row' | 'header' }) {
-  const ownerDid = parseAtUri(list.uri)?.did ?? ''
+  const ownerDid = list.owner.did
   const sizeClass = size === 'row' ? 'mt-0.5 size-8 shrink-0' : 'size-12'
   return (
     <ImageWithFallback

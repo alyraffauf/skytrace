@@ -1,15 +1,16 @@
-import { parseAtUri } from './atproto/uri'
+import { isCanonicalResourceUri } from '@atcute/lexicons/syntax'
+import { tryParseRecordUri } from './atproto/uri'
 
 export function pdslsRecordUrl(uri: string): string | undefined {
-  return parseAtUri(uri) ? `https://pdsls.dev/${uri}` : undefined
+  return isCanonicalResourceUri(uri) ? `https://pdsls.dev/${uri}` : undefined
 }
 
 export function skythreadPostUrl(uri: string): string | undefined {
-  const record = parseAtUri(uri)
+  const record = tryParseRecordUri(uri)
   if (record?.collection !== 'app.bsky.feed.post') return undefined
 
   const url = new URL('https://skythread.mackuba.eu/')
-  url.searchParams.set('author', record.did)
+  url.searchParams.set('author', record.repo)
   url.searchParams.set('post', record.rkey)
   return url.toString()
 }
@@ -32,13 +33,13 @@ function encodeSocialPathSegment(value: string): string {
 }
 
 export function socialPathForAtUri(uri: string): string | undefined {
-  const record = parseAtUri(uri)
+  const record = tryParseRecordUri(uri)
   if (!record) return undefined
   if (record.collection === 'app.bsky.feed.post') {
-    return socialPostPath(record.did, record.rkey)
+    return socialPostPath(record.repo, record.rkey)
   }
   if (record.collection === 'app.bsky.graph.list') {
-    return socialListPath(record.did, record.rkey)
+    return socialListPath(record.repo, record.rkey)
   }
   return undefined
 }

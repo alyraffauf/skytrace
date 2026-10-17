@@ -2,7 +2,7 @@ import { AppBskyActorProfile } from '@atcute/bluesky'
 import { ComAtprotoLabelDefs } from '@atcute/atproto'
 import * as v from '@atcute/lexicons/validations'
 import type { ActorIdentity, ActorProfile, RawRecord } from '../../types'
-import { blobCid, parsedRecord, stringValue } from '../recordValues'
+import { parsedRecord, stringValue } from '../recordValues'
 
 const NO_UNAUTHENTICATED_SELF_LABEL = '!no-unauthenticated'
 
@@ -17,6 +17,6 @@ export function profileFromRecord(identity: ActorIdentity, record?: RawRecord): 
     displayName: stringValue(value?.displayName),
     pronouns: stringValue(value?.pronouns),
     description: stringValue(value?.description),
-    avatarCid: blobCid(value?.avatar),
+    avatarCid: value?.avatar?.ref.$link,
   }
 }

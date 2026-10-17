@@ -1,4 +1,4 @@
-import { parseAtUri } from '../lib/atproto/uri'
+import { tryParseRecordUri } from '../lib/atproto/uri'
 import type { ProfileTabSlug } from './profileTabs'
 
 export function profilePath(actor: string): string {
@@ -10,7 +10,7 @@ export function profileTabPath(actor: string, tab: ProfileTabSlug): string {
 }
 
 export function listPath(uri: string): string | undefined {
-  const record = parseAtUri(uri)
+  const record = tryParseRecordUri(uri)
   if (!record || record.collection !== 'app.bsky.graph.list') return undefined
-  return `/list/${encodeURIComponent(record.did)}/${encodeURIComponent(record.rkey)}`
+  return `/list/${encodeURIComponent(record.repo)}/${encodeURIComponent(record.rkey)}`
 }

@@ -2,8 +2,7 @@ import { AppBskyGraphBlock } from '@atcute/bluesky'
 import { queryOptions } from '@tanstack/react-query'
 import type { ActorIdentity, Page, RelationshipEntry, UnavailableItem } from '../../types'
 import { CACHE_TTL_MS } from '../runtime/cachePolicy'
-import { actorFromAtUri } from '../../lib/atproto/uri'
-import { isDid } from '@atcute/lexicons/syntax'
+import { tryParseRecordUri } from '../../lib/atproto/uri'
 import type { PublicDataCore } from '../publicDataCore'
 import { actorReference, isUnavailableRecord, unavailable } from '../recordResults'
 import type { DataRequestContext } from '../runtime/sharedQueryRequests'
@@ -65,7 +64,7 @@ export class BlockDataService {
       did,
       signal,
     })
-    return page.items.some((reference) => actorFromAtUri(reference.uri) === did)
+    return page.items.some((reference) => tryParseRecordUri(reference.uri)?.repo === did)
   }
 
   async blocking(
@@ -107,9 +106,8 @@ export class BlockDataService {
       signal,
     })
     const items = page.items.map((reference) => {
-      const blockerDid = actorFromAtUri(reference.uri)
-      if (!blockerDid || !isDid(blockerDid))
-        return unavailable(reference.uri, 'Constellation returned an invalid block reference.')
+      const blockerDid = tryParseRecordUri(reference.uri)?.repo
+      if (!blockerDid) return unavailable(reference.uri, 'Constellation returned an invalid block reference.')
       return {
         kind: 'relationship' as const,
         id: reference.uri,

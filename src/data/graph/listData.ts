@@ -2,15 +2,14 @@ import { AppBskyGraphList, AppBskyGraphListitem } from '@atcute/bluesky'
 import { queryOptions } from '@tanstack/react-query'
 import type { ActorIdentity, ListSummary, Page, RawRecord, UnavailableItem } from '../../types'
 import { CACHE_TTL_MS } from '../runtime/cachePolicy'
-import { parseAtUri } from '../../lib/atproto/uri'
-import { isDid } from '@atcute/lexicons/syntax'
+import { tryParseRecordUri } from '../../lib/atproto/uri'
 import type { PublicDataCore } from '../publicDataCore'
 import { actorReference, isUnavailableRecord, unavailable } from '../recordResults'
 import type { DataRequestContext } from '../runtime/sharedQueryRequests'
 import { deadlineSignal } from '../../lib/abort'
 import { getBacklinksCount } from '../api/backlinks'
 import { queryKeys } from '../queryKeys'
-import { blobCid, parsedRecord } from '../recordValues'
+import { parsedRecord } from '../recordValues'
 
 const RELATIONSHIP_PAGE_SIZE = 24
 
@@ -47,7 +46,7 @@ export class ListDataService {
   }
 
   private listFromRecord(record: RawRecord): ListSummary | UnavailableItem {
-    const parts = parseAtUri(record.uri)
+    const parts = tryParseRecordUri(record.uri)
     const value = parsedRecord(AppBskyGraphList.mainSchema, record)
     if (!parts || !value) return unavailable(record.uri, 'This list definition is malformed or unavailable.')
     return {
@@ -56,9 +55,9 @@ export class ListDataService {
       name: value.name,
       description: value.description,
       purpose: value.purpose,
-      avatarCid: blobCid(value.avatar),
+      avatarCid: value.avatar?.ref.$link,
       createdAt: value.createdAt,
-      owner: actorReference(parts.did as ActorIdentity['did']),
+      owner: actorReference(parts.repo),
     }
   }
 
@@ -92,7 +91,7 @@ export class ListDataService {
   }
 
   async listMembers(listUri: string, cursor?: string, signal?: AbortSignal): Promise<Page<{ uri: string }>> {
-    const listRecord = parseAtUri(listUri)
+    const listRecord = tryParseRecordUri(listUri)
     if (listRecord?.collection !== 'app.bsky.graph.list') {
       throw new Error('This list address is invalid.')
     }
@@ -112,8 +111,7 @@ export class ListDataService {
       queryFn: async ({ signal }) => {
         const membership = await this.core.record(membershipUri, signal)
         const value = parsedRecord(AppBskyGraphListitem.mainSchema, membership)
-        if (!value || value.list !== listUri || !isDid(value.subject))
-          return unavailable(membershipUri, 'This list membership is malformed.')
+        if (!value || value.list !== listUri) return unavailable(membershipUri, 'This list membership is malformed.')
         return {
           kind: 'relationship' as const,
           id: membershipUri,
@@ -143,7 +141,7 @@ export class ListDataService {
         const value = parsedRecord(AppBskyGraphListitem.mainSchema, membership)
         if (!value || value.subject !== subjectDid)
           return unavailable(membershipUri, 'This list membership is malformed.')
-        if (parseAtUri(value.list)?.collection !== 'app.bsky.graph.list')
+        if (tryParseRecordUri(value.list)?.collection !== 'app.bsky.graph.list')
           return unavailable(membershipUri, 'This membership has no valid list reference.')
         const list = this.listFromRecord(await this.core.record(value.list, signal))
         if (minimumBlocking !== undefined && list.kind === 'list' && list.purpose === 'app.bsky.graph.defs#modlist') {

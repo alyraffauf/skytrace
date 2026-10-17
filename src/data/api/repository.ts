@@ -7,7 +7,7 @@ import type {} from '@atcute/microcosm'
 import type { ActorIdentity, Page, RawRecord, RepositoryRecord } from '../../types'
 import { SERVICE_URLS } from '../../config/serviceUrls'
 import { deadlineSignal } from '../../lib/abort'
-import { parseAtUri } from '../../lib/atproto/uri'
+import { tryParseRecordUri } from '../../lib/atproto/uri'
 import { recordValueCid } from '../../lib/atproto/recordCid'
 import { hydrationRequests, paginationRequests } from '../runtime/requestScheduler'
 import { objectValue } from '../recordValues'
@@ -73,8 +73,8 @@ export async function listRecords(options: {
     const envelope = v.safeParse(ComAtprotoRepoListRecords.recordSchema, value)
     if (envelope.ok) {
       const record = envelope.value
-      const parsedUri = parseAtUri(record.uri)
-      if (parsedUri?.did === options.identity.did && parsedUri.collection === options.collection) {
+      const parsedUri = tryParseRecordUri(record.uri)
+      if (parsedUri?.repo === options.identity.did && parsedUri.collection === options.collection) {
         try {
           return verifyRecord(record)
         } catch {
