@@ -10,6 +10,7 @@ import { useActorProfile } from '../../hooks/useActorProfile'
 import { formatDateTime } from '../../lib/dates'
 import type { Actor, FeedItem, FeedPost } from '../../types'
 import type { PublicDataService } from '../../data/publicData'
+import { unavailable } from '../../data/recordResults'
 
 export function FeedRow({ item, service, footer }: { item: FeedItem; service: PublicDataService; footer?: ReactNode }) {
   if (item.kind === 'unavailable') return <UnavailableFeedItem item={item} />
@@ -69,9 +70,10 @@ function ResolvedRepost({
   footer?: ReactNode
 }) {
   const targetQuery = useQuery(service.posts.feedPostQueryOptions(item.subjectUri))
-  if (targetQuery.isPending || !targetQuery.data)
+  if (targetQuery.isPending)
     return <div className="py-5 text-sm text-zinc-500 dark:text-zinc-400">Loading reposted post…</div>
-  if (targetQuery.data.kind === 'unavailable') {
+  const post = targetQuery.data ?? unavailable(item.subjectUri, 'This post could not be loaded.')
+  if (post.kind === 'unavailable') {
     return (
       <div className="py-2.5">
         <div className="mb-2 flex items-center justify-between gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
@@ -83,11 +85,11 @@ function ResolvedRepost({
             <RecordLinksMenu recordUri={item.uri} label="repost record" />
           </div>
         </div>
-        <UnavailableFeedItem item={targetQuery.data} />
+        <UnavailableFeedItem item={post} />
       </div>
     )
   }
-  return <ResolvedFeedRow repost={item} post={targetQuery.data} service={service} footer={footer} />
+  return <ResolvedFeedRow repost={item} post={post} service={service} footer={footer} />
 }
 
 function RepostByline({ item }: { item: Extract<FeedItem, { kind: 'repost' }> }) {

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { FeedRow } from '../src/components/feed/FeedRow'
+import { QuotedPostPreview } from '../src/components/feed/QuotedPostPreview'
 import { queryKeys } from '../src/data/queryKeys'
 import { PublicDataService } from '../src/data/publicData'
 import type { FeedPost } from '../src/types'
@@ -82,7 +83,7 @@ describe('repost rendering', () => {
     expect(load.mock.calls.every(([uri]) => uri === post.uri || uri === post.quoteUri)).toBe(true)
   })
 
-  it('shows quote loading and failure inside the post, with its record menu', async () => {
+  it.each(['unavailable', 'rejected'])('shows quote loading and %s failure inside the post', async (outcome) => {
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(queryKeys.profileView(originalDid), {
       ...profile,
@@ -90,12 +91,14 @@ describe('repost rendering', () => {
     })
     const service = new PublicDataService(queryClient)
     let resolveQuote!: (item: import('../src/types').UnavailableItem) => void
+    let rejectQuote!: (error: Error) => void
     const options = service.posts.feedPostQueryOptions(post.quoteUri!)
     vi.spyOn(service.posts, 'feedPostQueryOptions').mockReturnValue({
       ...options,
       queryFn: () =>
-        new Promise<import('../src/types').UnavailableItem>((resolve) => {
+        new Promise<import('../src/types').UnavailableItem>((resolve, reject) => {
           resolveQuote = resolve
+          rejectQuote = reject
         }),
     })
     render(
@@ -106,19 +109,28 @@ describe('repost rendering', () => {
       </QueryClientProvider>,
     )
     expect(screen.getByText('Loading quoted post…')).toBeVisible()
-    await act(async () => resolveQuote({ kind: 'unavailable', id: post.quoteUri!, reason: 'Quote deleted' }))
-    expect(await screen.findByText('Quote deleted')).toBeVisible()
+    await act(async () => {
+      if (outcome === 'rejected') rejectQuote(new Error('Quote query failed'))
+      else resolveQuote({ kind: 'unavailable', id: post.quoteUri!, reason: 'Quote deleted' })
+    })
+    expect(
+      await screen.findByText(outcome === 'rejected' ? 'This post could not be loaded.' : 'Quote deleted'),
+    ).toBeVisible()
+    expect(screen.queryByText('Loading quoted post…')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Open links for unavailable record' })).toBeVisible()
     expect(screen.getByText('Footer after quote')).toBeVisible()
   })
 
-  it('keeps both record menus when the repost target is unavailable', async () => {
+  it.each(['unavailable', 'rejected'])('keeps both record menus when the repost target is %s', async (outcome) => {
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
     const postOptions = service.posts.feedPostQueryOptions(post.uri)
     vi.spyOn(service.posts, 'feedPostQueryOptions').mockReturnValue({
       ...postOptions,
-      queryFn: async () => ({ kind: 'unavailable', id: post.uri, reason: 'Target deleted' }),
+      queryFn: async () => {
+        if (outcome === 'rejected') throw new Error('Repost query failed')
+        return { kind: 'unavailable', id: post.uri, reason: 'Target deleted' }
+      },
     })
     render(
       <QueryClientProvider client={queryClient}>
@@ -127,8 +139,49 @@ describe('repost rendering', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     )
-    expect(await screen.findByText('Target deleted')).toBeVisible()
+    expect(screen.getByText('Loading reposted post…')).toBeVisible()
+    expect(
+      await screen.findByText(outcome === 'rejected' ? 'This post could not be loaded.' : 'Target deleted'),
+    ).toBeVisible()
+    expect(screen.queryByText('Loading reposted post…')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /repost record/ })).toBeVisible()
     expect(screen.getByRole('button', { name: /unavailable record/ })).toBeVisible()
+  })
+
+  it.each(['repost', 'quote'])('keeps cached %s content when refreshing fails', async (kind) => {
+    const client = createTestQueryClient()
+    client.setQueryData(queryKeys.profileView(did), profile)
+    client.setQueryData(queryKeys.profileView(originalDid), {
+      ...profile,
+      identity: { ...identity, did: originalDid },
+    })
+    const uri = kind === 'repost' ? post.uri : post.quoteUri!
+    const key = queryKeys.feedPost(uri)
+    client.setQueryData(key, { ...post, uri, quoteUri: undefined })
+    const service = new PublicDataService(client)
+    const options = service.posts.feedPostQueryOptions(uri)
+    const load = vi.fn(async () => {
+      throw new Error('Refresh failed')
+    })
+    vi.spyOn(service.posts, 'feedPostQueryOptions').mockReturnValue({ ...options, queryFn: load })
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          {kind === 'repost' ? (
+            <FeedRow item={repost} service={service} />
+          ) : (
+            <QuotedPostPreview uri={uri} service={service} />
+          )}
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(screen.getByText('Original post body')).toBeVisible()
+    await act(async () => {
+      await client.refetchQueries({ queryKey: key })
+    })
+    expect(client.getQueryState(key)?.status).toBe('error')
+    expect(screen.getByText('Original post body')).toBeVisible()
+    expect(screen.queryByText('This post could not be loaded.')).not.toBeInTheDocument()
+    expect(load).toHaveBeenCalledOnce()
   })
 })

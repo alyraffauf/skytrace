@@ -6,13 +6,13 @@ import { UnavailableFeedItem } from './UnavailableFeedItem'
 import { formatDateTime } from '../../lib/dates'
 import type { FeedPost } from '../../types'
 import type { PublicDataService } from '../../data/publicData'
+import { unavailable } from '../../data/recordResults'
 
 export function QuotedPostPreview({ uri, service }: { uri: FeedPost['uri']; service: PublicDataService }) {
   const quoteQuery = useQuery(service.posts.feedPostQueryOptions(uri))
   if (quoteQuery.isPending)
     return <div className="p-2.5 text-sm text-zinc-500 dark:text-zinc-400">Loading quoted post…</div>
-  const post = quoteQuery.data
-  if (!post) return null
+  const post = quoteQuery.data ?? unavailable(uri, 'This post could not be loaded.')
   if (post.kind === 'unavailable') return <UnavailableFeedItem item={post} />
   return (
     <>
