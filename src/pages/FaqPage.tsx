@@ -27,7 +27,7 @@ function configuredFaqMarkdown(): string {
 
 export function FaqPage() {
   return (
-    <article className="mx-auto w-full max-w-2xl py-10 sm:py-14 [&_h1]:text-3xl [&_h1]:font-semibold [&_h1]:tracking-tight sm:[&_h1]:text-4xl [&_h2]:mb-3 [&_h2]:mt-9 [&_h2]:text-lg [&_h2]:font-semibold [&_p]:mt-3 [&_p]:text-sm [&_p]:leading-7 [&_p]:text-zinc-600 dark:[&_p]:text-zinc-400 [&_a]:text-violet-700 [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-violet-900 dark:[&_a]:text-violet-400 dark:hover:[&_a]:text-violet-300 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:text-sm [&_li]:leading-7">
+    <article className="faq-content mx-auto w-full max-w-2xl py-10 sm:py-14">
       <title>FAQ — SkyTrace</title>
       <Markdown
         components={{
@@ -40,11 +40,7 @@ export function FaqPage() {
                     .toLowerCase()
                     .replace(/[^a-z0-9]+/g, '-')
                     .replace(/^-|-$/g, '')
-            return (
-              <h2 id={id} className="scroll-mt-16">
-                {children}
-              </h2>
-            )
+            return <h2 id={id}>{children}</h2>
           },
         }}
       >
