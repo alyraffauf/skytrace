@@ -2,7 +2,7 @@ import { throwIfAborted } from '../../lib/abort'
 import type { LabelEvent, UnavailableItem } from '../../types'
 import type { PublicDataCore } from '../publicDataCore'
 import { PublicDataValidationError } from '../validationError'
-import { hydrateLabelSources } from './labelEvents'
+import { dedupeBy } from '../../lib/collections'
 import { LABEL_PAGE_SIZE } from './labelPaging'
 
 export class SubjectLabelsDataService {
@@ -14,7 +14,7 @@ export class SubjectLabelsDataService {
     // labeled posts disappear from the result.
     const pages = await Promise.all(
       [...new Set(subjects)].map(async (subject) => {
-        const items: Array<Omit<LabelEvent, 'source'> | UnavailableItem> = []
+        const items: Array<LabelEvent | UnavailableItem> = []
         const seenCursors = new Set<string>()
         let cursor: string | undefined
         do {
@@ -29,7 +29,8 @@ export class SubjectLabelsDataService {
         return items
       }),
     )
-    const labels = pages.flat().filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
-    return hydrateLabelSources(labels, signal)
+    const labels = pages.flat().filter((item): item is LabelEvent => item.kind === 'labelEvent')
+    throwIfAborted(signal)
+    return dedupeBy(labels, (label) => label.id)
   }
 }

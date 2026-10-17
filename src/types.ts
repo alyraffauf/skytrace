@@ -71,7 +71,6 @@ export type ListMembership = {
 export type LabelEvent = {
   kind: 'labelEvent'
   id: string
-  source: ActorReference
   sourceDid: Did
   subject: GenericUri
   value: string

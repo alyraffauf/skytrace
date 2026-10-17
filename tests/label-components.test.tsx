@@ -133,7 +133,6 @@ describe('account labels', () => {
     const label: LabelEvent = {
       kind: 'labelEvent',
       id: 'label-event',
-      source: { kind: 'actorReference', did: sourceDid },
       sourceDid,
       subject: did,
       value: '!suspend',
@@ -153,7 +152,6 @@ describe('account labels', () => {
     const label: LabelEvent = {
       kind: 'labelEvent',
       id: 'named-label',
-      source: actorReference,
       sourceDid: did,
       subject: did,
       value: 'many-replies',
@@ -166,11 +164,9 @@ describe('account labels', () => {
   })
 
   it('uses active state and past tense for expired labels', () => {
-    const source = actorReference
     const label = (expiresAt: string): LabelEvent => ({
       kind: 'labelEvent',
       id: expiresAt,
-      source,
       sourceDid: did,
       subject: did,
       value: 'test-label',
@@ -191,11 +187,9 @@ describe('account labels', () => {
   })
 
   it('pairs an applied label with its removal date', () => {
-    const source = actorReference
     const added: LabelEvent = {
       kind: 'labelEvent',
       id: 'added',
-      source,
       sourceDid: did,
       subject: did,
       value: '!suspend',
@@ -217,11 +211,9 @@ describe('account labels', () => {
   })
 
   it('treats a newer application as the current state instead of showing an expired renewal', () => {
-    const source = actorReference
     const expired: LabelEvent = {
       kind: 'labelEvent',
       id: 'expired-application',
-      source,
       sourceDid: did,
       subject: did,
       value: 'frequently-updated',
@@ -256,7 +248,6 @@ describe('labeled post previews', () => {
     const olderLabel: LabelEvent = {
       kind: 'labelEvent',
       id: 'older-label',
-      source: actorReference,
       sourceDid: did,
       subject: post.uri,
       value: 'old',
@@ -298,7 +289,6 @@ describe('labeled post previews', () => {
     const label = (value: string): LabelEvent => ({
       kind: 'labelEvent',
       id: `event-${value}`,
-      source: author,
       sourceDid: did,
       subject: postUri,
       value,

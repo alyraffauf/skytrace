@@ -54,7 +54,7 @@ export class PublicDataCore {
 
   async labelRecords(
     options: Parameters<typeof queryLabels>[0] & { repeatedCursorPolicy?: 'return-page' },
-  ): Promise<Page<Omit<LabelEvent, 'source'> | UnavailableItem>> {
+  ): Promise<Page<LabelEvent | UnavailableItem>> {
     const service = options.service ?? SERVICE_URLS.labelRelay
     const key = queryKeys.labels(
       service,

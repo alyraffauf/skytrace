@@ -30,7 +30,7 @@ export async function queryLabels(options: {
   cursor?: string
   limit?: number
   signal?: AbortSignal
-}): Promise<Page<Omit<LabelEvent, 'source'> | UnavailableItem>> {
+}): Promise<Page<LabelEvent | UnavailableItem>> {
   const isValidPattern = (pattern: string) =>
     pattern.endsWith('*') ? isGenericUri(pattern.slice(0, -1)) : isGenericUri(pattern)
   if (options.uriPatterns.length === 0 || options.uriPatterns.some((pattern) => !isValidPattern(pattern))) {

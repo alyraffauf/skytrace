@@ -2,7 +2,7 @@ import { AppBskyFeedRepost } from '@atcute/bluesky'
 import type { ActorIdentity, FeedItem, FeedPost, Page, RepositoryRecord } from '../../types'
 import { dedupeBy } from '../../lib/collections'
 import { newestFirst, timestampFor } from '../../lib/sorting'
-import { readFeedState, snapshotFeedState, type FeedPagingState, type FeedStreamState } from './feedPaging'
+import { readFeedState, type FeedPagingState, type FeedStreamState } from './feedPaging'
 import type { PostDataService } from './postData'
 import type { PublicDataCore } from '../publicDataCore'
 import { actorReference, isUnavailableRecord, unavailable } from '../recordResults'
@@ -65,7 +65,7 @@ export class FeedDataService {
       state.posts.records.length > 0 || state.reposts.records.length > 0 || !state.posts.done || !state.reposts.done
     return {
       items: mergeFeedItems(items),
-      cursor: hasMore ? snapshotFeedState(state) : undefined,
+      cursor: hasMore ? state : undefined,
     }
   }
 

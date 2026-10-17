@@ -1,3 +1,4 @@
+import { actorReference } from '../../data/recordResults'
 import { labelState, type LabelHistoryEvent } from '../../lib/labels/history'
 import { MiniActor } from '../actors/ActorIdentity'
 import { formatDate } from '../../lib/dates'
@@ -31,7 +32,7 @@ export function LabelRow({ label, displayName }: { label: LabelHistoryEvent | Un
           </span>
         </div>
         <div className="mt-1 min-w-0">
-          <MiniActor actor={label.source} label="By" />
+          <MiniActor actor={actorReference(label.sourceDid)} label="By" />
         </div>
       </div>
       <div className="text-right text-xs text-zinc-500 dark:text-zinc-400">

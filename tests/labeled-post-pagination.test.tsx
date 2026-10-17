@@ -46,7 +46,6 @@ it('keeps observing after a fast empty page so older labeled posts can load', as
       {
         kind: 'labelEvent',
         id: 'older-label',
-        source: { kind: 'actorReference', did },
         sourceDid: did,
         subject: `at://${did}/app.bsky.feed.post/older`,
         value: 'bot',

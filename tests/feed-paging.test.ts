@@ -8,6 +8,50 @@ const memberDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
 const identity: ActorIdentity = { kind: 'actorIdentity', did, handle: 'atproto.com', pds: 'https://pds.example' }
 
 describe('feed paging', () => {
+  it('replays a saved cursor without changing its buffered records or cursor history', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.searchParams.get('collection') === 'app.bsky.feed.repost') return response({ records: [] })
+        const cursor = url.searchParams.get('cursor')
+        const month = cursor ? '03' : '04'
+        return response({
+          records: Array.from({ length: 13 }, (_, index) =>
+            repositoryRecord(`at://${did}/app.bsky.feed.post/${month}-${index}`, {
+              $type: 'app.bsky.feed.post',
+              text: `${month}-${index}`,
+              createdAt: `2026-${month}-01T00:${String(59 - index).padStart(2, '0')}:00Z`,
+            }),
+          ),
+          cursor: cursor ? 'last' : 'next',
+        })
+      }),
+    )
+    const service = createTestService()
+    const first = await service.feed.feed(identity)
+    const cursor = first.cursor!
+    const savedCursor = structuredClone(cursor)
+    Object.freeze(cursor.posts.records)
+    Object.freeze(cursor.reposts.records)
+    Object.freeze(cursor.posts)
+    Object.freeze(cursor.reposts)
+    Object.freeze(cursor)
+
+    await expect(service.feed.feed({ ...identity, did: memberDid }, cursor)).rejects.toThrow(
+      'This feed cursor belongs to another account.',
+    )
+    const second = await service.feed.feed(identity, cursor)
+    const replay = await service.feed.feed(identity, cursor)
+
+    expect(second.items).toHaveLength(12)
+    expect(second.items[0]).toMatchObject({ text: '04-12' })
+    expect(second.items[1]).toMatchObject({ text: '03-0' })
+    expect(second.cursor?.posts.seenCursors).toEqual(new Set(['next', 'last']))
+    expect(replay).toEqual(second)
+    expect(cursor).toEqual(savedCursor)
+  })
+
   it('holds older reposts until newer posts from the next source page are emitted', async () => {
     const targetRequests = vi.fn()
     vi.stubGlobal(

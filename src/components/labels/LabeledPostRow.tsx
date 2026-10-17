@@ -1,3 +1,4 @@
+import { actorReference } from '../../data/recordResults'
 import { MiniActor } from '../actors/ActorIdentity'
 import { FeedRow } from '../feed/FeedRow'
 import { labelState } from '../../lib/labels/history'
@@ -53,7 +54,7 @@ function PostLabels({
                 {formatDate(label.createdAt) ?? 'Date unknown'}
               </time>
               <div className="col-span-2 mt-0.5 min-w-0">
-                <MiniActor actor={label.source} label="By" />
+                <MiniActor actor={actorReference(label.sourceDid)} label="By" />
               </div>
             </li>
           )

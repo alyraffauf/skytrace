@@ -32,7 +32,3 @@ export function readFeedState(did: string, cursor?: FeedPagingState): FeedPaging
     },
   }
 }
-
-export function snapshotFeedState(state: FeedPagingState): FeedPagingState {
-  return readFeedState(state.did, state)
-}

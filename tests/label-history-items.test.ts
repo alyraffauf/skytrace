@@ -7,7 +7,7 @@ const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const sourceDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
 
 it.each(['AppView', 'provider'])('keeps sorted labels and unavailable rows on a mixed %s page', async (service) => {
-  const label = (id: string, createdAt: string): Omit<LabelEvent, 'source'> => ({
+  const label = (id: string, createdAt: string): LabelEvent => ({
     kind: 'labelEvent',
     id,
     sourceDid,
@@ -24,6 +24,7 @@ it.each(['AppView', 'provider'])('keeps sorted labels and unavailable rows on a 
     newer,
     label('newer-second', newer.createdAt),
     newer,
+    unavailable,
   ]
   const cursor: LabelPagingState = {
     kind: 'labels',
@@ -38,8 +39,14 @@ it.each(['AppView', 'provider'])('keeps sorted labels and unavailable rows on a 
 
   const page = await publicData.labelHistory.page(did, cursor)
 
-  expect(page.items.map((item) => item.id)).toEqual(['newer-first', 'newer-second', 'older', 'unavailable'])
-  expect(page.items[0]).toMatchObject({ source: { kind: 'actorReference', did: sourceDid } })
+  expect(page.items.map((item) => item.id)).toEqual([
+    'newer-first',
+    'newer-second',
+    'older',
+    'unavailable',
+    'unavailable',
+  ])
+  expect(page.items[0]).toMatchObject({ sourceDid })
   expect(page.items.at(-1)).toBe(unavailable)
   expect(cursor.providers[0]?.done).toBe(false)
   expect(items[0]).toBe(unavailable)

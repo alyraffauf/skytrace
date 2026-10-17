@@ -45,7 +45,3 @@ export function readLabelState(did: string, cursor?: LabelPagingState): LabelPag
     })),
   }
 }
-
-export function snapshotLabelState(state: LabelPagingState): LabelPagingState {
-  return readLabelState(state.did, state)
-}

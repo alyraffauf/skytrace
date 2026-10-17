@@ -3,14 +3,9 @@ import { newestFirst, timestampFor } from '../../lib/sorting'
 import type { LabelEvent, Page, UnavailableItem } from '../../types'
 import type { PublicDataCore } from '../publicDataCore'
 import type { LabelerDataService } from './labelerData'
-import { hydrateLabelSources } from './labelEvents'
-import {
-  LABEL_PAGE_SIZE,
-  readLabelState,
-  snapshotLabelState,
-  type LabelPagingState,
-  type ProviderPagingState,
-} from './labelPaging'
+import { throwIfAborted } from '../../lib/abort'
+import { dedupeBy } from '../../lib/collections'
+import { LABEL_PAGE_SIZE, readLabelState, type LabelPagingState, type ProviderPagingState } from './labelPaging'
 import { loadProviderLabelPage } from './providerLabels'
 
 // Include Bluesky moderation even when the relay has no events from it.
@@ -53,7 +48,7 @@ export class LabelHistoryDataService {
       if (discovery.cursor) seenCursors.add(discovery.cursor)
       state.seenDiscoveryCursors = [...seenCursors]
       // Save discovery progress before advancing another relay page.
-      if (!state.discoveryDone) return { items: [], cursor: snapshotLabelState(state) }
+      if (!state.discoveryDone) return { items: [], cursor: state }
     }
 
     if (!state.appViewDone) {
@@ -68,8 +63,8 @@ export class LabelHistoryDataService {
       state.appViewCursor = state.appViewDone ? undefined : page.cursor
       if (page.cursor) state.seenAppViewCursors.push(page.cursor)
       return {
-        items: hydrateHistoryItems(page.items, signal),
-        cursor: !state.appViewDone || state.providers.length > 0 ? snapshotLabelState(state) : undefined,
+        items: orderedHistoryItems(page.items, signal),
+        cursor: !state.appViewDone || state.providers.length > 0 ? state : undefined,
       }
     }
 
@@ -81,7 +76,7 @@ export class LabelHistoryDataService {
         for (const failedProvider of failedProviders) failedProvider.failed = false
         return {
           items: [],
-          cursor: snapshotLabelState(state),
+          cursor: state,
           issues: failedProviders.map((failedProvider) => failedProvider.did),
         }
       }
@@ -102,8 +97,8 @@ export class LabelHistoryDataService {
       provider.seenCursors = [...seenCursors]
       const items = page.items.filter((item) => item.kind === 'unavailable' || item.sourceDid === provider.did)
       return {
-        items: hydrateHistoryItems(items, signal),
-        cursor: state.providers.some((candidate) => !candidate.done) ? snapshotLabelState(state) : undefined,
+        items: orderedHistoryItems(items, signal),
+        cursor: state.providers.some((candidate) => !candidate.done) ? state : undefined,
       }
     }
   }
@@ -130,7 +125,7 @@ export class LabelHistoryDataService {
       limit: LABEL_PAGE_SIZE,
       signal,
     })
-    const labels = page.items.filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
+    const labels = page.items.filter((item): item is LabelEvent => item.kind === 'labelEvent')
     for (const label of labels) {
       const provider = providers.find((candidate) => candidate.did === label.sourceDid)
       if (provider) {
@@ -144,11 +139,12 @@ export class LabelHistoryDataService {
   }
 }
 
-function hydrateHistoryItems(
-  items: Array<Omit<LabelEvent, 'source'> | UnavailableItem>,
+function orderedHistoryItems(
+  items: Array<LabelEvent | UnavailableItem>,
   signal?: AbortSignal,
 ): Array<LabelEvent | UnavailableItem> {
-  const labels = items.filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
+  const labels = items.filter((item): item is LabelEvent => item.kind === 'labelEvent')
   const unavailableItems = items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
-  return newestFirst([...hydrateLabelSources(labels, signal), ...unavailableItems])
+  throwIfAborted(signal)
+  return newestFirst([...dedupeBy(labels, (label) => label.id), ...unavailableItems])
 }
