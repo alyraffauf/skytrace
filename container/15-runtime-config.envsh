@@ -32,10 +32,16 @@ export SKYTRACE_HIDDEN_DIDS_VALUE="$(printf '%s' "${SKYTRACE_HIDDEN_DIDS:-}" | a
   END { printf "]" }
 ')"
 
-# Emit a JSON integer only for whole counts within JavaScript's safe range.
-export MIN_LIST_BLOCKING_VALUE=null
-if printf '%s' "${MIN_LIST_BLOCKING:-}" | grep -Eq '^(0|[1-9][0-9]{0,15})$'; then
-  if [ "$MIN_LIST_BLOCKING" -le 9007199254740991 ]; then
-    export MIN_LIST_BLOCKING_VALUE="$MIN_LIST_BLOCKING"
+# Emit a JSON integer within the optional maximum or JavaScript's safe range.
+json_count() {
+  if printf '%s' "$1" | grep -Eq '^(0|[1-9][0-9]{0,15})$'; then
+    if [ "$1" -le "${2:-9007199254740991}" ]; then
+      printf '%s' "$1"
+      return
+    fi
   fi
-fi
+  printf 'null'
+}
+
+export MIN_LIST_BLOCKING_VALUE="$(json_count "${MIN_LIST_BLOCKING:-}")"
+export SKYTRACE_DONATE_REMINDER_DAYS_VALUE="$(json_count "${SKYTRACE_DONATE_REMINDER_DAYS:-}" 400)"

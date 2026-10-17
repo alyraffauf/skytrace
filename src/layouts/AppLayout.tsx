@@ -1,4 +1,5 @@
 import { HeartIcon } from '@heroicons/react/24/outline'
+import { DonateReminder } from '../components/ui/DonateReminder'
 import { RainCloud } from '../components/ui/RainCloud'
 import { Link, Outlet, ScrollRestoration } from 'react-router-dom'
 import { useRouteMetadata } from '../routes/metadata'
@@ -90,6 +91,7 @@ export function AppLayout() {
         </div>
       </footer>
       <ScrollRestoration />
+      <DonateReminder />
     </div>
   )
 }

@@ -3,4 +3,5 @@ window.__SKYTRACE_CONFIG__ = {
   minListBlocking: null,
   blockTargetDid: null,
   hiddenDids: [],
+  donateReminderDays: null,
 }

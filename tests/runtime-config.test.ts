@@ -13,6 +13,7 @@ const variableNames = [
   'MIN_LIST_BLOCKING_VALUE',
   'SKYTRACE_BLOCK_TARGET_DID_VALUE',
   'SKYTRACE_HIDDEN_DIDS_VALUE',
+  'SKYTRACE_DONATE_REMINDER_DAYS_VALUE',
 ]
 
 function runtimeConfig(environment: Record<string, string>) {
@@ -20,7 +21,7 @@ function runtimeConfig(environment: Record<string, string>) {
     'sh',
     [
       '-c',
-      '. "$1"; printf "%s\\0" "$SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE" "$MIN_LIST_BLOCKING_VALUE" "$SKYTRACE_BLOCK_TARGET_DID_VALUE" "$SKYTRACE_HIDDEN_DIDS_VALUE"',
+      '. "$1"; printf "%s\\0" "$SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE" "$MIN_LIST_BLOCKING_VALUE" "$SKYTRACE_BLOCK_TARGET_DID_VALUE" "$SKYTRACE_HIDDEN_DIDS_VALUE" "$SKYTRACE_DONATE_REMINDER_DAYS_VALUE"',
       'runtime-config-test',
       entrypointPath,
     ],
@@ -31,6 +32,7 @@ function runtimeConfig(environment: Record<string, string>) {
         SKYTRACE_IGNORE_NO_UNAUTHENTICATED: 'true',
         MIN_LIST_BLOCKING: '3',
         SKYTRACE_HIDDEN_DIDS: 'did:plc:hidden,did:web:example.com',
+        SKYTRACE_DONATE_REMINDER_DAYS: '',
         ...environment,
       },
       encoding: 'utf8',
@@ -52,6 +54,7 @@ it.each(['did:plc:example', 'did:web:example.com%3A8443:users:alice'])(
       minListBlocking: 3,
       blockTargetDid: did,
       hiddenDids: ['did:plc:hidden', 'did:web:example.com'],
+      donateReminderDays: null,
     })
   },
 )
@@ -68,6 +71,7 @@ it.each([
     minListBlocking: 3,
     blockTargetDid: null,
     hiddenDids: ['did:plc:hidden', 'did:web:example.com'],
+    donateReminderDays: null,
   })
 })
 
@@ -78,4 +82,9 @@ it.each([
   ['did:plc:example";alert(1)//,did:plc:bad\\value,atproto.com', []],
 ])('serializes container env value %s as a safe array', (value, expected) => {
   expect(runtimeConfig({ SKYTRACE_HIDDEN_DIDS: value })).toMatchObject({ hiddenDids: expected })
+})
+
+it('exposes the configured donation interval and rejects executable input', () => {
+  expect(runtimeConfig({ SKYTRACE_DONATE_REMINDER_DAYS: '7' })).toMatchObject({ donateReminderDays: 7 })
+  expect(runtimeConfig({ SKYTRACE_DONATE_REMINDER_DAYS: '7;alert(1)' })).toMatchObject({ donateReminderDays: null })
 })
