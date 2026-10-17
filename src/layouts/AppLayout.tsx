@@ -1,5 +1,5 @@
 import { HeartIcon } from '@heroicons/react/24/outline'
-import { CloudRain } from 'lucide-react'
+import { RainCloud } from '../components/ui/RainCloud'
 import { Link, Outlet, ScrollRestoration } from 'react-router-dom'
 import { useRouteMetadata } from '../routes/metadata'
 import { ActorSearch } from '../components/actors/ActorSearch'
@@ -21,10 +21,7 @@ export function AppLayout() {
         <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <div className="mx-auto flex h-12 max-w-[1440px] items-center gap-5 px-4 sm:px-6 lg:px-8">
             <Link to="/" className="flex shrink-0 items-center gap-2.5">
-              <CloudRain
-                className="rain-cloud size-5 shrink-0 stroke-[1.8] text-violet-600 dark:text-violet-400"
-                aria-hidden="true"
-              />
+              <RainCloud className="rain-cloud size-5 shrink-0 stroke-[1.8] text-violet-600 dark:text-violet-400" />
               <span className="text-base font-semibold">SkyTrace</span>
             </Link>
             <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-3">

@@ -1,5 +1,5 @@
 import { HeartIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
-import { CloudRain } from 'lucide-react'
+import { RainCloud } from '../components/ui/RainCloud'
 import { ActorSearch } from '../components/actors/ActorSearch'
 
 export function HomePage() {
@@ -7,10 +7,7 @@ export function HomePage() {
     <div className="home-hero flex w-full flex-1 items-center justify-center overflow-hidden text-center">
       <title>SkyTrace — Explore Bluesky blocks, labels, lists, and posts</title>
       <div className="mx-auto w-full max-w-2xl pb-4">
-        <CloudRain
-          className="rain-cloud pointer-events-none mx-auto mb-5 size-40 overflow-visible stroke-[1.2] text-violet-500 dark:text-violet-400 sm:size-56"
-          aria-hidden="true"
-        />
+        <RainCloud className="rain-cloud pointer-events-none mx-auto mb-5 size-40 overflow-visible stroke-[1.2] text-violet-500 dark:text-violet-400 sm:size-56" />
         <h1 className="mx-auto text-4xl font-semibold tracking-[-0.035em] text-zinc-950 dark:text-zinc-100 sm:text-6xl">
           SkyTrace
         </h1>
