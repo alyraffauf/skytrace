@@ -1,16 +1,16 @@
 import { useSyncExternalStore } from 'react'
 
-const fallbackLanguages = ['en']
-
 function subscribe(onChange: () => void) {
   window.addEventListener('languagechange', onChange)
   return () => window.removeEventListener('languagechange', onChange)
 }
 
-function getLanguages() {
-  return navigator.languages
+function getLanguageSnapshot() {
+  // Safari can return a fresh languages array on every read.
+  return JSON.stringify(navigator.languages)
 }
 
 export function usePreferredLanguages() {
-  return useSyncExternalStore(subscribe, getLanguages, () => fallbackLanguages)
+  const snapshot = useSyncExternalStore(subscribe, getLanguageSnapshot, () => '["en"]')
+  return JSON.parse(snapshot) as string[]
 }

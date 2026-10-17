@@ -62,7 +62,8 @@ it('uses updated definitions and language preferences on later calculations', as
     negated: false,
   }
   const labels = [label]
-  const languages = vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['fr-CA'])
+  let preferredLanguages = ['fr-CA']
+  vi.spyOn(navigator, 'languages', 'get').mockImplementation(() => [...preferredLanguages])
   let finish!: (definitions: LabelValueDefinition[]) => void
   const pending = new Promise<LabelValueDefinition[]>((resolve) => {
     finish = resolve
@@ -98,7 +99,7 @@ it('uses updated definitions and language preferences on later calculations', as
     await refresh
   })
   await waitFor(() => expect(result.current.get(label.id)).toBe('French'))
-  languages.mockReturnValue(['de'])
+  preferredLanguages = ['de']
   await act(async () => {
     window.dispatchEvent(new Event('languagechange'))
   })
