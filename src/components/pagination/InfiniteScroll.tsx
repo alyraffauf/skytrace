@@ -1,6 +1,6 @@
 import { useDelayedFlag } from '../../hooks/useDelayedFlag'
 import { ArrowPathIcon } from '@heroicons/react/24/outline'
-import { useEffect, useEffectEvent, useRef } from 'react'
+import { useInfiniteScrollTrigger } from '../../hooks/useInfiniteScrollTrigger'
 
 type InfiniteScrollProps = {
   hasMore: boolean
@@ -12,27 +12,8 @@ type InfiniteScrollProps = {
 }
 
 export function InfiniteScroll({ hasMore, loading, disabled = false, error, load, resetKey }: InfiniteScrollProps) {
-  const sentinelRef = useRef<HTMLDivElement>(null)
-  const loadNextPage = useEffectEvent(() => load())
+  const sentinelRef = useInfiniteScrollTrigger({ hasMore, loading, disabled, error, resetKey, load })
   const loadingIndicatorVisible = useDelayedFlag(loading)
-
-  // Fast cached pages can finish without rendering a loading state. Reobserve when page data changes.
-  useEffect(() => {
-    const sentinel = sentinelRef.current
-    if (!sentinel || !hasMore || loading || disabled || error) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return
-        observer.disconnect()
-        loadNextPage()
-      },
-      { rootMargin: '160px 0px' },
-    )
-
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [disabled, error, hasMore, loading, resetKey])
 
   if (!hasMore) return null
   return (

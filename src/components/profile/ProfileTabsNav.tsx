@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useActiveProfileTabScroll } from '../../hooks/useActiveProfileTabScroll'
 import { NavLink, useLocation } from 'react-router-dom'
 import { profilePath, profileTabPath } from '../../routes/paths'
 import { PROFILE_TABS } from '../../routes/profileTabs'
@@ -13,20 +13,7 @@ export function ProfileTabsNav({
   blockedByCount?: number
 }) {
   const location = useLocation()
-  const tabListRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const tabList = tabListRef.current
-    const activeTab = tabList?.querySelector<HTMLElement>('[aria-current="page"]')
-    if (!tabList || !activeTab) return
-    const left = activeTab.offsetLeft
-    const right = left + activeTab.offsetWidth
-    if (left < tabList.scrollLeft || right > tabList.scrollLeft + tabList.clientWidth) {
-      tabList.scrollTo({
-        behavior: 'smooth',
-        left: left - (tabList.clientWidth - activeTab.offsetWidth) / 2,
-      })
-    }
-  }, [blockedByCount, blockedCount, location.pathname])
+  const tabListRef = useActiveProfileTabScroll({ pathname: location.pathname, blockedCount, blockedByCount })
 
   return (
     <nav

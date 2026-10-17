@@ -1,19 +1,14 @@
+import { ListMembers } from '../components/lists/ListMembers'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { isRecordKey } from '@atcute/lexicons/syntax'
 import { useParams } from 'react-router-dom'
 import { MiniActor } from '../components/actors/ActorIdentity'
-import { PagedQueryView } from '../components/pagination/PagedQuery'
 import { ListAvatar } from '../components/lists/ListRow'
 import { RecordLinksMenu } from '../components/records/RecordLinksMenu'
-import { RecordList } from '../components/records/RecordList'
-import { StreamedListMemberRow } from '../components/lists/StreamedMembershipRows'
-import { EmptyState, ErrorState, LoadingRows, UnavailableCard } from '../components/ui/States'
+import { ErrorState, LoadingRows, UnavailableCard } from '../components/ui/States'
 import { formatDate } from '../lib/dates'
 import { publicDataServiceFor, type PublicDataService } from '../data/publicData'
-import { queryKeys } from '../data/queryKeys'
 import { listPurposeLabel } from '../lib/lists'
-import { dedupeBy } from '../lib/collections'
-import { usePagedRecords } from '../hooks/usePagedRecords'
 import { useRouteActor } from '../hooks/useRouteActor'
 import type { ListSummary } from '../types'
 
@@ -62,10 +57,6 @@ function UnavailableListPage({ reason }: { reason: string }) {
 function ResolvedListPage({ list, service }: { list: ListSummary; service: PublicDataService }) {
   const moderationListUri = list.purpose.endsWith('#modlist') ? list.uri : undefined
   const listBlockCountQuery = useQuery(service.core.listBlockCountQueryOptions(moderationListUri))
-  const membersQuery = usePagedRecords<{ uri: string }>(queryKeys.listMembers(list.uri), (cursor, signal) =>
-    service.graph.listMembers(list.uri, cursor, signal),
-  )
-  const members = dedupeBy(membersQuery.data?.pages.flatMap((page) => page.items) ?? [], (reference) => reference.uri)
 
   return (
     <article className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
@@ -98,34 +89,7 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
         </div>
       )}
 
-      <div className="flex items-center justify-between border-b border-zinc-200 py-3 dark:border-zinc-800">
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Members</h2>
-        <span className="hidden w-[10.5rem] pr-[2.5rem] text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 sm:block">
-          Date added
-        </span>
-      </div>
-
-      {membersQuery.isPending ? (
-        <LoadingRows count={6} />
-      ) : !membersQuery.data ? (
-        <ErrorState error={membersQuery.error} retry={() => void membersQuery.refetch()} />
-      ) : (
-        <PagedQueryView query={membersQuery} resourceLabel="members">
-          {membersQuery.isSuccess && members.length === 0 && <EmptyState title="No members found" />}
-          {members.length > 0 && (
-            <RecordList>
-              {members.map((member) => (
-                <StreamedListMemberRow
-                  key={member.uri}
-                  listUri={list.uri}
-                  membershipUri={member.uri}
-                  service={service}
-                />
-              ))}
-            </RecordList>
-          )}
-        </PagedQueryView>
-      )}
+      <ListMembers listUri={list.uri} graph={service.graph} />
     </article>
   )
 }

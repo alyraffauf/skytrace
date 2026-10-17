@@ -3,8 +3,9 @@ import type { ProfileOutletContext } from './profileContext'
 import { AccountDetails } from '../components/profile/AccountDetails'
 import { ProfileTabsNav } from '../components/profile/ProfileTabsNav'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Suspense, useLayoutEffect } from 'react'
-import { Link, Outlet, useLocation, useNavigationType } from 'react-router-dom'
+import { Suspense } from 'react'
+import { useProfileScrollReset } from '../hooks/useProfileScrollReset'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { LinkifiedText } from '../components/ui/LinkifiedText'
 import { RecordLinksMenu } from '../components/records/RecordLinksMenu'
 import { ActorAvatar, actorHandle, actorLabel } from '../components/actors/ActorIdentity'
@@ -19,16 +20,13 @@ export function ProfileLayout() {
   const actor = useRouteActor()
   const service = publicDataServiceFor(useQueryClient())
   const location = useLocation()
-  const navigationType = useNavigationType()
   const visibilityQuery = useQuery(service.profileVisibility.queryOptions(actor))
   const visibleIdentity =
     visibilityQuery.isSuccess && visibilityQuery.data.visible ? visibilityQuery.data.profile.identity : undefined
   const blockedCountQuery = useQuery(service.core.blockedCountQueryOptions(visibleIdentity))
   const blockedByCountQuery = useQuery(service.core.blockedByCountQueryOptions(visibleIdentity?.did))
 
-  useLayoutEffect(() => {
-    if (navigationType !== 'POP') window.scrollTo({ top: 0, left: 0 })
-  }, [location.pathname, location.search, navigationType])
+  useProfileScrollReset()
 
   let content
   let title = 'Profile — SkyTrace'

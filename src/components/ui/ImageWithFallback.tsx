@@ -1,5 +1,5 @@
 import { PhotoIcon, UserIcon } from '@heroicons/react/24/outline'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useImageLoadStatus } from '../../hooks/useImageLoadStatus'
 
 type ImageWithFallbackProps = React.ImgHTMLAttributes<HTMLImageElement> & {
   fallback: 'avatar' | 'image'
@@ -14,16 +14,7 @@ export function ImageWithFallback({
   src,
   ...props
 }: ImageWithFallbackProps) {
-  const imageRef = useRef<HTMLImageElement>(null)
-  const [status, setStatus] = useState({ src, failed: false, loaded: false })
-  const failed = status.src === src && status.failed
-  const loaded = status.src === src && status.loaded
-
-  useLayoutEffect(() => {
-    const image = imageRef.current
-    if (!src || !image?.complete) return
-    setStatus({ src, failed: image.naturalWidth === 0, loaded: image.naturalWidth > 0 })
-  }, [src])
+  const { imageRef, failed, loaded, handleLoad, handleError } = useImageLoadStatus(src)
 
   if (failed || !src) {
     const Icon = fallback === 'avatar' ? UserIcon : PhotoIcon
@@ -50,11 +41,11 @@ export function ImageWithFallback({
       data-loaded={loaded || undefined}
       className={`${props.className ?? ''} media-image`}
       onLoad={(event) => {
-        setStatus({ src, failed: false, loaded: true })
+        handleLoad()
         onLoad?.(event)
       }}
       onError={(event) => {
-        setStatus({ src, failed: true, loaded: false })
+        handleError()
         onError?.(event)
       }}
     />

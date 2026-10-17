@@ -1,11 +1,10 @@
 import { ActorSuggestions } from './ActorSuggestions'
-import { useActorSuggestions } from '../../hooks/useActorSuggestions'
+import { useActorCombobox } from '../../hooks/useActorCombobox'
 import { ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import { type FormEvent, type KeyboardEvent, useId, useState } from 'react'
+import { type FormEvent, useId, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { normalizeActorInput } from '../../lib/parse'
 import { profilePath } from '../../routes/paths'
-import type { ActorSuggestion } from '../../types'
 
 type ActorSearchProps = {
   autoFocus?: boolean
@@ -17,47 +16,26 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
   const listboxId = useId()
   const inputId = compact ? 'header-actor-search' : 'actor-search'
   const errorId = compact ? 'header-search-error' : 'search-error'
-  const [input, setInput] = useState('')
   const [error, setError] = useState('')
-  const [hasFocus, setHasFocus] = useState(false)
-  const [isDismissed, setIsDismissed] = useState(false)
-  const [activeIndex, setActiveIndex] = useState(-1)
-  const [keyboardSelection, setKeyboardSelection] = useState(false)
-  const { suggestions, isFetching, canShowSuggestions } = useActorSuggestions({ input, hasFocus })
-  const showSuggestions = canShowSuggestions && !isDismissed
-
-  if (activeIndex >= suggestions.length) {
-    setActiveIndex(suggestions.length - 1)
-  }
-
-  function selectSuggestion(suggestion: ActorSuggestion) {
-    setInput(`@${suggestion.handle}`)
-    setError('')
-    setIsDismissed(true)
-    navigate(profilePath(suggestion.did))
-  }
-
-  function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'Escape' && showSuggestions) {
-      event.preventDefault()
-      setIsDismissed(true)
-      setActiveIndex(-1)
-      return
-    }
-    if (!showSuggestions || suggestions.length === 0) return
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      setKeyboardSelection(true)
-      setActiveIndex((current) => (current + 1) % suggestions.length)
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      setKeyboardSelection(true)
-      setActiveIndex((current) => (current <= 0 ? suggestions.length - 1 : current - 1))
-    } else if (event.key === 'Enter') {
-      event.preventDefault()
-      selectSuggestion(suggestions[activeIndex >= 0 ? activeIndex : 0])
-    }
-  }
+  const {
+    input,
+    suggestions,
+    isFetching,
+    showSuggestions,
+    activeIndex,
+    keyboardSelection,
+    changeInput,
+    handleFocus,
+    handleBlur,
+    handleInputKeyDown,
+    selectPointerIndex,
+    selectSuggestion,
+  } = useActorCombobox({
+    onSelect: (suggestion) => {
+      setError('')
+      navigate(profilePath(suggestion.did))
+    },
+  })
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -73,10 +51,8 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
   return (
     <form
       onSubmit={submit}
-      onFocus={() => setHasFocus(true)}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setHasFocus(false)
-      }}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       className={compact ? 'relative w-full max-w-md' : 'relative w-full'}
       noValidate
     >
@@ -92,9 +68,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
           id={inputId}
           value={input}
           onChange={(event) => {
-            setInput(event.target.value)
-            setIsDismissed(false)
-            setActiveIndex(-1)
+            changeInput(event.target.value)
             if (error) setError('')
           }}
           onKeyDown={handleInputKeyDown}
@@ -125,10 +99,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
           isFetching={isFetching}
           activeIndex={activeIndex}
           keyboardSelection={keyboardSelection}
-          onActiveIndexChange={(index) => {
-            setKeyboardSelection(false)
-            setActiveIndex(index)
-          }}
+          onActiveIndexChange={selectPointerIndex}
           onSelect={selectSuggestion}
         />
       )}
