@@ -120,7 +120,7 @@ it('pauses for source issues and retries the next page with its cursor', async (
   expect(load.mock.calls[0][1]).toEqual(cursor)
 })
 
-it('shows one label row when AppView and provider pages repeat the same event', async () => {
+it('orders mixed pages and shows one row for repeated labels and unavailable records', async () => {
   const { client, load, mount } = setup({ cached: false })
   const sourceDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
   client.setQueryData(queryKeys.labelDefinitions(sourceDid), [])
@@ -138,11 +138,23 @@ it('shows one label row when AppView and provider pages repeat the same event', 
     createdAt: '2026-01-01T00:00:00Z',
     negated: false,
   }
-  load.mockResolvedValueOnce({ items: [event], cursor }).mockResolvedValueOnce({ items: [event] })
+  const newer = { ...event, id: 'newer', value: 'newer-label', createdAt: '2026-02-01T00:00:00Z' }
+  const older = { ...event, id: 'older', value: 'older-label', createdAt: '2025-12-01T00:00:00Z' }
+  load
+    .mockResolvedValueOnce({ items: [cached, event, newer], cursor })
+    .mockResolvedValueOnce({ items: [older, event, cached] })
   mount()
   await waitFor(() => expect(load).toHaveBeenCalledTimes(2))
   await waitFor(() => expect(client.getQueryData<{ pages: unknown[] }>(key)?.pages).toHaveLength(2))
   expect(screen.getAllByText('shared-label')).toHaveLength(1)
+  const rows = screen.getAllByRole('article')
+  expect(rows[0]).toHaveTextContent('newer-label')
+  expect(rows[1]).toHaveTextContent('shared-label')
+  expect(rows[2]).toHaveTextContent('older-label')
+  expect(screen.getAllByText('Cached label row')).toHaveLength(1)
+  expect(
+    rows[2].compareDocumentPosition(screen.getByText('Cached label row')) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy()
 })
 
 describe('account label eager pagination', () => {

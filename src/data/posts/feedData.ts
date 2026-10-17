@@ -1,6 +1,5 @@
 import { AppBskyFeedRepost } from '@atcute/bluesky'
 import type { ActorIdentity, FeedItem, FeedPost, Page, RepositoryRecord } from '../../types'
-import { mergeFeedItems } from '../../lib/posts/feed'
 import { timestampFor } from '../../lib/sorting'
 import { readFeedState, type FeedPagingState, type FeedStreamState } from './feedPaging'
 import type { PostDataService } from './postData'
@@ -65,7 +64,7 @@ export class FeedDataService {
     const hasMore =
       state.posts.records.length > 0 || state.reposts.records.length > 0 || !state.posts.done || !state.reposts.done
     return {
-      items: mergeFeedItems(items),
+      items,
       cursor: hasMore ? state : undefined,
     }
   }

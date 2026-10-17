@@ -81,9 +81,9 @@ describe('feed merging', () => {
   it('deduplicates and sorts all activity chronologically', () => {
     const older = post(`at://${did}/app.bsky.feed.post/old`, '2026-01-01T00:00:00Z')
     const newer = post(`at://${did}/app.bsky.feed.post/new`, '2026-02-01T00:00:00Z')
-    expect(
-      mergeFeedItems([older, newer, older]).map((item) => (item.kind === 'unavailable' ? item.id : item.uri)),
-    ).toEqual([newer.uri, older.uri])
+    const unavailable = { kind: 'unavailable' as const, id: 'missing', reason: 'Deleted' }
+    const duplicate = { ...older, text: 'Later copy', createdAt: '2026-03-01T00:00:00Z' }
+    expect(mergeFeedItems([unavailable, older, newer, duplicate, unavailable])).toEqual([newer, older, unavailable])
   })
 })
 

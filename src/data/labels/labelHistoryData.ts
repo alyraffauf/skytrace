@@ -1,10 +1,9 @@
 import { SERVICE_URLS } from '../../config/serviceUrls'
-import { newestFirst, timestampFor } from '../../lib/sorting'
+import { timestampFor } from '../../lib/sorting'
 import type { LabelEvent, Page, UnavailableItem } from '../../types'
 import type { PublicDataCore } from '../publicDataCore'
 import type { LabelerDataService } from './labelerData'
 import { throwIfAborted } from '../../lib/abort'
-import { dedupeBy } from '../../lib/collections'
 import { LABEL_PAGE_SIZE, readLabelState, type LabelPagingState, type ProviderPagingState } from './labelPaging'
 import { loadProviderLabelPage } from './providerLabels'
 import { hasCursor } from '../cursorHistory'
@@ -89,7 +88,7 @@ export class LabelHistoryDataService {
         state.appViewCursorHistory = { cursor: page.cursor, previous: state.appViewCursorHistory }
       }
       return {
-        items: orderedHistoryItems(page.items),
+        items: page.items,
         cursor: !state.appViewDone || state.providers.length > 0 ? state : undefined,
       }
     }
@@ -124,15 +123,9 @@ export class LabelHistoryDataService {
       }
       const items = page.items.filter((item) => item.kind === 'unavailable' || item.sourceDid === provider.did)
       return {
-        items: orderedHistoryItems(items),
+        items,
         cursor: state.providers.some((candidate) => !candidate.done) ? state : undefined,
       }
     }
   }
-}
-
-function orderedHistoryItems(items: Array<LabelEvent | UnavailableItem>): Array<LabelEvent | UnavailableItem> {
-  const labels = items.filter((item): item is LabelEvent => item.kind === 'labelEvent')
-  const unavailableItems = items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
-  return newestFirst([...dedupeBy(labels, (label) => label.id), ...unavailableItems])
 }

@@ -1,6 +1,5 @@
 import type { ActorIdentity, LabeledPost, LabelEvent, Page, RawRecord } from '../../types'
 import { newestFirst } from '../../lib/sorting'
-import { compareLabeledPostsNewestFirst } from '../../lib/posts/labeledPosts'
 import type { SubjectLabelsDataService } from '../labels/subjectLabelsData'
 import type { PostDataService } from './postData'
 import type { PublicDataCore } from '../publicDataCore'
@@ -53,7 +52,6 @@ export class LabeledPostsDataService {
       }),
     )
     const items = labeledPosts.filter((item) => item !== undefined)
-    items.sort(compareLabeledPostsNewestFirst)
     if (!postsPage.cursor) return { items }
     if (hasCursor(cursor?.repositoryCursorHistory, postsPage.cursor))
       throw new PublicDataValidationError('The PDS repeated a labeled-post cursor.')
