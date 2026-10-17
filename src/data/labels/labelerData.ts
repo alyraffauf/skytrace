@@ -1,4 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
+import { AppBskyLabelerService } from '@atcute/bluesky'
 import { getLabelerEndpoint, isPlcDid, isWebDid } from '@atcute/identity'
 import type { ActorIdentity, LabelValueDefinition } from '../../types'
 import type { PublicDataCore } from '../publicDataCore'
@@ -6,7 +7,7 @@ import type { SharedQueryRequests } from '../runtime/sharedQueryRequests'
 import { CACHE_TTL_MS } from '../runtime/cachePolicy'
 import { didDocumentResolver } from '../api/didDocumentResolver'
 import { queryKeys } from '../queryKeys'
-import { labelDefinitionsFromRecord } from './definitionsParser'
+import { parsedRecord } from '../recordValues'
 
 export class LabelerDataService {
   constructor(
@@ -19,7 +20,8 @@ export class LabelerDataService {
       queryKey: queryKeys.labelDefinitions(did),
       queryFn: async ({ signal }): Promise<LabelValueDefinition[]> => {
         const uri = `at://${did}/app.bsky.labeler.service/self`
-        return labelDefinitionsFromRecord(await this.core.record(uri, signal))
+        const value = parsedRecord(AppBskyLabelerService.mainSchema, await this.core.record(uri, signal))
+        return value?.policies.labelValueDefinitions ?? []
       },
       staleTime: CACHE_TTL_MS.identity,
     })
