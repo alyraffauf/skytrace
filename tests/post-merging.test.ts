@@ -1,9 +1,71 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mergeFeedItems } from '../src/lib/posts/feed'
 import { mergeLabeledPosts } from '../src/lib/posts/labeledPosts'
 import type { FeedPost, LabeledPost, LabelEvent } from '../src/types'
 import { did, actorReference } from './actorFixtures'
+
+const labeledPost: FeedPost = {
+  kind: 'post',
+  uri: `at://${did}/app.bsky.feed.post/merge`,
+  author: actorReference,
+  createdAt: '2026-01-01T00:00:00Z',
+  text: 'First post',
+  facets: [],
+}
+
+function label(id: string, extra: Partial<LabelEvent> = {}): LabelEvent {
+  return {
+    kind: 'labelEvent',
+    id,
+    sourceDid: did,
+    subject: labeledPost.uri,
+    value: id,
+    createdAt: '2026-01-01T00:00:00Z',
+    negated: false,
+    ...extra,
+  }
+}
+
+it('keeps the original item when duplicate posts add no labels', () => {
+  const first: LabeledPost = { kind: 'labeledPost', post: labeledPost, labels: [label('original')] }
+  const duplicate: LabeledPost = {
+    kind: 'labeledPost',
+    post: { ...labeledPost, text: 'Later copy' },
+    labels: [label('original', { expiresAt: '2027-01-01T00:00:00Z' })],
+  }
+  expect(mergeLabeledPosts([first, duplicate])[0]).toBe(first)
+})
+
+it('applies replacements only with new labels and preserves ties across duplicate batches', () => {
+  const original = label('original')
+  const added = label('added')
+  const replaced = label('original', { expiresAt: '2027-01-01T00:00:00Z' })
+  const items: LabeledPost[] = [
+    { kind: 'labeledPost', post: labeledPost, labels: [original] },
+    { kind: 'labeledPost', post: { ...labeledPost, text: 'Later copy' }, labels: [replaced, added] },
+    { kind: 'labeledPost', post: labeledPost, labels: [original] },
+    { kind: 'labeledPost', post: labeledPost, labels: [label('last')] },
+  ]
+  expect(mergeLabeledPosts(items)).toEqual([
+    { kind: 'labeledPost', post: labeledPost, labels: [replaced, added, label('last')] },
+  ])
+})
+
+it('parses dates only linearly when duplicate posts each add a label', () => {
+  const count = 1_000
+  const items: LabeledPost[] = Array.from({ length: count }, (_, index) => ({
+    kind: 'labeledPost',
+    post: labeledPost,
+    labels: [label(String(index))],
+  }))
+  const parseDate = vi.spyOn(Date, 'parse')
+  const merged = mergeLabeledPosts(items)
+  expect(merged[0]?.labels).toHaveLength(count)
+  expect(merged[0]?.labels[0]?.id).toBe('0')
+  expect(merged[0]?.labels.at(-1)?.id).toBe('999')
+  expect(parseDate.mock.calls.length).toBeLessThanOrEqual(count * 2)
+})
 
 describe('feed merging', () => {
   const post = (uri: FeedPost['uri'], createdAt: string, extra: Partial<FeedPost> = {}): FeedPost => ({
