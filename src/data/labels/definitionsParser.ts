@@ -9,7 +9,6 @@ export function labelDefinitionsFromRecord(record?: RawRecord): LabelValueDefini
     locales: definition.locales.map((locale) => ({
       lang: locale.lang,
       name: locale.name,
-      description: locale.description,
     })),
   }))
 }

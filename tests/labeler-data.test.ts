@@ -30,7 +30,7 @@ it('loads labeler definitions through the shared record cache', async () => {
   expect(definitions).toEqual([
     {
       identifier: 'many-replies',
-      locales: [{ lang: 'en', name: 'Frequent replier', description: 'Replies often.' }],
+      locales: [{ lang: 'en', name: 'Frequent replier' }],
     },
   ])
   expect(fetch).toHaveBeenCalledOnce()

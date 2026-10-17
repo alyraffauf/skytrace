@@ -1,4 +1,3 @@
-import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { PublicDataService, publicDataServiceFor } from '../src/data/publicData'
 import { CACHE_TTL_MS } from '../src/data/runtime/cachePolicy'
@@ -25,7 +24,7 @@ describe('shared requests', () => {
       )
     })
     vi.stubGlobal('fetch', fetchMock)
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
+    const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
 
     await service.actors.identity('atproto.com')

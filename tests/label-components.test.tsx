@@ -87,8 +87,8 @@ describe('account labels', () => {
       {
         identifier: 'many-replies',
         locales: [
-          { lang: 'en', name: 'Frequent replier', description: 'Replies often.' },
-          { lang: 'fr', name: 'Répond souvent', description: 'Répond fréquemment.' },
+          { lang: 'en', name: 'Frequent replier' },
+          { lang: 'fr', name: 'Répond souvent' },
         ],
       },
     ]
@@ -123,7 +123,7 @@ describe('account labels', () => {
     expect(definitions).toEqual([
       {
         identifier: 'many-replies',
-        locales: [{ lang: 'en', name: 'Frequent replier', description: 'Replies often.' }],
+        locales: [{ lang: 'en', name: 'Frequent replier' }],
       },
     ])
   })

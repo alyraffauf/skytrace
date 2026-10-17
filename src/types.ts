@@ -85,7 +85,6 @@ export type LabelValueDefinition = {
   locales: Array<{
     lang: string
     name: string
-    description: string
   }>
 }
 
