@@ -37,6 +37,25 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
     },
   })
 
+  const inputBaseClassName =
+    'w-full border bg-white text-zinc-950 outline-none placeholder:text-zinc-400 focus-visible:border-violet-500 focus-visible:ring-1 focus-visible:ring-violet-500 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus-visible:border-violet-400 dark:focus-visible:ring-violet-400'
+  const inputSizeClassName = compact
+    ? 'h-8 rounded-sm pl-10 pr-11 text-base md:text-sm'
+    : 'h-14 rounded-md pl-12 pr-14 text-base shadow-[0_10px_35px_-22px_rgba(124,58,237,0.45)]'
+  let inputBorderClassName: string
+  if (error) {
+    inputBorderClassName = 'border-red-500'
+  } else if (compact) {
+    inputBorderClassName = 'border-zinc-500 hover:border-zinc-700 dark:border-zinc-500 dark:hover:border-zinc-300'
+  } else {
+    inputBorderClassName =
+      'border-violet-500 hover:border-violet-700 dark:border-violet-500 dark:hover:border-violet-300'
+  }
+  const buttonBaseClassName = 'absolute top-1/2 grid -translate-y-1/2 place-items-center'
+  const buttonVariantClassName = compact
+    ? 'right-0 size-10 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'
+    : 'right-0 size-14 text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-200'
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     try {
@@ -82,12 +101,12 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
           role="combobox"
           autoComplete="off"
           autoFocus={autoFocus}
-          className={`${compact ? 'h-8 rounded-sm pl-10 pr-11 text-base md:text-sm' : 'h-14 rounded-md pl-12 pr-14 text-base shadow-[0_10px_35px_-22px_rgba(124,58,237,0.45)]'} w-full border bg-white text-zinc-950 outline-none placeholder:text-zinc-400 focus-visible:border-violet-500 focus-visible:ring-1 focus-visible:ring-violet-500 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus-visible:border-violet-400 dark:focus-visible:ring-violet-400 ${error ? 'border-red-500' : compact ? 'border-zinc-500 hover:border-zinc-700 dark:border-zinc-500 dark:hover:border-zinc-300' : 'border-violet-500 hover:border-violet-700 dark:border-violet-500 dark:hover:border-violet-300'}`}
+          className={`${inputSizeClassName} ${inputBaseClassName} ${inputBorderClassName}`}
         />
         <button
           type="submit"
           aria-label="Explore profile"
-          className={`${compact ? 'right-0 size-10 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100' : 'right-0 size-14 text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-200'} absolute top-1/2 grid -translate-y-1/2 place-items-center`}
+          className={`${buttonVariantClassName} ${buttonBaseClassName}`}
         >
           <ArrowRightIcon className="size-4" aria-hidden="true" />
         </button>

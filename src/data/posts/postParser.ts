@@ -11,12 +11,12 @@ export function decodePostRecord(record: RawRecord): Omit<FeedPost, 'repositoryP
   if (!uri || !value) return unavailable(record.uri, 'This post is malformed or unavailable.')
   const embed = value.embed
   const mediaEmbed = embed?.$type === 'app.bsky.embed.recordWithMedia' ? embed.media : embed
-  const quoteUri =
-    embed?.$type === 'app.bsky.embed.recordWithMedia'
-      ? embed.record.record.uri
-      : embed?.$type === 'app.bsky.embed.record'
-        ? embed.record.uri
-        : undefined
+  let quoteUri: string | undefined
+  if (embed?.$type === 'app.bsky.embed.recordWithMedia') {
+    quoteUri = embed.record.record.uri
+  } else if (embed?.$type === 'app.bsky.embed.record') {
+    quoteUri = embed.record.uri
+  }
   const replyTo = value.reply?.parent.uri
   const images =
     mediaEmbed?.$type === 'app.bsky.embed.images' && mediaEmbed.images.length > 0

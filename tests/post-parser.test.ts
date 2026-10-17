@@ -4,6 +4,21 @@ import type { RawRecord } from '../src/types'
 import { cid, did } from './actorFixtures'
 import { repositoryRecord } from './testUtils'
 
+it('keeps a quoted record without media', () => {
+  const uri = `at://${did}/app.bsky.feed.post/quote-only` as const
+  const quoteUri = `at://${did}/app.bsky.feed.post/original` as const
+  const record: RawRecord = {
+    ...repositoryRecord(uri, {
+      $type: 'app.bsky.feed.post',
+      text: 'Quoted',
+      createdAt: '2026-01-01T00:00:00Z',
+      embed: { $type: 'app.bsky.embed.record', record: { uri: quoteUri, cid } },
+    }),
+    uri,
+  }
+  expect(decodePostRecord(record)).toMatchObject({ kind: 'post', quoteUri, images: undefined, video: undefined })
+})
+
 it('decodes text, facets, media, and a quoted record without fetching identity', () => {
   const fetch = vi.fn(() => {
     throw new Error('Post decoding must not fetch.')

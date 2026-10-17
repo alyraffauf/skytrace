@@ -35,17 +35,21 @@ function RichText({ text, facets, className }: { text: string; facets: Facet[]; 
       {splitFacetedText(text, facets).map((part, index) => {
         const externalHref = part.facet?.href && safeHttpUrl(part.facet.href)
         const mentionPath = part.facet?.mentionDid ? profilePath(part.facet.mentionDid) : undefined
-        return mentionPath ? (
-          <Link key={index} to={mentionPath} className={richTextLinkClassName}>
-            {part.text}
-          </Link>
-        ) : externalHref ? (
-          <a key={index} href={externalHref} target="_blank" rel="noreferrer" className={richTextLinkClassName}>
-            {part.text}
-          </a>
-        ) : (
-          <Fragment key={index}>{part.text}</Fragment>
-        )
+        if (mentionPath) {
+          return (
+            <Link key={index} to={mentionPath} className={richTextLinkClassName}>
+              {part.text}
+            </Link>
+          )
+        }
+        if (externalHref) {
+          return (
+            <a key={index} href={externalHref} target="_blank" rel="noreferrer" className={richTextLinkClassName}>
+              {part.text}
+            </a>
+          )
+        }
+        return <Fragment key={index}>{part.text}</Fragment>
       })}
     </p>
   )

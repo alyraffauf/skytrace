@@ -1,9 +1,9 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { splitFacetedText } from '../src/components/feed/PostContent'
+import { PostContent, splitFacetedText } from '../src/components/feed/PostContent'
 import { LinkifiedText } from '../src/components/ui/LinkifiedText'
 import { parseFacets } from '../src/data/posts/postParser'
-import { did } from './actorFixtures'
+import { actorReference, did } from './actorFixtures'
 import { renderWithRouter } from './profileTestUtils'
 
 describe('plain text links', () => {
@@ -19,6 +19,34 @@ describe('plain text links', () => {
 })
 
 describe('UTF-8 facets', () => {
+  it('prefers mentions over external links and leaves unsafe targets as text', () => {
+    const mention = '@alice.test'
+    const url = 'https://example.com'
+    const text = `${mention} ${url} unsafe`
+    const urlStart = mention.length + 1
+    const unsafeStart = urlStart + url.length + 1
+    renderWithRouter(
+      <PostContent
+        post={{
+          kind: 'post',
+          uri: `at://${did}/app.bsky.feed.post/links`,
+          author: actorReference,
+          createdAt: '2026-01-01T00:00:00Z',
+          text,
+          facets: [
+            { byteStart: 0, byteEnd: mention.length, mentionDid: did, href: 'https://ignored.example' },
+            { byteStart: urlStart, byteEnd: urlStart + url.length, href: url },
+            { byteStart: unsafeStart, byteEnd: text.length, href: 'javascript:alert(1)' },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByRole('link', { name: mention })).toHaveAttribute('href', `/profile/${encodeURIComponent(did)}`)
+    expect(screen.getByRole('link', { name: url })).toHaveAttribute('href', `${url}/`)
+    expect(screen.queryByRole('link', { name: 'unsafe' })).not.toBeInTheDocument()
+    expect(screen.getByText(/unsafe/)).toHaveTextContent(text)
+  })
+
   it('uses byte offsets without splitting multibyte characters', () => {
     const text = 'Hi 🌤️ @alice.test'
     const start = new TextEncoder().encode('Hi 🌤️ ').length

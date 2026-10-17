@@ -5,18 +5,20 @@ export function RouteError() {
   const routeError = useRouteError()
   const isNotFound = isRouteErrorResponse(routeError) && routeError.status === 404
   const preloadFailed = isPreloadError(routeError)
-  const heading = isNotFound
-    ? 'That route went missing'
-    : preloadFailed
-      ? 'This page needs a refresh'
-      : 'This page could not be opened'
-  const message = preloadFailed
-    ? 'Part of this page could not be downloaded. Refresh the page to try again.'
-    : isRouteErrorResponse(routeError)
-      ? routeError.statusText
-      : routeError instanceof Error
-        ? routeError.message
-        : 'This page could not be opened.'
+  let heading = 'This page could not be opened'
+  if (isNotFound) {
+    heading = 'That route went missing'
+  } else if (preloadFailed) {
+    heading = 'This page needs a refresh'
+  }
+  let message = 'This page could not be opened.'
+  if (preloadFailed) {
+    message = 'Part of this page could not be downloaded. Refresh the page to try again.'
+  } else if (isRouteErrorResponse(routeError)) {
+    message = routeError.statusText
+  } else if (routeError instanceof Error) {
+    message = routeError.message
+  }
   return (
     <main className="grid min-h-screen place-items-center bg-white px-4 dark:bg-zinc-950 dark:text-zinc-100">
       <title>{isNotFound ? 'Page not found — SkyTrace' : 'Page unavailable — SkyTrace'}</title>
