@@ -4,7 +4,6 @@ import { AccountDetails } from '../components/profile/AccountDetails'
 import { ProfileTabsNav } from '../components/profile/ProfileTabsNav'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Suspense } from 'react'
-import { useProfileScrollReset } from './useProfileScrollReset'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { LinkifiedText } from '../components/ui/LinkifiedText'
 import { RecordLinksMenu } from '../components/records/RecordLinksMenu'
@@ -25,8 +24,6 @@ export function ProfileLayout() {
     visibilityQuery.isSuccess && visibilityQuery.data.visible ? visibilityQuery.data.profile.identity : undefined
   const blockedCountQuery = useQuery(service.blocks.blockedCountQueryOptions(visibleIdentity))
   const blockedByCountQuery = useQuery(service.blocks.blockedByCountQueryOptions(visibleIdentity?.did))
-
-  useProfileScrollReset()
 
   let content
   let title = 'Profile — SkyTrace'

@@ -2,10 +2,11 @@ import { HomePage } from '../src/pages/HomePage'
 import { queryKeys } from '../src/data/queryKeys'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useNavigate, createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { AccountDetails } from '../src/components/profile/AccountDetails'
 import { ProfileTabsNav } from '../src/components/profile/ProfileTabsNav'
+import { AppLayout } from '../src/layouts/AppLayout'
 import { ProfileLayout } from '../src/layouts/ProfileLayout'
 import { PublicDataService } from '../src/data/publicData'
 import { createTestQueryClient } from './testUtils'
@@ -76,40 +77,33 @@ it('scrolls the active tab on navigation and count changes', () => {
   expect(scroll).toHaveBeenCalledTimes(2)
 })
 
-it('resets page scroll for pushes but leaves back and forward restoration alone', () => {
-  const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
-  const client = createTestQueryClient()
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() => new Promise(() => {})),
+it('resets new navigation, restores saved positions, and scrolls to hash targets', async () => {
+  let position = 0
+  vi.spyOn(window, 'scrollY', 'get').mockImplementation(() => position)
+  const scroll = vi.spyOn(window, 'scrollTo').mockImplementation((_left, top) => {
+    position = top ?? 0
+  })
+  const router = createMemoryRouter(
+    [{ element: <AppLayout />, children: [{ path: '/profile/:actor/:tab?', element: <h1 id="details">Details</h1> }] }],
+    { initialEntries: ['/profile/example.com'] },
   )
-  function Navigation() {
-    const navigate = useNavigate()
-    return (
-      <>
-        <button onClick={() => navigate('/profile/example.com/blocking')}>Push</button>
-        <button onClick={() => navigate(-1)}>Back</button>
-        <button onClick={() => navigate(1)}>Forward</button>
-      </>
-    )
-  }
   render(
-    <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/profile/example.com']}>
-        <Navigation />
-        <Routes>
-          <Route path="/profile/:actor/*" element={<ProfileLayout />} />
-        </Routes>
-      </MemoryRouter>
+    <QueryClientProvider client={createTestQueryClient()}>
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   )
-  expect(document.title).toBe('Profile — SkyTrace')
-  expect(scroll).not.toHaveBeenCalled()
-  fireEvent.click(screen.getByText('Push'))
-  expect(scroll).toHaveBeenCalledExactlyOnceWith({ top: 0, left: 0 })
-  fireEvent.click(screen.getByText('Back'))
-  fireEvent.click(screen.getByText('Forward'))
-  expect(scroll).toHaveBeenCalledTimes(1)
+  scroll.mockClear()
+  position = 240
+  await act(() => router.navigate('/profile/example.com/blocking'))
+  expect(scroll).toHaveBeenLastCalledWith(0, 0)
+  position = 480
+  await act(() => router.navigate(-1))
+  expect(scroll).toHaveBeenLastCalledWith(0, 240)
+  await act(() => router.navigate(1))
+  expect(scroll).toHaveBeenLastCalledWith(0, 480)
+  const details = screen.getByRole('heading', { name: 'Details' })
+  await act(() => router.navigate('/profile/example.com/blocking#details'))
+  expect(details.scrollIntoView).toHaveBeenCalledOnce()
 })
 
 it('updates the browser title between profile tabs and restores it on the homepage', async () => {
