@@ -2,6 +2,7 @@ import Markdown from 'react-markdown'
 import faqMarkdown from '../content/faq.md?raw'
 import { blockTargetDid } from '../config/privacy'
 import { minimumListBlocking } from '../config/listVisibility'
+import { socialProfilePath } from '../lib/links'
 
 function configuredFaqMarkdown(): string {
   const optOutAccountDid = blockTargetDid()
@@ -13,7 +14,7 @@ function configuredFaqMarkdown(): string {
     'minimum-disabled': minimumBlocking === undefined,
   }
   const values: Record<string, string> = {
-    optOutAccountUrl: optOutAccountDid ? `https://bsky.app/profile/${optOutAccountDid}` : '',
+    optOutAccountUrl: optOutAccountDid ? `https://bsky.app${socialProfilePath(optOutAccountDid)}` : '',
     minimumBlocking: minimumBlocking?.toLocaleString() ?? '',
     blockingAccounts: minimumBlocking === 1 ? 'account blocks' : 'accounts block',
   }

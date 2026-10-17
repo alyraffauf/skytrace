@@ -20,7 +20,7 @@ it('explains the configured opt-out account and active minimum', () => {
   render(<FaqPage />)
   expect(screen.getByRole('link', { name: "SkyTrace's Bluesky account" })).toHaveAttribute(
     'href',
-    `https://bsky.app/profile/${did}`,
+    `https://bsky.app/profile/${encodeURIComponent(did)}`,
   )
   expect(screen.getByText(/at least 5 accounts block/)).toBeVisible()
   expect(screen.getByText(/The minimum applies only/)).toBeVisible()

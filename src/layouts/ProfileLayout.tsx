@@ -4,7 +4,7 @@ import { AccountDetails } from '../components/profile/AccountDetails'
 import { ProfileTabsNav } from '../components/profile/ProfileTabsNav'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Suspense, useLayoutEffect } from 'react'
-import { Link, Outlet, useLocation, useNavigationType, useParams } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import { LinkifiedText } from '../components/ui/LinkifiedText'
 import { RecordLinksMenu } from '../components/records/RecordLinksMenu'
 import { ActorAvatar, actorHandle, actorLabel } from '../components/actors/ActorIdentity'
@@ -13,9 +13,10 @@ import { publicDataServiceFor, type PublicDataService } from '../data/publicData
 import { socialProfilePath } from '../lib/links'
 import type { ActorProfile } from '../types'
 import type { ProfileHiddenReason } from '../data/profileVisibility'
+import { useRouteActor } from '../hooks/useRouteActor'
 
 export function ProfileLayout() {
-  const { actor = '' } = useParams()
+  const actor = useRouteActor()
   const service = publicDataServiceFor(useQueryClient())
   const location = useLocation()
   const navigationType = useNavigationType()

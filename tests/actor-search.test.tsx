@@ -94,7 +94,7 @@ it('supports arrow selection, Escape, reopening, and Enter navigation', async ()
   fireEvent.change(input, { target: { value: '@at' } })
   fireEvent.keyDown(input, { key: 'ArrowUp' })
   fireEvent.keyDown(input, { key: 'Enter' })
-  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${actors[1].did}`)
+  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actors[1].did)}`)
   expect(input).toHaveValue('@another.example')
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
 })
@@ -116,7 +116,7 @@ it('protects input focus on pointer selection and hides suggestions on blur', as
   fireEvent.pointerMove(option)
   expect(option).toHaveAttribute('aria-selected', 'true')
   fireEvent.click(option)
-  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${actors[1].did}`)
+  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actors[1].did)}`)
 })
 
 it('validates direct form submissions and navigates without suggestions', () => {
@@ -157,7 +157,7 @@ it('keeps selection valid when cached suggestions shrink, grow, and become empty
   expect(screen.getAllByRole('option').every((option) => option.getAttribute('aria-selected') === 'false')).toBe(true)
   fireEvent.keyDown(input, { key: 'ArrowDown' })
   fireEvent.keyDown(input, { key: 'Enter' })
-  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${actors[0].did}`)
+  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actors[0].did)}`)
 })
 
 async function setupScrollableSuggestions() {
@@ -213,7 +213,7 @@ it('scrolls overflowing keyboard selections into view while preserving input foc
   expect(input).toHaveAttribute('aria-activedescendant', options[0].id)
 
   fireEvent.keyDown(input, { key: 'Enter' })
-  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${manyActors[0].did}`)
+  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(manyActors[0].did)}`)
 })
 
 it('does not scroll the list on pointer selection and resumes scrolling on the next arrow key', async () => {

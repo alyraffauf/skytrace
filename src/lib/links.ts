@@ -15,15 +15,15 @@ export function skythreadPostUrl(uri: string): string | undefined {
 }
 
 export function socialProfilePath(actor: string): string {
-  return `/profile/${actor}`
+  return `/profile/${encodeURIComponent(actor)}`
 }
 
 export function socialPostPath(actor: string, rkey: string): string {
-  return `${socialProfilePath(actor)}/post/${rkey}`
+  return `${socialProfilePath(actor)}/post/${encodeURIComponent(rkey)}`
 }
 
 export function socialListPath(actor: string, rkey: string): string {
-  return `${socialProfilePath(actor)}/lists/${rkey}`
+  return `${socialProfilePath(actor)}/lists/${encodeURIComponent(rkey)}`
 }
 
 export function socialPathForAtUri(uri: string): string | undefined {

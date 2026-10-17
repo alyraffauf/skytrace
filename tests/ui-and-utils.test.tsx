@@ -111,10 +111,10 @@ describe('record links', () => {
     )
     expect(screen.getByRole('link', { name: 'Bluesky' })).toHaveAttribute(
       'href',
-      `https://bsky.app/profile/${did}/post/3example`,
+      `https://bsky.app/profile/${encodeURIComponent(did)}/post/3example`,
     )
     for (const [collection, override, destination] of [
-      ['app.bsky.graph.list', undefined, `/profile/${did}/lists/3example`],
+      ['app.bsky.graph.list', undefined, `/profile/${encodeURIComponent(did)}/lists/3example`],
       ['app.bsky.graph.listitem', '/profile/list-owner/lists/target', '/profile/list-owner/lists/target'],
       ['app.bsky.graph.block', '/profile/blocked-account', '/profile/blocked-account'],
       ['app.bsky.feed.repost', undefined, undefined],
@@ -692,7 +692,7 @@ describe('relationship rendering', () => {
     )
     expect(screen.getByRole('link', { name: /Witchsky/ })).toHaveAttribute(
       'href',
-      `https://witchsky.app/profile/${unresolvedDid}`,
+      `https://witchsky.app/profile/${encodeURIComponent(unresolvedDid)}`,
     )
   })
 })
@@ -950,7 +950,10 @@ describe('account labels', () => {
     renderWithRouter(<LabelRow label={label} />)
     expect(screen.getByText('!suspend')).toBeInTheDocument()
     expect(screen.getAllByText('Removed')[0]).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: sourceDid })).toHaveAttribute('href', `/profile/${sourceDid}`)
+    expect(screen.getByRole('link', { name: sourceDid })).toHaveAttribute(
+      'href',
+      `/profile/${encodeURIComponent(sourceDid)}`,
+    )
   })
 
   it('shows a resolved name while keeping the raw value available', () => {

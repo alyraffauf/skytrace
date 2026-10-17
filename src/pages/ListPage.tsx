@@ -14,10 +14,12 @@ import { queryKeys } from '../data/queryKeys'
 import { listPurposeLabel } from '../lib/lists'
 import { dedupeBy } from '../lib/collections'
 import { usePagedRecords } from '../hooks/usePagedRecords'
+import { useRouteActor } from '../hooks/useRouteActor'
 import type { ListSummary } from '../types'
 
 export function ListPage() {
-  const { actor = '', rkey = '' } = useParams()
+  const actor = useRouteActor()
+  const { rkey = '' } = useParams()
   const service = publicDataServiceFor(useQueryClient())
   const identityQuery = useQuery(service.core.identityQueryOptions(actor))
   const listUri =
