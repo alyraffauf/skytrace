@@ -16,9 +16,9 @@ describe('profile post privacy', () => {
   const unavailableExplanation = 'This account has chosen not to show its posts on public sites like SkyTrace.'
 
   it.each([
-    ['Feed', <FeedPage />],
-    ['Labeled posts', <LabeledPostsPage />],
-  ])('keeps %s private when an unrelated profile field is invalid', (_tab, element) => {
+    ['Feed', FeedPage],
+    ['Labeled posts', LabeledPostsPage],
+  ])('keeps %s private when an unrelated profile field is invalid', (_tab, Page) => {
     const malformedProfile = profileFromRecord(identity, {
       uri: `at://${did}/app.bsky.actor.profile/self`,
       cid,
@@ -36,7 +36,7 @@ describe('profile post privacy', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    renderProfileTab(element, malformedProfile)
+    renderProfileTab(<Page />, malformedProfile)
 
     expect(screen.getByRole('heading', { name: "Posts aren't available here" })).toBeVisible()
     expect(screen.getByText(unavailableExplanation)).toBeVisible()

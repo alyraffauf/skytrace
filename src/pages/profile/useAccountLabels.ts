@@ -10,10 +10,10 @@ export function useAccountLabels(did: string, labelHistory: LabelHistoryDataServ
     queryKeys.profileTab(did, 'labels'),
     (cursor, signal) => labelHistory.page(did, cursor, signal),
   )
+  const shouldLoadNextPage = query.data?.pages.length === 1 && query.hasNextPage && !query.isFetching && !query.isError
+  const { fetchNextPage } = query
   useEffect(() => {
-    if (query.data?.pages.length === 1 && query.hasNextPage && !query.isFetching && !query.isError) {
-      void query.fetchNextPage()
-    }
-  }, [query.data?.pages.length, query.fetchNextPage, query.hasNextPage, query.isFetching, query.isError])
+    if (shouldLoadNextPage) void fetchNextPage()
+  }, [shouldLoadNextPage, fetchNextPage])
   return query
 }

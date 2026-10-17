@@ -3,6 +3,7 @@ import { useImageLoadStatus } from '../../hooks/useImageLoadStatus'
 
 type ImageWithFallbackProps = React.ImgHTMLAttributes<HTMLImageElement> & {
   fallback: 'avatar' | 'image'
+  alt: string
 }
 
 export function ImageWithFallback({
@@ -11,20 +12,21 @@ export function ImageWithFallback({
   onError,
   onLoad,
   src,
+  alt,
   ...props
 }: ImageWithFallbackProps) {
   const { imageRef, failed, loaded, handleLoad, handleError } = useImageLoadStatus(src)
 
   if (failed || !src) {
     const Icon = fallback === 'avatar' ? UserIcon : PhotoIcon
-    const isDecorative = props.alt === ''
+    const isDecorative = alt === ''
     return (
       <span
         title={props.title}
         role={isDecorative ? undefined : 'img'}
         aria-hidden={isDecorative || undefined}
         aria-label={
-          isDecorative ? undefined : props.alt || (fallback === 'avatar' ? 'Avatar unavailable' : 'Image unavailable')
+          isDecorative ? undefined : alt || (fallback === 'avatar' ? 'Avatar unavailable' : 'Image unavailable')
         }
         className={`grid place-items-center bg-zinc-100 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-500 ${className}`}
       >
@@ -37,6 +39,7 @@ export function ImageWithFallback({
       ref={imageRef}
       {...props}
       src={src}
+      alt={alt}
       decoding={props.decoding ?? 'async'}
       data-loaded={loaded || undefined}
       className={`${className} media-image`}
