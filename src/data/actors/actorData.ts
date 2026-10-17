@@ -20,12 +20,12 @@ export class ActorDataService {
   ) {}
 
   identityQueryOptions(identifier: string) {
-    return queryOptions({
+    return {
       queryKey: queryKeys.identity(identifier),
-      queryFn: ({ signal }) =>
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
         this.resolveAndCacheIdentity(identifier, deadlineSignal(signal, this.context.requestTimeoutMs)),
       staleTime: CACHE_TTL_MS.identity,
-    })
+    }
   }
 
   accountDetailsQueryOptions(did: ActorIdentity['did']) {
@@ -44,9 +44,10 @@ export class ActorDataService {
   }
 
   async identity(identifier: string, signal?: AbortSignal): Promise<ActorIdentity> {
+    const { queryKey, staleTime } = this.identityQueryOptions(identifier)
     return this.context.sharedRequests.query({
-      queryKey: queryKeys.identity(identifier),
-      staleTime: CACHE_TTL_MS.identity,
+      queryKey,
+      staleTime,
       load: (requestSignal) => this.resolveAndCacheIdentity(identifier, requestSignal),
       consumerSignal: signal,
     })
@@ -64,17 +65,18 @@ export class ActorDataService {
   }
 
   actorProfileQueryOptions(identifier: string) {
-    return queryOptions({
+    return {
       queryKey: queryKeys.profileView(identifier),
-      queryFn: ({ signal }) => this.loadProfile(identifier, signal),
+      queryFn: ({ signal }: { signal: AbortSignal }) => this.loadProfile(identifier, signal),
       staleTime: CACHE_TTL_MS.profile,
-    })
+    }
   }
 
   async profile(identifier: string, signal?: AbortSignal): Promise<ActorProfile> {
+    const { queryKey, staleTime } = this.actorProfileQueryOptions(identifier)
     return this.context.sharedRequests.query({
-      queryKey: queryKeys.profileView(identifier),
-      staleTime: CACHE_TTL_MS.profile,
+      queryKey,
+      staleTime,
       load: (requestSignal) => this.loadProfile(identifier, requestSignal),
       consumerSignal: signal,
     })

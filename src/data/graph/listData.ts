@@ -20,29 +20,29 @@ export class ListDataService {
   ) {}
 
   listBlockCountQueryOptions(listUri?: string) {
-    return queryOptions({
+    return {
       queryKey: queryKeys.listBlockCount(listUri),
-      queryFn: ({ signal }) =>
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
         listUri
-          ? getBacklinksCount({
-              subject: listUri,
-              source: 'app.bsky.graph.listblock:subject',
-              signal: deadlineSignal(signal, this.context.requestTimeoutMs),
-            })
+          ? this.loadListBlockCount(listUri, deadlineSignal(signal, this.context.requestTimeoutMs))
           : Promise.resolve(undefined),
       enabled: listUri !== undefined,
       staleTime: CACHE_TTL_MS.activity,
-    })
+    }
   }
 
   async listBlockCount(listUri: string, signal?: AbortSignal): Promise<number> {
+    const { queryKey, staleTime } = this.listBlockCountQueryOptions(listUri)
     return this.context.sharedRequests.query({
-      queryKey: queryKeys.listBlockCount(listUri),
-      staleTime: CACHE_TTL_MS.activity,
-      load: (requestSignal) =>
-        getBacklinksCount({ subject: listUri, source: 'app.bsky.graph.listblock:subject', signal: requestSignal }),
+      queryKey,
+      staleTime,
+      load: (requestSignal) => this.loadListBlockCount(listUri, requestSignal),
       consumerSignal: signal,
     })
+  }
+
+  private loadListBlockCount(listUri: string, signal: AbortSignal) {
+    return getBacklinksCount({ subject: listUri, source: 'app.bsky.graph.listblock:subject', signal })
   }
 
   private listFromRecord(record: RawRecord): ListSummary | UnavailableItem {

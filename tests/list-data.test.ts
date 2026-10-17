@@ -1,11 +1,27 @@
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { PublicDataService } from '../src/data/publicData'
-import { jsonResponse as response, repositoryRecord } from './testUtils'
+import { createTestQueryClient, jsonResponse as response, repositoryRecord } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 
 describe('list data', () => {
+  it.each(['query', 'imperative'])('shares list block counts when %s starts first', async (first) => {
+    const listUri = `at://${did}/app.bsky.graph.list/shared-count`
+    const fetch = vi.fn(async () => response({ total: 7 }))
+    vi.stubGlobal('fetch', fetch)
+    const client = createTestQueryClient()
+    const service = new PublicDataService(client)
+    const query = () => client.fetchQuery(service.lists.listBlockCountQueryOptions(listUri))
+    const imperative = () => service.lists.listBlockCount(listUri)
+
+    const pending = first === 'query' ? [query(), imperative()] : [imperative(), query()]
+    await expect(Promise.all(pending)).resolves.toEqual([7, 7])
+    await expect(query()).resolves.toBe(7)
+    await expect(imperative()).resolves.toBe(7)
+    expect(fetch).toHaveBeenCalledOnce()
+  })
+
   it('returns references before requesting a selected list membership', async () => {
     const listUri = `at://${did}/app.bsky.graph.list/3streamed`
     const memberDid = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
