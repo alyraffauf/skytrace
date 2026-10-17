@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
+import { QueryObserver } from '@tanstack/react-query'
 import { PublicDataService, publicDataServiceFor } from '../src/data/publicData'
 import { CACHE_TTL_MS } from '../src/data/runtime/cachePolicy'
+import { queryKeys } from '../src/data/queryKeys'
 import { jsonResponse as response, repositoryRecord, createTestQueryClient, createTestService } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
@@ -32,6 +34,12 @@ describe('shared requests', () => {
     await service.core.record(recordUri)
     await service.core.record(recordUri)
     expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(
+      queryClient
+        .getQueryCache()
+        .find({ queryKey: queryKeys.record(recordUri) })
+        ?.getObserversCount(),
+    ).toBe(0)
 
     vi.setSystemTime(Date.now() + CACHE_TTL_MS.identity + 1)
     await service.actors.identity('atproto.com')
@@ -54,11 +62,19 @@ describe('shared request lifecycle', () => {
       }),
     )
     const controller = new AbortController()
-    const pending = createTestService().core.record(uri, controller.signal)
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    const pending = service.core.record(uri, controller.signal)
     await vi.waitFor(() => expect(fetchSignal).toBeDefined())
     controller.abort()
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
     expect(fetchSignal?.aborted).toBe(true)
+    expect(
+      queryClient
+        .getQueryCache()
+        .find({ queryKey: queryKeys.record(uri) })
+        ?.getObserversCount(),
+    ).toBe(0)
   })
 
   it('starts fresh work when a new consumer arrives after the final subscriber aborts', async () => {
@@ -109,9 +125,16 @@ describe('shared request lifecycle', () => {
       }),
     )
 
-    const publicData = new PublicDataService(createTestQueryClient(), 20)
+    const queryClient = createTestQueryClient()
+    const publicData = new PublicDataService(queryClient, 20)
     await expect(publicData.core.record(uri)).rejects.toMatchObject({ name: 'TimeoutError' })
     expect(fetchSignal?.aborted).toBe(true)
+    expect(
+      queryClient
+        .getQueryCache()
+        .find({ queryKey: queryKeys.record(uri) })
+        ?.getObserversCount(),
+    ).toBe(0)
   })
 
   it('keeps shared work alive while another consumer remains', async () => {
@@ -151,6 +174,94 @@ describe('shared request lifecycle', () => {
     await expect(second).resolves.toMatchObject({ uri })
   })
 })
+
+it.each([
+  ['imperative', 'imperative'],
+  ['imperative', 'observer'],
+  ['observer', 'imperative'],
+  ['observer', 'observer'],
+] as const)('keeps shared identity work alive when %s leaves and %s started first', async (leaving, first) => {
+  const queryClient = createTestQueryClient()
+  const service = new PublicDataService(queryClient)
+  const controller = new AbortController()
+  let fetchSignal: AbortSignal | undefined
+  let finishRequest!: (result: Response) => void
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    fetchSignal = input instanceof Request ? input.signal : (init?.signal ?? undefined)
+    return new Promise<Response>((resolve, reject) => {
+      finishRequest = resolve
+      fetchSignal?.addEventListener('abort', () => reject(fetchSignal?.reason), { once: true })
+    })
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  const observer = new QueryObserver(queryClient, service.actors.identityQueryOptions(did))
+  let unsubscribe!: () => void
+  if (first === 'observer') unsubscribe = observer.subscribe(() => {})
+  const pending = service.actors.identity(did, controller.signal)
+  if (first === 'imperative') unsubscribe = observer.subscribe(() => {})
+  await vi.waitFor(() => expect(fetchSignal).toBeDefined())
+  const query = queryClient.getQueryCache().find({ queryKey: queryKeys.identity(did) })!
+  expect(query.getObserversCount()).toBe(2)
+
+  if (leaving === 'imperative') {
+    controller.abort('The imperative caller left.')
+    await expect(pending).rejects.toBe('The imperative caller left.')
+  } else unsubscribe()
+  expect(query.getObserversCount()).toBe(1)
+  expect(fetchSignal?.aborted).toBe(false)
+
+  finishRequest(response({ did, handle: 'atproto.com', pds: 'https://pds.example', signing_key: 'zQ3test' }))
+  if (leaving === 'imperative') {
+    await vi.waitFor(() => expect(observer.getCurrentResult().data?.did).toBe(did))
+    unsubscribe()
+  } else await expect(pending).resolves.toMatchObject({ did })
+  expect(query.getObserversCount()).toBe(0)
+  expect(fetchMock).toHaveBeenCalledOnce()
+})
+
+it.each(['imperative', 'observer'])(
+  'aborts mixed shared work after the final consumer leaves, %s first',
+  async (first) => {
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    const controller = new AbortController()
+    let fetchSignal: AbortSignal | undefined
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      fetchSignal = input instanceof Request ? input.signal : (init?.signal ?? undefined)
+      return new Promise<Response>((_resolve, reject) => {
+        fetchSignal?.addEventListener('abort', () => reject(fetchSignal?.reason), { once: true })
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const observer = new QueryObserver(queryClient, service.actors.identityQueryOptions(did))
+    let unsubscribe!: () => void
+    if (first === 'observer') unsubscribe = observer.subscribe(() => {})
+    const pending = service.actors.identity(did, controller.signal)
+    if (first === 'imperative') unsubscribe = observer.subscribe(() => {})
+    await vi.waitFor(() => expect(fetchSignal).toBeDefined())
+
+    if (first === 'imperative') {
+      controller.abort()
+      await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+      expect(fetchSignal?.aborted).toBe(false)
+      unsubscribe()
+    } else {
+      unsubscribe()
+      expect(fetchSignal?.aborted).toBe(false)
+      controller.abort()
+      await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+    }
+
+    expect(fetchSignal?.aborted).toBe(true)
+    expect(
+      queryClient
+        .getQueryCache()
+        .find({ queryKey: queryKeys.identity(did) })
+        ?.getObserversCount(),
+    ).toBe(0)
+    expect(fetchMock).toHaveBeenCalledOnce()
+  },
+)
 
 it.each([false, true])('shares identity hydration across services when all consumers leave: %s', async (abortBoth) => {
   const service = createTestService()
