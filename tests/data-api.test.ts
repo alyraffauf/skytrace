@@ -222,6 +222,49 @@ describe('atcute-backed API boundaries', () => {
     })
   })
 
+  it.each([{ displayName: 42 }, { description: ['invalid'] }, { avatar: 'not-a-blob' }])(
+    'preserves a valid privacy self-label despite invalid profile fields: %j',
+    async (invalidFields) => {
+      stubProfileRecord(
+        repositoryRecord(`at://${did}/app.bsky.actor.profile/self`, {
+          $type: 'app.bsky.actor.profile',
+          ...invalidFields,
+          labels: {
+            $type: 'com.atproto.label.defs#selfLabels',
+            values: [{ val: '!no-unauthenticated' }],
+          },
+        }),
+      )
+
+      const queryClient = createTestQueryClient()
+      const service = new PublicDataService(queryClient)
+      await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions(did))).resolves.toMatchObject({
+        hasNoUnauthenticatedSelfLabel: true,
+        displayName: undefined,
+        description: undefined,
+        avatarCid: undefined,
+      })
+    },
+  )
+
+  it('does not read privacy labels from an invalid self-label container', async () => {
+    stubProfileRecord(
+      repositoryRecord(`at://${did}/app.bsky.actor.profile/self`, {
+        $type: 'app.bsky.actor.profile',
+        labels: {
+          $type: 'not-self-labels',
+          values: [{ val: '!no-unauthenticated' }],
+        },
+      }),
+    )
+
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    await expect(queryClient.fetchQuery(service.core.actorProfileQueryOptions(did))).resolves.toMatchObject({
+      hasNoUnauthenticatedSelfLabel: false,
+    })
+  })
+
   it('returns an identity-only profile for a malformed profile envelope', async () => {
     stubProfileRecord({ uri: 'not-an-at-uri', value: {} })
     const queryClient = createTestQueryClient()

@@ -18,7 +18,7 @@ import { BlockRow } from '../src/components/blocks/BlockRow'
 import { RecordLinksMenu } from '../src/components/records/RecordLinksMenu'
 import { LinkifiedText } from '../src/components/ui/LinkifiedText'
 import { queryKeys } from '../src/data/queryKeys'
-import { labelDefinitionsFromRecord, parseFacets } from '../src/data/recordParsers'
+import { labelDefinitionsFromRecord, parseFacets, profileFromRecord } from '../src/data/recordParsers'
 import { normalizeActorInput } from '../src/lib/parse'
 import { ProfileLayout } from '../src/layouts/ProfileLayout'
 import { ListPage } from '../src/pages/ListPage'
@@ -467,6 +467,35 @@ describe('list member pagination', () => {
 describe('profile post privacy', () => {
   const restrictedProfile: ActorProfile = { ...profile, hasNoUnauthenticatedSelfLabel: true }
   const unavailableExplanation = 'This account has chosen not to show its posts on public sites like SkyTrace.'
+
+  it.each([
+    ['Feed', <FeedPage />],
+    ['Labeled posts', <LabeledPostsPage />],
+  ])('keeps %s private when an unrelated profile field is invalid', (_tab, element) => {
+    const malformedProfile = profileFromRecord(identity, {
+      uri: `at://${did}/app.bsky.actor.profile/self`,
+      cid,
+      value: {
+        $type: 'app.bsky.actor.profile',
+        displayName: 42,
+        labels: {
+          $type: 'com.atproto.label.defs#selfLabels',
+          values: [{ val: '!no-unauthenticated' }],
+        },
+      },
+    })
+    const feed = vi.spyOn(FeedDataService.prototype, 'feed')
+    const labeledPosts = vi.spyOn(FeedDataService.prototype, 'labeledPosts')
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderProfileTab(element, malformedProfile)
+
+    expect(screen.getByRole('heading', { name: "Posts aren't available here" })).toBeVisible()
+    expect(feed).not.toHaveBeenCalled()
+    expect(labeledPosts).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 
   it('shows the privacy notice without requesting the feed', () => {
     const fetchMock = vi.fn()

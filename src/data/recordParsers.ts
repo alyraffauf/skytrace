@@ -1,4 +1,5 @@
 import { AppBskyActorProfile, AppBskyLabelerService } from '@atcute/bluesky'
+import { ComAtprotoLabelDefs } from '@atcute/atproto'
 import { isBlob } from '@atcute/lexicons/interfaces'
 import * as v from '@atcute/lexicons/validations'
 import type { ActorIdentity, ActorProfile, Facet, FeedImage, LabelValueDefinition, RawRecord } from '../types'
@@ -28,11 +29,12 @@ export function parsedRecord<T>(schema: v.BaseSchema<unknown, T>, record?: RawRe
 
 export function profileFromRecord(identity: ActorIdentity, record?: RawRecord): ActorProfile {
   const value = parsedRecord(AppBskyActorProfile.mainSchema, record)
+  const labels = v.safeParse(ComAtprotoLabelDefs.selfLabelsSchema, record?.value.labels)
   return {
     kind: 'actorProfile',
     identity,
     hasNoUnauthenticatedSelfLabel:
-      value?.labels?.values.some((label) => label.val === NO_UNAUTHENTICATED_SELF_LABEL) ?? false,
+      labels.ok && labels.value.values.some((label) => label.val === NO_UNAUTHENTICATED_SELF_LABEL),
     displayName: stringValue(value?.displayName),
     pronouns: stringValue(value?.pronouns),
     description: stringValue(value?.description),
