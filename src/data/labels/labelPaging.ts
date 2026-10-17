@@ -1,3 +1,5 @@
+import type { CursorHistory } from '../cursorHistory'
+
 export const LABEL_PAGE_SIZE = 250
 
 export type ProviderPagingState = {
@@ -8,18 +10,18 @@ export type ProviderPagingState = {
   failed?: boolean
   useAppView?: boolean
   latestEventAt?: string
-  seenCursors?: string[]
+  cursorHistory?: CursorHistory
 }
 
 export type LabelPagingState = {
   discoveryCursor?: string
-  seenDiscoveryCursors?: string[]
+  discoveryCursorHistory?: CursorHistory
   discoveryDone?: boolean
   appViewSources?: string[]
   kind: 'labels'
   did: string
   appViewCursor?: string
-  seenAppViewCursors: string[]
+  appViewCursorHistory?: CursorHistory
   appViewDone: boolean
   providers: ProviderPagingState[]
 }
@@ -30,18 +32,12 @@ export function readLabelState(did: string, cursor?: LabelPagingState): LabelPag
       kind: 'labels',
       did,
       appViewDone: false,
-      seenAppViewCursors: [],
       providers: [],
     }
   if (cursor.did !== did) throw new Error('This label cursor belongs to another query.')
   return {
     ...cursor,
-    seenDiscoveryCursors: [...(cursor.seenDiscoveryCursors ?? [])],
     appViewSources: cursor.appViewSources ? [...cursor.appViewSources] : undefined,
-    seenAppViewCursors: [...cursor.seenAppViewCursors],
-    providers: cursor.providers.map((provider) => ({
-      ...provider,
-      seenCursors: provider.seenCursors ? [...provider.seenCursors] : undefined,
-    })),
+    providers: cursor.providers.map((provider) => ({ ...provider })),
   }
 }

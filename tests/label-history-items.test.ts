@@ -6,6 +6,31 @@ import { createTestService } from './testUtils'
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const sourceDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
 
+it.each(['discovery', 'AppView', 'provider'])(
+  'replays a saved %s cursor without changing its snapshot',
+  async (stage) => {
+    const history = Object.freeze({ cursor: 'older' })
+    const cursor: LabelPagingState = {
+      kind: 'labels',
+      did,
+      discoveryDone: stage !== 'discovery',
+      discoveryCursorHistory: history,
+      appViewDone: stage === 'provider',
+      appViewCursorHistory: history,
+      providers: [{ did: sourceDid, service: 'https://labels.example', done: false, cursorHistory: history }],
+    }
+    const saved = structuredClone(cursor)
+    Object.freeze(cursor.providers[0])
+    Object.freeze(cursor.providers)
+    Object.freeze(cursor)
+    const service = createTestService()
+    vi.spyOn(service.core, 'labelRecords').mockResolvedValue({ items: [], cursor: 'next' })
+    const first = await service.labelHistory.page(did, cursor)
+    expect(await service.labelHistory.page(did, cursor)).toEqual(first)
+    expect(cursor).toEqual(saved)
+  },
+)
+
 it.each(['AppView', 'provider'])('keeps sorted labels and unavailable rows on a mixed %s page', async (service) => {
   const label = (id: string, createdAt: string): LabelEvent => ({
     kind: 'labelEvent',
@@ -31,7 +56,6 @@ it.each(['AppView', 'provider'])('keeps sorted labels and unavailable rows on a 
     did,
     discoveryDone: true,
     appViewDone: service === 'provider',
-    seenAppViewCursors: [],
     providers: [{ did: sourceDid, service: 'https://labels.example', done: false }],
   }
   const publicData = createTestService()

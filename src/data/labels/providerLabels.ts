@@ -20,10 +20,7 @@ export async function loadProviderLabelPage({
   loadLabels,
   resolveEndpoint,
 }: ProviderLabelPageOptions) {
-  const provider = {
-    ...providerSnapshot,
-    seenCursors: providerSnapshot.seenCursors ? [...providerSnapshot.seenCursors] : undefined,
-  }
+  const provider = { ...providerSnapshot }
   if (!provider.useAppView && !provider.service) {
     try {
       provider.service = await resolveEndpoint(provider.did, deadlineSignal(signal, OPTIONAL_LABELER_TIMEOUT_MS))
@@ -47,7 +44,7 @@ export async function loadProviderLabelPage({
       throwIfAborted(signal)
       provider.useAppView = true
       provider.cursor = undefined
-      provider.seenCursors = undefined
+      provider.cursorHistory = undefined
     }
   }
 

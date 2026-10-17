@@ -6,6 +6,7 @@ import type { PostDataService } from './postData'
 import type { PublicDataCore } from '../publicDataCore'
 import { isUnavailableRecord } from '../recordResults'
 import { PublicDataValidationError } from '../validationError'
+import { hasCursor, type CursorHistory } from '../cursorHistory'
 
 const LABELED_POST_BATCH_SIZE = 12
 
@@ -13,7 +14,7 @@ export type LabeledPostsCursor = {
   kind: 'labeledPosts'
   did: string
   repositoryCursor?: string
-  seenRepositoryCursors: string[]
+  repositoryCursorHistory?: CursorHistory
 }
 
 export class LabeledPostsDataService {
@@ -54,17 +55,15 @@ export class LabeledPostsDataService {
     const items = labeledPosts.filter((item) => item !== undefined)
     items.sort(compareLabeledPostsNewestFirst)
     if (!postsPage.cursor) return { items }
-    const seenCursors = new Set(cursor?.seenRepositoryCursors ?? [])
-    if (seenCursors.has(postsPage.cursor))
+    if (hasCursor(cursor?.repositoryCursorHistory, postsPage.cursor))
       throw new PublicDataValidationError('The PDS repeated a labeled-post cursor.')
-    seenCursors.add(postsPage.cursor)
     return {
       items,
       cursor: {
         kind: 'labeledPosts',
         did: identity.did,
         repositoryCursor: postsPage.cursor,
-        seenRepositoryCursors: [...seenCursors],
+        repositoryCursorHistory: { cursor: postsPage.cursor, previous: cursor?.repositoryCursorHistory },
       },
     }
   }

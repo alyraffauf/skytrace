@@ -7,6 +7,7 @@ import { throwIfAborted } from '../../lib/abort'
 import { dedupeBy } from '../../lib/collections'
 import { LABEL_PAGE_SIZE, readLabelState, type LabelPagingState } from './labelPaging'
 import { loadProviderLabelPage } from './providerLabels'
+import { hasCursor } from '../cursorHistory'
 
 // Include Bluesky moderation even when the relay has no events from it.
 const BLUESKY_MODERATION_DID = 'did:plc:ar7c4by46qjdydhdevvrndac'
@@ -42,11 +43,11 @@ export class LabelHistoryDataService {
         }
       }
       state.appViewSources = [...sources]
-      const seenCursors = new Set(state.seenDiscoveryCursors ?? [])
-      state.discoveryDone = !discovery.cursor || seenCursors.has(discovery.cursor)
+      state.discoveryDone = !discovery.cursor || hasCursor(state.discoveryCursorHistory, discovery.cursor)
       state.discoveryCursor = state.discoveryDone ? undefined : discovery.cursor
-      if (discovery.cursor) seenCursors.add(discovery.cursor)
-      state.seenDiscoveryCursors = [...seenCursors]
+      if (discovery.cursor && !state.discoveryDone) {
+        state.discoveryCursorHistory = { cursor: discovery.cursor, previous: state.discoveryCursorHistory }
+      }
       // Save discovery progress before advancing another relay page.
       if (!state.discoveryDone) return { items: [], cursor: state }
     }
@@ -72,9 +73,11 @@ export class LabelHistoryDataService {
         } else state.providers.push({ did: label.sourceDid, done: false, latestEventAt: label.createdAt })
       }
       state.providers.sort((left, right) => timestampFor(right.latestEventAt) - timestampFor(left.latestEventAt))
-      state.appViewDone = !page.cursor || state.seenAppViewCursors.includes(page.cursor)
+      state.appViewDone = !page.cursor || hasCursor(state.appViewCursorHistory, page.cursor)
       state.appViewCursor = state.appViewDone ? undefined : page.cursor
-      if (page.cursor) state.seenAppViewCursors.push(page.cursor)
+      if (page.cursor && !state.appViewDone) {
+        state.appViewCursorHistory = { cursor: page.cursor, previous: state.appViewCursorHistory }
+      }
       return {
         items: orderedHistoryItems(page.items),
         cursor: !state.appViewDone || state.providers.length > 0 ? state : undefined,
@@ -104,11 +107,11 @@ export class LabelHistoryDataService {
       state.providers[providerIndex] = provider
       if (!page) continue
       const nextCursor = page.cursor
-      const seenCursors = new Set(provider.seenCursors ?? [])
-      provider.done = !nextCursor || seenCursors.has(nextCursor)
+      provider.done = !nextCursor || hasCursor(provider.cursorHistory, nextCursor)
       provider.cursor = provider.done ? undefined : nextCursor
-      if (nextCursor) seenCursors.add(nextCursor)
-      provider.seenCursors = [...seenCursors]
+      if (nextCursor && !provider.done) {
+        provider.cursorHistory = { cursor: nextCursor, previous: provider.cursorHistory }
+      }
       const items = page.items.filter((item) => item.kind === 'unavailable' || item.sourceDid === provider.did)
       return {
         items: orderedHistoryItems(items),

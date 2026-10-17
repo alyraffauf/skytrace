@@ -69,10 +69,9 @@ it('returns fallback state without changing the provider snapshot or advancing i
     did,
     service: 'https://labels.example',
     cursor: 'direct-cursor',
-    seenCursors: ['older'],
+    cursorHistory: Object.freeze({ cursor: 'older' }),
     done: false,
   })
-  Object.freeze(provider.seenCursors)
   const snapshot = structuredClone(provider)
   const loadLabels = vi
     .fn()
@@ -88,7 +87,7 @@ it('returns fallback state without changing the provider snapshot or advancing i
     sources: [did],
     cursor: undefined,
   })
-  expect(result.provider).toMatchObject({ useAppView: true, cursor: undefined, seenCursors: undefined, done: false })
+  expect(result.provider).toMatchObject({ useAppView: true, cursor: undefined, cursorHistory: undefined, done: false })
   expect(result.page).toEqual({ items: [], cursor: 'appview-next' })
 })
 

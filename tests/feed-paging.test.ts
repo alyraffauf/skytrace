@@ -8,6 +8,28 @@ const memberDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
 const identity: ActorIdentity = { kind: 'actorIdentity', did, handle: 'atproto.com', pds: 'https://pds.example' }
 
 describe('feed paging', () => {
+  it.each([
+    ['a', 'a'],
+    ['a', 'b', 'a'],
+  ])('rejects feed cursor cycles: %j', async (...cursors) => {
+    const service = createTestService()
+    let pageIndex = 0
+    vi.spyOn(service.core, 'repositoryRecords').mockImplementation(async ({ collection }) => ({
+      items: [],
+      cursor: collection === 'app.bsky.feed.post' ? cursors[pageIndex++] : undefined,
+    }))
+    await expect(service.feed.feed(identity)).rejects.toThrow('repeated a feed cursor')
+  })
+
+  it('tracks matching cursor tokens independently for posts and reposts', async () => {
+    const service = createTestService()
+    vi.spyOn(service.core, 'repositoryRecords').mockImplementation(async ({ cursor }) => ({
+      items: [],
+      cursor: cursor ? undefined : 'shared-token',
+    }))
+    await expect(service.feed.feed(identity)).resolves.toEqual({ items: [], cursor: undefined })
+  })
+
   it('replays a saved cursor without changing its buffered records or cursor history', async () => {
     vi.stubGlobal(
       'fetch',
@@ -47,7 +69,7 @@ describe('feed paging', () => {
     expect(second.items).toHaveLength(12)
     expect(second.items[0]).toMatchObject({ text: '04-12' })
     expect(second.items[1]).toMatchObject({ text: '03-0' })
-    expect(second.cursor?.posts.seenCursors).toEqual(new Set(['next', 'last']))
+    expect(second.cursor?.posts.cursorHistory).toEqual({ cursor: 'last', previous: { cursor: 'next' } })
     expect(replay).toEqual(second)
     expect(cursor).toEqual(savedCursor)
   })

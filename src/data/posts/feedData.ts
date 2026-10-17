@@ -8,6 +8,7 @@ import type { PublicDataCore } from '../publicDataCore'
 import { actorReference, isUnavailableRecord, unavailable } from '../recordResults'
 import { objectValue, parsedRecord } from '../recordValues'
 import { PublicDataValidationError } from '../validationError'
+import { hasCursor } from '../cursorHistory'
 
 const FEED_BATCH_SIZE = 12
 const MAX_EMPTY_FEED_PAGES = 4
@@ -84,8 +85,9 @@ export class FeedDataService {
         stream.done = true
         return
       }
-      if (stream.seenCursors.has(page.cursor)) throw new PublicDataValidationError('The PDS repeated a feed cursor.')
-      stream.seenCursors.add(page.cursor)
+      if (hasCursor(stream.cursorHistory, page.cursor))
+        throw new PublicDataValidationError('The PDS repeated a feed cursor.')
+      stream.cursorHistory = { cursor: page.cursor, previous: stream.cursorHistory }
       stream.cursor = page.cursor
       if (stream.records.length > 0) return
       emptyPageBudget.remaining -= 1

@@ -18,7 +18,6 @@ const cursor: LabelPagingState = {
   kind: 'labels',
   did,
   appViewDone: true,
-  seenAppViewCursors: [],
   providers: [],
 }
 const cached = { kind: 'unavailable' as const, id: 'cached', reason: 'Cached label row' }
@@ -162,7 +161,6 @@ describe('account label eager pagination', () => {
       kind: 'labels' as const,
       did,
       appViewDone: false,
-      seenAppViewCursors: [],
       providers: [],
     }
     const labels = vi
@@ -204,7 +202,6 @@ describe('account label eager pagination', () => {
           kind: 'labels',
           did,
           appViewDone: false,
-          seenAppViewCursors: [],
           providers: [],
         },
       })

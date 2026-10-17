@@ -1,10 +1,11 @@
 import type { RepositoryRecord } from '../../types'
+import type { CursorHistory } from '../cursorHistory'
 
 export type FeedStreamState = {
   records: RepositoryRecord[]
   cursor?: string
   done: boolean
-  seenCursors: Set<string>
+  cursorHistory?: CursorHistory
 }
 
 export type FeedPagingState = {
@@ -15,7 +16,7 @@ export type FeedPagingState = {
 }
 
 function emptyStream(): FeedStreamState {
-  return { records: [], done: false, seenCursors: new Set() }
+  return { records: [], done: false }
 }
 
 export function readFeedState(did: string, cursor?: FeedPagingState): FeedPagingState {
@@ -24,11 +25,10 @@ export function readFeedState(did: string, cursor?: FeedPagingState): FeedPaging
   return {
     kind: 'feed',
     did,
-    posts: { ...cursor.posts, records: [...cursor.posts.records], seenCursors: new Set(cursor.posts.seenCursors) },
+    posts: { ...cursor.posts, records: [...cursor.posts.records] },
     reposts: {
       ...cursor.reposts,
       records: [...cursor.reposts.records],
-      seenCursors: new Set(cursor.reposts.seenCursors),
     },
   }
 }
