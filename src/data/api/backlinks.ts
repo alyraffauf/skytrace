@@ -6,8 +6,8 @@ import type {} from '@atcute/microcosm'
 import type { Page } from '../../types'
 import { SERVICE_URLS } from '../../config/serviceUrls'
 import { dedupeBy } from '../../lib/collections'
-import { isDid } from '../../lib/parse'
-import { hydrationRequests, paginationRequests } from '../../lib/requestScheduler'
+import { isDid } from '@atcute/lexicons/syntax'
+import { hydrationRequests, paginationRequests } from '../runtime/requestScheduler'
 import { clientFor } from './client'
 
 const backlinkSources = [

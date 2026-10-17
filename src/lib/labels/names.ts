@@ -1,4 +1,4 @@
-import type { LabelValueDefinition } from '../types'
+import type { LabelValueDefinition } from '../../types'
 
 const BUILT_IN_LABEL_NAMES: Readonly<Record<string, string>> = {
   bot: 'Bot',

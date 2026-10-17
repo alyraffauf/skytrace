@@ -1,9 +1,9 @@
 import { loadProviderLabelPage } from './providerLabels'
-import type { ActorIdentity, LabelEvent, LabelValueDefinition, Page, UnavailableItem } from '../types'
-import { SERVICE_URLS } from '../config/serviceUrls'
-import { throwIfAborted } from '../lib/abort'
-import { dedupeBy } from '../lib/collections'
-import { timestampFor } from '../lib/sorting'
+import type { ActorIdentity, LabelEvent, LabelValueDefinition, Page, UnavailableItem } from '../../types'
+import { SERVICE_URLS } from '../../config/serviceUrls'
+import { throwIfAborted } from '../../lib/abort'
+import { dedupeBy } from '../../lib/collections'
+import { timestampFor } from '../../lib/sorting'
 import {
   LABEL_PAGE_SIZE,
   readLabelState,
@@ -11,16 +11,16 @@ import {
   type LabelPagingState,
   type ProviderPagingState,
 } from './labelPaging'
-import type { PublicDataCore } from './publicDataCore'
-import { actorReference } from './recordResults'
+import type { PublicDataCore } from '../publicDataCore'
+import { actorReference } from '../recordResults'
 import { queryOptions } from '@tanstack/react-query'
 import { getLabelerEndpoint, isPlcDid, isWebDid } from '@atcute/identity'
-import { CACHE_TTL_MS } from '../lib/cache'
-import { didDocumentResolver } from './didDocumentResolver'
-import { queryKeys } from './queryKeys'
-import { labelDefinitionsFromRecord } from './recordParsers'
-import type { SharedQueryRequests } from './sharedQueryRequests'
-import { PublicDataValidationError } from './validationError'
+import { CACHE_TTL_MS } from '../runtime/cachePolicy'
+import { didDocumentResolver } from '../api/didDocumentResolver'
+import { queryKeys } from '../queryKeys'
+import { labelDefinitionsFromRecord } from './definitionsParser'
+import type { SharedQueryRequests } from '../runtime/sharedQueryRequests'
+import { PublicDataValidationError } from '../validationError'
 
 // Include Bluesky moderation even when the relay has no events from it.
 const BLUESKY_MODERATION_DID = 'did:plc:ar7c4by46qjdydhdevvrndac'

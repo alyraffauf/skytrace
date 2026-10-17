@@ -1,8 +1,9 @@
 import { AppBskyFeedPost } from '@atcute/bluesky'
-import type { ActorIdentity, FeedPost, RawRecord, UnavailableItem } from '../types'
-import { actorFromAtUri, parseAtUri } from '../lib/parse'
-import { actorReference, unavailable } from './recordResults'
-import { blobCid, objectValue, parseFacets, parseImages, parsedRecord, stringValue } from './recordParsers'
+import type { ActorIdentity, FeedPost, RawRecord, UnavailableItem } from '../../types'
+import { actorFromAtUri, parseAtUri } from '../../lib/atproto/uri'
+import { actorReference, unavailable } from '../recordResults'
+import { blobCid, objectValue, parsedRecord, stringValue } from '../recordValues'
+import { parseFacets, parseImages } from '../recordParsers'
 
 export function decodePostRecord(record: RawRecord): Omit<FeedPost, 'repositoryPds'> | UnavailableItem {
   const authorDid = actorFromAtUri(record.uri)

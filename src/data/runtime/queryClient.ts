@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
-import { retryDelay, shouldRetry } from '../lib/http'
+import { retryDelay, shouldRetry } from './retryPolicy'
 
 export const queryClient = new QueryClient({
   defaultOptions: {

@@ -1,5 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { combinedSignal, deadlineSignal, throwIfAborted } from '../lib/abort'
+import { combinedSignal, deadlineSignal, throwIfAborted } from '../../lib/abort'
 
 export type DataRequestContext = {
   queryClient: QueryClient

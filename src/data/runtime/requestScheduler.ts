@@ -1,4 +1,4 @@
-import { abortError, throwIfAborted } from './abort'
+import { abortError, throwIfAborted } from '../../lib/abort'
 
 type WaitingRequest = {
   signal?: AbortSignal

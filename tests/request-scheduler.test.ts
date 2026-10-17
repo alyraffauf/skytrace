@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RequestScheduler } from '../src/lib/requestScheduler'
+import { RequestScheduler } from '../src/data/runtime/requestScheduler'
 
 describe('request scheduling', () => {
   it('never starts more than six hydration operations', async () => {

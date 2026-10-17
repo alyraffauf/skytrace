@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { loadProviderLabelPage } from '../src/data/providerLabels'
+import { loadProviderLabelPage } from '../src/data/labels/providerLabels'
 import { SERVICE_URLS } from '../src/config/serviceUrls'
 import { did } from './actorFixtures'
 

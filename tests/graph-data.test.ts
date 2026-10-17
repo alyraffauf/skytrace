@@ -2,7 +2,7 @@ import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { PublicDataService } from '../src/data/publicData'
 import { getBacklinks, getBacklinksCount } from '../src/data/api/backlinks'
-import { CACHE_TTL_MS } from '../src/lib/cache'
+import { CACHE_TTL_MS } from '../src/data/runtime/cachePolicy'
 import type { ActorIdentity } from '../src/types'
 import { createTestQueryClient, createTestService, jsonResponse as response, repositoryRecord } from './testUtils'
 

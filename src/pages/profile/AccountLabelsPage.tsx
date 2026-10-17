@@ -1,7 +1,7 @@
 import { useOutletContext } from 'react-router-dom'
 import { PagedQueryPagination, PagedQueryRefreshNotice } from '../../components/pagination/PagedQuery'
 import { LabelRow } from '../../components/labels/LabelRow'
-import { groupLabelHistory, type LabelHistoryEvent } from '../../lib/labelHistory'
+import { groupLabelHistory, type LabelHistoryEvent } from '../../lib/labels/history'
 import { useLabelDisplayNames } from '../../hooks/useLabelDisplayNames'
 import { RecordList } from '../../components/records/RecordList'
 import { SourceIssues } from '../../components/labels/SourceIssues'

@@ -1,7 +1,7 @@
 import type { AccountDetails } from '../../types'
 import { SERVICE_URLS } from '../../config/serviceUrls'
-import { hydrationRequests } from '../../lib/requestScheduler'
-import { objectValue, stringValue } from '../recordParsers'
+import { hydrationRequests } from '../runtime/requestScheduler'
+import { objectValue, stringValue } from '../recordValues'
 import { PublicDataValidationError } from '../validationError'
 
 export async function getPlcAccountDetails(did: string, signal?: AbortSignal): Promise<AccountDetails> {

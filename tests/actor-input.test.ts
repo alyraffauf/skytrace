@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeActorInput } from '../src/lib/parse'
+import { normalizeActorInput } from '../src/lib/actors/input'
 import { did } from './actorFixtures'
 
 describe('actor input normalization', () => {

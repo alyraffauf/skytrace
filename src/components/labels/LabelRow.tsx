@@ -1,4 +1,4 @@
-import { labelState, type LabelHistoryEvent } from '../../lib/labelHistory'
+import { labelState, type LabelHistoryEvent } from '../../lib/labels/history'
 import { MiniActor } from '../actors/ActorIdentity'
 import { formatDate } from '../../lib/dates'
 import type { UnavailableItem } from '../../types'

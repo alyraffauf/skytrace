@@ -1,12 +1,12 @@
 import type { LabelEvent, Page, RawRecord, RepositoryRecord, UnavailableItem } from '../types'
 import { SERVICE_URLS } from '../config/serviceUrls'
 import { throwIfAborted } from '../lib/abort'
-import { CACHE_TTL_MS } from '../lib/cache'
+import { CACHE_TTL_MS } from './runtime/cachePolicy'
 import { getBacklinks } from './api/backlinks'
 import { getRecordByUri, listRecords } from './api/repository'
 import { queryLabels } from './api/labels'
 import { queryKeys } from './queryKeys'
-import type { SharedQueryRequests } from './sharedQueryRequests'
+import type { SharedQueryRequests } from './runtime/sharedQueryRequests'
 import { PublicDataValidationError } from './validationError'
 
 export class PublicDataCore {

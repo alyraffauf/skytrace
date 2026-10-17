@@ -1,10 +1,10 @@
-import type { ActorIdentity, FeedPost, LabeledPost, LabelEvent, Page, RawRecord } from '../types'
-import { compareLabeledPostsNewestFirst, timestampFor } from '../lib/sorting'
-import type { LabelDataService } from './labelData'
+import type { ActorIdentity, FeedPost, LabeledPost, LabelEvent, Page, RawRecord } from '../../types'
+import { compareLabeledPostsNewestFirst, timestampFor } from '../../lib/sorting'
+import type { LabelDataService } from '../labels/labelData'
 import type { PostDataService } from './postData'
-import type { PublicDataCore } from './publicDataCore'
-import { isUnavailableRecord } from './recordResults'
-import { PublicDataValidationError } from './validationError'
+import type { PublicDataCore } from '../publicDataCore'
+import { isUnavailableRecord } from '../recordResults'
+import { PublicDataValidationError } from '../validationError'
 
 const LABELED_POST_BATCH_SIZE = 12
 

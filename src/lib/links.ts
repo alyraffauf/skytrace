@@ -1,4 +1,4 @@
-import { parseAtUri } from './parse'
+import { parseAtUri } from './atproto/uri'
 
 export function pdslsRecordUrl(uri: string): string | undefined {
   return parseAtUri(uri) ? `https://pdsls.dev/${uri}` : undefined

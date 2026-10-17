@@ -1,10 +1,10 @@
 import { queryOptions } from '@tanstack/react-query'
-import { blockTargetDid, hiddenProfileDids } from '../config/privacy'
-import { CACHE_TTL_MS } from '../lib/cache'
-import type { ActorProfile } from '../types'
-import type { GraphDataService } from './graphData'
+import { blockTargetDid, hiddenProfileDids } from '../../config/privacy'
+import { CACHE_TTL_MS } from '../runtime/cachePolicy'
+import type { ActorProfile } from '../../types'
+import type { GraphDataService } from '../graph/graphData'
 import type { ActorDataService } from './actorData'
-import { queryKeys } from './queryKeys'
+import { queryKeys } from '../queryKeys'
 
 export type ProfileHiddenReason = 'explicit-hide' | 'instance-block' | 'opt-out'
 

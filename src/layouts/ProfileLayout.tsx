@@ -13,7 +13,7 @@ import { ErrorState } from '../components/ui/States'
 import { publicDataServiceFor, type PublicDataService } from '../data/publicData'
 import { socialProfilePath } from '../lib/links'
 import type { ActorProfile } from '../types'
-import type { ProfileHiddenReason } from '../data/profileVisibility'
+import type { ProfileHiddenReason } from '../data/actors/profileVisibility'
 import { useRouteActor } from '../hooks/useRouteActor'
 
 export function ProfileLayout() {

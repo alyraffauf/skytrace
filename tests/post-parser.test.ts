@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { decodePostRecord } from '../src/data/postParser'
+import { decodePostRecord } from '../src/data/posts/postParser'
 import type { RawRecord } from '../src/types'
 import { cid, did } from './actorFixtures'
 import { repositoryRecord } from './testUtils'

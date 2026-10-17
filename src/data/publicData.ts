@@ -1,13 +1,13 @@
-import { PostDataService } from './postData'
-import { LabeledPostsDataService } from './labeledPostsData'
-import { ActorDataService } from './actorData'
-import { SharedQueryRequests } from './sharedQueryRequests'
+import { PostDataService } from './posts/postData'
+import { LabeledPostsDataService } from './posts/labeledPostsData'
+import { ActorDataService } from './actors/actorData'
+import { SharedQueryRequests } from './runtime/sharedQueryRequests'
 import type { QueryClient } from '@tanstack/react-query'
-import { FeedDataService } from './feedData'
-import { GraphDataService } from './graphData'
-import { LabelDataService } from './labelData'
+import { FeedDataService } from './posts/feedData'
+import { GraphDataService } from './graph/graphData'
+import { LabelDataService } from './labels/labelData'
 import { PublicDataCore } from './publicDataCore'
-import { ProfileVisibilityService } from './profileVisibility'
+import { ProfileVisibilityService } from './actors/profileVisibility'
 
 export class PublicDataService {
   readonly posts: PostDataService

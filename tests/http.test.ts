@@ -1,6 +1,6 @@
 import { ClientResponseError } from '@atcute/client'
 import { describe, expect, it } from 'vitest'
-import { retryDelay, shouldRetry } from '../src/lib/http'
+import { retryDelay, shouldRetry } from '../src/data/runtime/retryPolicy'
 
 describe('http', () => {
   it('retries only transient XRPC errors and honors Retry-After', () => {

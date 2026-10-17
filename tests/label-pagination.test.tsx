@@ -5,7 +5,7 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
 import { AccountLabelsPage } from '../src/pages/profile/AccountLabelsPage'
 import { PublicDataService } from '../src/data/publicData'
 import { queryKeys } from '../src/data/queryKeys'
-import type { LabelPagingState } from '../src/data/labelPaging'
+import type { LabelPagingState } from '../src/data/labels/labelPaging'
 import type { LabelEvent } from '../src/types'
 import { createTestQueryClient } from './testUtils'
 

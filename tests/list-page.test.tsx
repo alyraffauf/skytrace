@@ -1,4 +1,4 @@
-import { GraphDataService } from '../src/data/graphData'
+import { GraphDataService } from '../src/data/graph/graphData'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'

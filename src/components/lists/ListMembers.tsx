@@ -1,4 +1,4 @@
-import type { GraphDataService } from '../../data/graphData'
+import type { GraphDataService } from '../../data/graph/graphData'
 import { queryKeys } from '../../data/queryKeys'
 import { dedupeBy } from '../../lib/collections'
 import { usePagedRecords } from '../../hooks/usePagedRecords'

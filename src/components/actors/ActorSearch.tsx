@@ -3,7 +3,7 @@ import { useActorCombobox } from '../../hooks/useActorCombobox'
 import { ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { type FormEvent, useId, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { normalizeActorInput } from '../../lib/parse'
+import { normalizeActorInput } from '../../lib/actors/input'
 import { profilePath } from '../../routes/paths'
 
 type ActorSearchProps = {

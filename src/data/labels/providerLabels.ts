@@ -1,7 +1,7 @@
-import { SERVICE_URLS } from '../config/serviceUrls'
-import { deadlineSignal, throwIfAborted } from '../lib/abort'
+import { SERVICE_URLS } from '../../config/serviceUrls'
+import { deadlineSignal, throwIfAborted } from '../../lib/abort'
 import { LABEL_PAGE_SIZE, type ProviderPagingState } from './labelPaging'
-import type { PublicDataCore } from './publicDataCore'
+import type { PublicDataCore } from '../publicDataCore'
 
 const OPTIONAL_LABELER_TIMEOUT_MS = 2_500
 

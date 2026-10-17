@@ -1,7 +1,7 @@
 import { useQueries } from '@tanstack/react-query'
 import type { PublicDataService } from '../data/publicData'
 import type { LabelEvent } from '../types'
-import { labelDisplayName } from '../lib/labelNames'
+import { labelDisplayName } from '../lib/labels/names'
 
 export function useLabelDisplayNames(
   labels: readonly LabelEvent[],

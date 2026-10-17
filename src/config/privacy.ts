@@ -1,5 +1,5 @@
 import type { ActorProfile } from '../types'
-import { isDid } from '../lib/parse'
+import { isDid } from '@atcute/lexicons/syntax'
 
 export function shouldHideProfilePosts(profile: ActorProfile): boolean {
   return profile.hasNoUnauthenticatedSelfLabel && window.__SKYTRACE_CONFIG__?.ignoreNoUnauthenticated !== true

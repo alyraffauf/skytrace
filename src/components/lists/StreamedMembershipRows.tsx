@@ -2,7 +2,7 @@ import { LoadingRowContents } from '../records/LoadingRowContents'
 import { useQuery } from '@tanstack/react-query'
 import { BlockRow } from '../blocks/BlockRow'
 import { compactRowClassName, UnavailableRow } from '../records/RecordList'
-import type { GraphDataService } from '../../data/graphData'
+import type { GraphDataService } from '../../data/graph/graphData'
 
 export function StreamedListMemberRow({
   listUri,

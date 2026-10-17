@@ -6,9 +6,9 @@ import * as v from '@atcute/lexicons/validations'
 import type { LabelEvent, Page, UnavailableItem } from '../../types'
 import { SERVICE_URLS } from '../../config/serviceUrls'
 import { dedupeBy } from '../../lib/collections'
-import { isDid } from '../../lib/parse'
-import { paginationRequests } from '../../lib/requestScheduler'
-import { objectValue } from '../recordParsers'
+import { isDid } from '@atcute/lexicons/syntax'
+import { paginationRequests } from '../runtime/requestScheduler'
+import { objectValue } from '../recordValues'
 import { clientFor } from './client'
 
 // Keep the page envelope loose so a single bad label becomes an unavailable row.

@@ -1,4 +1,4 @@
-import { parseAtUri } from '../lib/parse'
+import { parseAtUri } from '../lib/atproto/uri'
 import type { ProfileTabSlug } from './profileTabs'
 
 export function profilePath(actor: string): string {

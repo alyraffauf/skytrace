@@ -1,6 +1,6 @@
 import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query'
 import type { Page } from '../types'
-import { CACHE_TTL_MS } from '../lib/cache'
+import { CACHE_TTL_MS } from '../data/runtime/cachePolicy'
 
 export function usePagedRecords<T, TCursor = string>(
   queryKey: readonly unknown[],

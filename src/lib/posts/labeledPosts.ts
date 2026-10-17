@@ -1,5 +1,5 @@
-import type { LabeledPost, LabelEvent } from '../types'
-import { compareLabeledPostsNewestFirst, timestampFor } from './sorting'
+import type { LabeledPost, LabelEvent } from '../../types'
+import { compareLabeledPostsNewestFirst, timestampFor } from '../sorting'
 
 // Keep the first-seen post when a later page adds no labels.
 export function mergeLabeledPosts(items: LabeledPost[]): LabeledPost[] {

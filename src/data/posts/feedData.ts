@@ -1,13 +1,13 @@
 import { AppBskyFeedRepost } from '@atcute/bluesky'
-import type { ActorIdentity, FeedItem, FeedPost, Page, RepositoryRecord } from '../types'
-import { dedupeBy } from '../lib/collections'
-import { timestampFor } from '../lib/sorting'
+import type { ActorIdentity, FeedItem, FeedPost, Page, RepositoryRecord } from '../../types'
+import { dedupeBy } from '../../lib/collections'
+import { timestampFor } from '../../lib/sorting'
 import { readFeedState, snapshotFeedState, type FeedPagingState, type FeedStreamState } from './feedPaging'
 import type { PostDataService } from './postData'
-import type { PublicDataCore } from './publicDataCore'
-import { actorReference, isUnavailableRecord, unavailable } from './recordResults'
-import { objectValue, parsedRecord } from './recordParsers'
-import { PublicDataValidationError } from './validationError'
+import type { PublicDataCore } from '../publicDataCore'
+import { actorReference, isUnavailableRecord, unavailable } from '../recordResults'
+import { objectValue, parsedRecord } from '../recordValues'
+import { PublicDataValidationError } from '../validationError'
 
 const FEED_BATCH_SIZE = 12
 const MAX_EMPTY_FEED_PAGES = 4

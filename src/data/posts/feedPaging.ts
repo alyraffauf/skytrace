@@ -1,4 +1,4 @@
-import type { RepositoryRecord } from '../types'
+import type { RepositoryRecord } from '../../types'
 
 export type FeedStreamState = {
   records: RepositoryRecord[]

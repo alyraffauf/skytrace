@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { PublicDataService, publicDataServiceFor } from '../src/data/publicData'
-import { CACHE_TTL_MS } from '../src/lib/cache'
+import { CACHE_TTL_MS } from '../src/data/runtime/cachePolicy'
 import { jsonResponse as response, repositoryRecord, createTestQueryClient, createTestService } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import type { LabelDataService } from '../data/labelData'
-import type { LabelPagingState } from '../data/labelPaging'
+import type { LabelDataService } from '../data/labels/labelData'
+import type { LabelPagingState } from '../data/labels/labelPaging'
 import { queryKeys } from '../data/queryKeys'
 import type { LabelEvent, UnavailableItem } from '../types'
 import { usePagedRecords } from './usePagedRecords'

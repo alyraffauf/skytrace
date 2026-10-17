@@ -1,11 +1,11 @@
 import { queryOptions } from '@tanstack/react-query'
-import type { ActorIdentity, FeedPost, RawRecord, UnavailableItem } from '../types'
-import { CACHE_TTL_MS } from '../lib/cache'
-import type { ActorDataService } from './actorData'
-import type { PublicDataCore } from './publicDataCore'
+import type { ActorIdentity, FeedPost, RawRecord, UnavailableItem } from '../../types'
+import { CACHE_TTL_MS } from '../runtime/cachePolicy'
+import type { ActorDataService } from '../actors/actorData'
+import type { PublicDataCore } from '../publicDataCore'
 import { decodePostRecord } from './postParser'
-import { queryKeys } from './queryKeys'
-import { unavailable } from './recordResults'
+import { queryKeys } from '../queryKeys'
+import { unavailable } from '../recordResults'
 
 export class PostDataService {
   constructor(

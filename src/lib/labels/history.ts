@@ -1,4 +1,4 @@
-import type { LabelEvent, UnavailableItem } from '../types'
+import type { LabelEvent, UnavailableItem } from '../../types'
 
 export type LabelHistoryEvent = LabelEvent & { addedAt?: string }
 

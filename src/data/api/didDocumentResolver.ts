@@ -1,5 +1,5 @@
 import { CompositeDidDocumentResolver, PlcDidDocumentResolver, WebDidDocumentResolver } from '@atcute/identity-resolver'
-import { SERVICE_URLS } from '../config/serviceUrls'
+import { SERVICE_URLS } from '../../config/serviceUrls'
 
 export const didDocumentResolver = new CompositeDidDocumentResolver({
   methods: {

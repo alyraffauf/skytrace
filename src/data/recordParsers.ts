@@ -1,31 +1,11 @@
-import { AppBskyActorProfile, AppBskyLabelerService } from '@atcute/bluesky'
+import { objectValue, stringValue, blobCid, parsedRecord } from './recordValues'
+import { AppBskyActorProfile } from '@atcute/bluesky'
 import { ComAtprotoLabelDefs } from '@atcute/atproto'
-import { isBlob } from '@atcute/lexicons/interfaces'
 import * as v from '@atcute/lexicons/validations'
-import type { ActorIdentity, ActorProfile, Facet, FeedImage, LabelValueDefinition, RawRecord } from '../types'
-import { isDid } from '../lib/parse'
-
-type RecordValue = Record<string, unknown>
+import type { ActorIdentity, ActorProfile, Facet, FeedImage, RawRecord } from '../types'
+import { isDid } from '@atcute/lexicons/syntax'
 
 const NO_UNAUTHENTICATED_SELF_LABEL = '!no-unauthenticated'
-
-export function objectValue(value: unknown): RecordValue | undefined {
-  return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as RecordValue) : undefined
-}
-
-export function stringValue(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined
-}
-
-export function blobCid(value: unknown): ActorProfile['avatarCid'] {
-  return isBlob(value) ? value.ref.$link : undefined
-}
-
-export function parsedRecord<T>(schema: v.BaseSchema<unknown, T>, record?: RawRecord): T | undefined {
-  if (!record) return undefined
-  const result = v.safeParse(schema, record.value)
-  return result.ok ? result.value : undefined
-}
 
 export function profileFromRecord(identity: ActorIdentity, record?: RawRecord): ActorProfile {
   const value = parsedRecord(AppBskyActorProfile.mainSchema, record)
@@ -40,18 +20,6 @@ export function profileFromRecord(identity: ActorIdentity, record?: RawRecord): 
     description: stringValue(value?.description),
     avatarCid: blobCid(value?.avatar),
   }
-}
-
-export function labelDefinitionsFromRecord(record?: RawRecord): LabelValueDefinition[] {
-  const value = parsedRecord(AppBskyLabelerService.mainSchema, record)
-  return (value?.policies.labelValueDefinitions ?? []).map((definition) => ({
-    identifier: definition.identifier,
-    locales: definition.locales.map((locale) => ({
-      lang: locale.lang,
-      name: locale.name,
-      description: locale.description,
-    })),
-  }))
 }
 
 export function parseFacets(text: string, value: unknown): Facet[] {
