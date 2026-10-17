@@ -6,7 +6,7 @@
 docker run -p 8080:80 ghcr.io/alyraffauf/skytrace:latest
 ```
 
-Open `http://localhost:8080`. To change [runtime settings](configuration.md), pass environment variables with `-e` when you start the container. Recreate the container to change those variables.
+Open `http://localhost:8080`. Pass environment variables with `-e` to change settings. See the [configuration guide](configuration.md) for the full list. Change requires recreating the container.
 
 ## Publish a static build
 
@@ -15,28 +15,36 @@ bun install --frozen-lockfile
 bun run build
 ```
 
-Publish `dist/` to your static host. For custom settings, edit [public/runtime-config.js](../public/runtime-config.js) before building, or edit `runtime-config.js` in the deployed files.
+Copy the `dist/` folder to your static host. If you need custom settings, edit [public/runtime-config.js](../public/runtime-config.js) before running `bun run build`, or edit the deployed `runtime-config.js` directly.
 
-Configure the host with these files:
+## Hosting setup
 
-- [public/_redirects](../public/_redirects) rewrites known app routes to `index.html`.
-- [public/_headers](../public/_headers) sets cache rules and `X-Robots-Tag: noindex` for profile and list URLs.
-- [nginx.conf](../nginx.conf) supplies the container's equivalent rules, including a one-year cache for fingerprinted assets.
+Your host needs three things:
 
-If your host does not support `_redirects` or `_headers`, translate the rules into its configuration. Return HTTP 404 with `404.html` for unknown routes and missing files. Avoid a catch-all rewrite to `index.html`.
+1. Route all app paths to `index.html` so the router can handle them.
+2. Serve fingerprinted assets with long cache headers.
+3. Return `404` for unknown routes, not a catch-all redirect.
 
-When adding app routes, update both `_redirects` and `nginx.conf`. Update `_headers` if the new routes need different headers.
+Two files in the repo handle this for you:
+
+- [public/_redirects](../public/_redirects) — rewrites app routes to `index.html`. Use this on Netlify or Cloudflare Pages.
+- [public/_headers](../public/_headers) — sets `Cache-Control` and `X-Robots-Tag: noindex` for profile and list URLs.
+- [nginx.conf](../nginx.conf) — the container's equivalent rules, including a one-year cache for fingerprinted assets.
+
+If your host does not support `_redirects` or `_headers`, translate the rules into its config. The key point is that unknown routes must return a `404` with `404.html`. A catch-all rewrite to `index.html` breaks things.
+
+Whenever you add a new app route, update `_redirects`, `nginx.conf`, and `_headers` if the route needs different headers.
 
 ## Verify the deployment
 
-Check responses on the original URLs after any internal rewrite:
+Hit these URLs after deploying:
 
-- `/` returns 200 without `noindex`.
-- A profile tab and a list URL return 200 with `X-Robots-Tag: noindex`.
-- An unknown route, a missing asset, and `/sitemap.xml` return 404.
+- `/` returns `200` with no `noindex` header.
+- A profile tab URL and a list URL return `200` with `X-Robots-Tag: noindex`.
+- An unknown route, a missing asset, and `/sitemap.xml` return `404`.
 - `/runtime-config.js` returns JavaScript with `Cache-Control: no-store`.
-- `/robots.txt` returns plain text and allows crawling so search engines can read indexing headers.
+- `/robots.txt` returns plain text and allows crawling so the `noindex` headers on profile URLs are read correctly.
 
-If Cloudflare adds a managed crawler policy to `robots.txt`, keep that policy. Use Search Console's URL Inspection to check that Google can render and index the homepage.
+If Cloudflare adds a managed crawler policy to `robots.txt`, leave it alone. Use Search Console's URL Inspection to confirm Google can render the homepage.
 
-Vite's development server does not apply these hosting rules.
+Vite's dev server does not apply these rules.
