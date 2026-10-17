@@ -26,7 +26,7 @@ function setup(client = createTestQueryClient()) {
     </QueryClientProvider>,
   )
   const input = screen.getByRole('combobox')
-  fireEvent.focus(input)
+  act(() => input.focus())
   return input
 }
 async function advance(ms = 180) {
@@ -71,10 +71,10 @@ it.each(['a', 'did:plc:example', 'https://bsky.app/profile/atproto.com'])('does 
   fireEvent.change(input, { target: { value } })
   await advance()
   expect(fetch).not.toHaveBeenCalled()
-  expect(input).toHaveAttribute('aria-expanded', 'false')
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
 })
 
-it('supports arrow selection, Escape, reopening, and Enter navigation', async () => {
+it('uses default keyboard navigation, dismisses on Escape, and selects by DID', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => jsonResponse({ actors })),
@@ -83,23 +83,23 @@ it('supports arrow selection, Escape, reopening, and Enter navigation', async ()
   fireEvent.change(input, { target: { value: 'at' } })
   await advance()
   await advance(1)
-  fireEvent.keyDown(input, { key: 'ArrowUp' })
   const options = screen.getAllByRole('option')
-  expect(options[1]).toHaveAttribute('aria-selected', 'true')
+  fireEvent.keyDown(input, { key: 'End' })
   expect(input).toHaveAttribute('aria-activedescendant', options[1].id)
   fireEvent.keyDown(input, { key: 'ArrowDown' })
-  expect(options[0]).toHaveAttribute('aria-selected', 'true')
+  expect(input).toHaveAttribute('aria-activedescendant', options[1].id)
   fireEvent.keyDown(input, { key: 'Escape' })
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-  fireEvent.change(input, { target: { value: '@at' } })
-  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(input).toHaveValue('at')
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.keyDown(input, { key: 'End' })
   fireEvent.keyDown(input, { key: 'Enter' })
   expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actors[1].did)}`)
   expect(input).toHaveValue('@another.example')
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
 })
 
-it('protects input focus on pointer selection and hides suggestions on blur', async () => {
+it('selects by pointer without moving input focus and dismisses on blur', async () => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => jsonResponse({ actors })),
@@ -108,14 +108,13 @@ it('protects input focus on pointer selection and hides suggestions on blur', as
   fireEvent.change(input, { target: { value: 'at' } })
   await advance()
   await advance(1)
-  fireEvent.blur(input, { relatedTarget: screen.getByText('Outside') })
+  act(() => screen.getByText('Outside').focus())
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-  fireEvent.focus(input)
+  act(() => input.focus())
+  await advance(20)
   const option = screen.getAllByRole('option')[1]
-  expect(fireEvent.pointerDown(option)).toBe(false)
-  fireEvent.pointerMove(option)
-  expect(option).toHaveAttribute('aria-selected', 'true')
-  fireEvent.click(option)
+  fireEvent.mouseDown(option, { button: 0 })
+  expect(input).toHaveFocus()
   expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actors[1].did)}`)
 })
 
@@ -130,106 +129,49 @@ it('validates direct form submissions and navigates without suggestions', () => 
   expect(screen.getByTestId('location')).toHaveTextContent('/profile/atproto.com')
 })
 
-it('keeps selection valid when cached suggestions shrink, grow, and become empty', async () => {
+it('handles changing cached results without retaining a removed option', async () => {
   const client = createTestQueryClient()
   const key = queryKeys.actorSuggestions('at')
   client.setQueryData(key, actors)
   const input = setup(client)
   fireEvent.change(input, { target: { value: 'at' } })
   await advance()
-  fireEvent.keyDown(input, { key: 'ArrowUp' })
-  expect(screen.getAllByRole('option')[1]).toHaveAttribute('aria-selected', 'true')
-
-  async function updateSuggestions(next: typeof actors) {
-    client.setQueryData(key, next)
-    await advance(1)
-  }
-  await updateSuggestions(actors.slice(0, 1))
-  expect(screen.getByRole('option')).toHaveAttribute('aria-selected', 'true')
-  expect(input).toHaveAttribute('aria-activedescendant', screen.getByRole('option').id)
-  await updateSuggestions(actors)
-  expect(screen.getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true')
-  expect(screen.getAllByRole('option')[1]).toHaveAttribute('aria-selected', 'false')
-  await updateSuggestions([])
+  fireEvent.keyDown(input, { key: 'End' })
+  const removedId = screen.getAllByRole('option')[1].id
+  client.setQueryData(key, actors.slice(0, 1))
+  await advance(1)
+  expect(input).not.toHaveAttribute('aria-activedescendant', removedId)
+  client.setQueryData(key, [])
+  await advance(1)
   expect(input).not.toHaveAttribute('aria-activedescendant')
-  expect(screen.queryByRole('option')).not.toBeInTheDocument()
-  await updateSuggestions(actors)
-  expect(screen.getAllByRole('option').every((option) => option.getAttribute('aria-selected') === 'false')).toBe(true)
-  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  expect(screen.getByRole('status')).toHaveTextContent('No matching accounts')
+  client.setQueryData(key, actors)
+  await advance(1)
+  fireEvent.keyDown(input, { key: 'Home' })
   fireEvent.keyDown(input, { key: 'Enter' })
   expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actors[0].did)}`)
 })
 
-async function setupScrollableSuggestions() {
-  const manyActors = Array.from({ length: 8 }, (_, index) => ({
-    did: `did:plc:account${index}`,
-    handle: `account${index}.example`,
-    displayName: `Account ${index}`,
-  }))
+it('keeps keyboard navigation in the input and leaves page scrolling unlocked', async () => {
   const client = createTestQueryClient()
-  client.setQueryData(queryKeys.actorSuggestions('account'), manyActors)
+  client.setQueryData(queryKeys.actorSuggestions('at'), actors)
   const input = setup(client)
-  input.focus()
-  fireEvent.change(input, { target: { value: 'account' } })
+  fireEvent.change(input, { target: { value: 'at' } })
   await advance()
-  const listbox = screen.getByRole('listbox')
-  const options = screen.getAllByRole('option')
-  Object.defineProperty(listbox, 'clientHeight', { value: 100 })
-  vi.spyOn(listbox, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 200, 300, 100))
-  options.forEach((option, index) => {
-    vi.spyOn(option, 'getBoundingClientRect').mockImplementation(
-      () => new DOMRect(0, 200 + index * 40 - listbox.scrollTop, 300, 40),
-    )
-  })
-  return { input, listbox, options, manyActors }
-}
-
-it('scrolls overflowing keyboard selections into view while preserving input focus and page scroll', async () => {
-  const { input, listbox, options, manyActors } = await setupScrollableSuggestions()
-  const scrollPage = vi.spyOn(window, 'scrollTo')
-
-  fireEvent.keyDown(input, { key: 'ArrowDown' })
-  expect(listbox.scrollTop).toBe(0)
-  fireEvent.keyDown(input, { key: 'ArrowUp' })
-  expect(options[7]).toHaveAttribute('aria-selected', 'true')
-  expect(listbox.scrollTop).toBe(220)
-  fireEvent.keyDown(input, { key: 'ArrowUp' })
-  expect(listbox.scrollTop).toBe(220)
-  fireEvent.keyDown(input, { key: 'ArrowDown' })
-  fireEvent.keyDown(input, { key: 'ArrowDown' })
-  expect(options[0]).toHaveAttribute('aria-selected', 'true')
-  expect(listbox.scrollTop).toBe(0)
-
-  fireEvent.keyDown(input, { key: 'ArrowDown' })
-  expect(listbox.scrollTop).toBe(0)
-  fireEvent.keyDown(input, { key: 'ArrowDown' })
-  expect(listbox.scrollTop).toBe(20)
-  fireEvent.keyDown(input, { key: 'ArrowUp' })
-  expect(listbox.scrollTop).toBe(20)
-  fireEvent.keyDown(input, { key: 'ArrowUp' })
-  expect(listbox.scrollTop).toBe(0)
+  fireEvent.keyDown(input, { key: 'End' })
+  await advance(20)
   expect(input).toHaveFocus()
-  expect(scrollPage).not.toHaveBeenCalled()
-  expect(input).toHaveAttribute('aria-activedescendant', options[0].id)
-
-  fireEvent.keyDown(input, { key: 'Enter' })
-  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(manyActors[0].did)}`)
+  expect(input).toHaveAttribute('aria-activedescendant', screen.getAllByRole('option')[1].id)
+  expect(document.documentElement.style.overflow).not.toBe('hidden')
 })
 
-it('does not scroll the list on pointer selection and resumes scrolling on the next arrow key', async () => {
-  const { input, listbox, options } = await setupScrollableSuggestions()
-  fireEvent.keyDown(input, { key: 'ArrowUp' })
-  expect(listbox.scrollTop).toBe(220)
-
-  fireEvent.pointerMove(options[5])
-  expect(options[5]).toHaveAttribute('aria-selected', 'true')
-  expect(listbox.scrollTop).toBe(220)
-  expect(input).toHaveFocus()
-
-  fireEvent.keyDown(input, { key: 'ArrowUp' })
-  expect(options[4]).toHaveAttribute('aria-selected', 'true')
-  expect(listbox.scrollTop).toBe(160)
-  fireEvent.keyDown(input, { key: 'Escape' })
-  expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-  expect(input).toHaveFocus()
-})
+it.each(['atproto.com', 'did:plc:ewvi7nxzyoun6zhxrhs64oiz', 'https://bsky.app/profile/atproto.com'])(
+  'submits %s on Enter before suggestions are available',
+  (value) => {
+    const input = setup()
+    fireEvent.change(input, { target: { value } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    const actor = value.startsWith('https:') ? 'atproto.com' : value
+    expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actor)}`)
+  },
+)

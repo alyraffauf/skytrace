@@ -1,7 +1,9 @@
 import { ActorSuggestions } from './ActorSuggestions'
-import { useActorCombobox } from './useActorCombobox'
+import { useActorSuggestions } from './useActorSuggestions'
+import { Combobox, ComboboxInput } from '@headlessui/react'
+import type { ActorSuggestion } from '../../types'
 import { ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import { type FormEvent, useId, useState } from 'react'
+import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { normalizeActorInput } from '../../lib/actors/input'
 import { profilePath } from '../../routes/paths'
@@ -13,29 +15,19 @@ type ActorSearchProps = {
 
 export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchProps) {
   const navigate = useNavigate()
-  const listboxId = useId()
   const inputId = compact ? 'header-actor-search' : 'actor-search'
   const errorId = compact ? 'header-search-error' : 'search-error'
   const [error, setError] = useState('')
-  const {
-    input,
-    suggestions,
-    isFetching,
-    showSuggestions,
-    activeIndex,
-    keyboardSelection,
-    changeInput,
-    handleFocus,
-    handleBlur,
-    handleInputKeyDown,
-    selectPointerIndex,
-    selectSuggestion,
-  } = useActorCombobox({
-    onSelect: (suggestion) => {
-      setError('')
-      navigate(profilePath(suggestion.did))
-    },
-  })
+  const [input, setInput] = useState('')
+  const [hasFocus, setHasFocus] = useState(false)
+  const { suggestions, isFetching, canShowSuggestions } = useActorSuggestions({ input, hasFocus })
+
+  function selectSuggestion(suggestion: ActorSuggestion | null) {
+    if (!suggestion) return
+    setInput(`@${suggestion.handle}`)
+    setError('')
+    navigate(profilePath(suggestion.did))
+  }
 
   const inputBaseClassName =
     'w-full border bg-white text-zinc-950 outline-none placeholder:text-zinc-400 focus-visible:border-violet-500 focus-visible:ring-1 focus-visible:ring-violet-500 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus-visible:border-violet-400 dark:focus-visible:ring-violet-400'
@@ -68,10 +60,16 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
   }
 
   return (
-    <form
+    <Combobox<ActorSuggestion | null, false, 'form'>
+      as="form"
+      immediate
+      value={null}
+      onChange={selectSuggestion}
       onSubmit={submit}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onFocus={() => setHasFocus(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setHasFocus(false)
+      }}
       className={compact ? 'relative w-full max-w-md' : 'relative w-full'}
       noValidate
     >
@@ -83,22 +81,27 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
           className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 ${compact ? 'left-3 size-[18px]' : 'left-4 size-5'}`}
           aria-hidden="true"
         />
-        <input
+        <ComboboxInput
           id={inputId}
           value={input}
+          displayValue={() => input}
           onChange={(event) => {
-            changeInput(event.target.value)
+            setInput(event.target.value)
             if (error) setError('')
           }}
-          onKeyDown={handleInputKeyDown}
+          onKeyDown={(event) => {
+            if (
+              event.key === 'Enter' &&
+              !event.nativeEvent.isComposing &&
+              (!canShowSuggestions || suggestions.length === 0)
+            ) {
+              event.preventDefault()
+              event.currentTarget.form?.requestSubmit()
+            }
+          }}
           placeholder={compact ? 'Search...' : 'Handle, DID, or profile URL'}
           aria-describedby={error ? errorId : undefined}
           aria-invalid={Boolean(error)}
-          aria-autocomplete="list"
-          aria-controls={showSuggestions ? listboxId : undefined}
-          aria-expanded={showSuggestions}
-          aria-activedescendant={showSuggestions && activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined}
-          role="combobox"
           autoComplete="off"
           autoFocus={autoFocus}
           className={`${inputSizeClassName} ${inputBaseClassName} ${inputBorderClassName}`}
@@ -111,17 +114,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
           <ArrowRightIcon className="size-4" aria-hidden="true" />
         </button>
       </div>
-      {showSuggestions && (
-        <ActorSuggestions
-          listboxId={listboxId}
-          suggestions={suggestions}
-          isFetching={isFetching}
-          activeIndex={activeIndex}
-          keyboardSelection={keyboardSelection}
-          onActiveIndexChange={selectPointerIndex}
-          onSelect={selectSuggestion}
-        />
-      )}
+      {canShowSuggestions && <ActorSuggestions suggestions={suggestions} isFetching={isFetching} />}
       {error && (
         <p
           id={errorId}
@@ -135,6 +128,6 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
           {error}
         </p>
       )}
-    </form>
+    </Combobox>
   )
 }
