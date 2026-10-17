@@ -425,7 +425,13 @@ export async function queryLabels(options: {
       ),
     options.signal,
   )
-  const pageId = options.cursor ?? 'first'
+  const pageId = JSON.stringify([
+    options.service ?? SERVICE_URLS.labelRelay,
+    [...new Set(options.uriPatterns)].sort(),
+    [...new Set(options.sources ?? [])].sort(),
+    options.cursor ?? null,
+    options.limit ?? 50,
+  ])
   const items = data.labels.map((rawLabel, index) => {
     // The relay uses the compact JSON string form for bytes. Normalize it to
     // the lexicon JSON representation before applying atcute's label schema.

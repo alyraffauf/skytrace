@@ -102,9 +102,12 @@ export class LabelDataService {
       )
       for (const label of labels) emittedIds.add(label.id)
       state.emittedIds = [...emittedIds]
+      const unavailableItems = page.items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
       return {
-        items: this.hydrateSources(labels, signal).sort(
-          (left, right) => timestampFor(right.createdAt) - timestampFor(left.createdAt),
+        items: [...this.hydrateSources(labels, signal), ...unavailableItems].sort(
+          (left, right) =>
+            timestampFor(right.kind === 'unavailable' ? undefined : right.createdAt) -
+            timestampFor(left.kind === 'unavailable' ? undefined : left.createdAt),
         ),
         cursor: state.providers.some((candidate) => !candidate.done) ? storeLabelState(state) : undefined,
       }

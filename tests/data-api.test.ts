@@ -171,7 +171,7 @@ describe('atcute-backed API boundaries', () => {
     })
     expect(page.items[1]).toEqual({
       kind: 'unavailable',
-      id: 'label:first-label:1',
+      id: `label:${JSON.stringify(['https://labelers.firehose.stream', [did], [sourceDid], 'first-label', 50])}:1`,
       reason: 'This label event is malformed.',
     })
   })
