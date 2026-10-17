@@ -15,7 +15,7 @@ import { dedupeBy } from '../lib/collections'
 import { CACHE_TTL_MS } from '../lib/cache'
 import { actorFromAtUri, parseAtUri } from '../lib/parse'
 import { compareLabeledPostsNewestFirst, timestampFor } from '../lib/sorting'
-import { readFeedState, storeFeedState, type FeedPagingState, type FeedStreamState } from './feedPaging'
+import { readFeedState, snapshotFeedState, type FeedPagingState, type FeedStreamState } from './feedPaging'
 import { type LabelDataService } from './labelData'
 import { actorReference, isUnavailableRecord, type PublicDataCore, unavailable } from './publicDataCore'
 import { blobCid, objectValue, parseFacets, parseImages, parsedRecord, stringValue } from './recordParsers'
@@ -195,7 +195,7 @@ export class FeedDataService {
       state.posts.records.length > 0 || state.reposts.records.length > 0 || !state.posts.done || !state.reposts.done
     return {
       items: mergeFeedItems(items),
-      cursor: hasMore ? storeFeedState(state) : undefined,
+      cursor: hasMore ? snapshotFeedState(state) : undefined,
     }
   }
 

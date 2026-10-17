@@ -20,7 +20,6 @@ export type LabelPagingState = {
   seenAppViewCursors: string[]
   appViewDone: boolean
   providers: ProviderPagingState[]
-  emittedIds: string[]
 }
 
 export function readLabelState(did: string, cursor?: LabelPagingState): LabelPagingState {
@@ -31,7 +30,6 @@ export function readLabelState(did: string, cursor?: LabelPagingState): LabelPag
       appViewDone: false,
       seenAppViewCursors: [],
       providers: [],
-      emittedIds: [],
     }
   if (cursor.did !== did) throw new Error('This label cursor belongs to another query.')
   return {
@@ -43,10 +41,9 @@ export function readLabelState(did: string, cursor?: LabelPagingState): LabelPag
       ...provider,
       seenCursors: provider.seenCursors ? [...provider.seenCursors] : undefined,
     })),
-    emittedIds: [...cursor.emittedIds],
   }
 }
 
-export function storeLabelState(state: LabelPagingState): LabelPagingState {
+export function snapshotLabelState(state: LabelPagingState): LabelPagingState {
   return readLabelState(state.did, state)
 }

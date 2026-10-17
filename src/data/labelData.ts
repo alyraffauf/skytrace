@@ -3,7 +3,7 @@ import { SERVICE_URLS } from '../config/serviceUrls'
 import { deadlineSignal, throwIfAborted } from '../lib/abort'
 import { dedupeBy } from '../lib/collections'
 import { timestampFor } from '../lib/sorting'
-import { readLabelState, storeLabelState, type LabelPagingState, type ProviderPagingState } from './labelPaging'
+import { readLabelState, snapshotLabelState, type LabelPagingState, type ProviderPagingState } from './labelPaging'
 import { actorReference, type PublicDataCore } from './publicDataCore'
 import { PublicDataValidationError } from './xrpc'
 
@@ -21,7 +21,6 @@ export class LabelDataService {
     signal?: AbortSignal,
   ): Promise<Page<LabelEvent | UnavailableItem, LabelPagingState>> {
     const state = readLabelState(did, cursor)
-    const emittedIds = new Set(state.emittedIds)
 
     if (!state.discoveryDone) {
       const discovery = await this.core.labelRecords({
@@ -47,7 +46,7 @@ export class LabelDataService {
       if (discovery.cursor) seenCursors.add(discovery.cursor)
       state.seenDiscoveryCursors = [...seenCursors]
       // Save discovery progress before advancing another relay page.
-      if (!state.discoveryDone) return { items: [], cursor: storeLabelState(state) }
+      if (!state.discoveryDone) return { items: [], cursor: snapshotLabelState(state) }
     }
 
     if (!state.appViewDone) {
@@ -62,17 +61,14 @@ export class LabelDataService {
       state.appViewDone = !page.cursor || state.seenAppViewCursors.includes(page.cursor)
       state.appViewCursor = state.appViewDone ? undefined : page.cursor
       if (page.cursor) state.seenAppViewCursors.push(page.cursor)
-      const newLabels = labels.filter((label) => !emittedIds.has(label.id))
-      for (const label of newLabels) emittedIds.add(label.id)
-      state.emittedIds = [...emittedIds]
       const unavailableItems = page.items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
       return {
-        items: [...this.hydrateSources(newLabels, signal), ...unavailableItems].sort(
+        items: [...this.hydrateSources(labels, signal), ...unavailableItems].sort(
           (left, right) =>
             timestampFor(right.kind === 'unavailable' ? undefined : right.createdAt) -
             timestampFor(left.kind === 'unavailable' ? undefined : left.createdAt),
         ),
-        cursor: !state.appViewDone || state.providers.length > 0 ? storeLabelState(state) : undefined,
+        cursor: !state.appViewDone || state.providers.length > 0 ? snapshotLabelState(state) : undefined,
       }
     }
 
@@ -84,7 +80,7 @@ export class LabelDataService {
         for (const failedProvider of failedProviders) failedProvider.failed = false
         return {
           items: [],
-          cursor: storeLabelState(state),
+          cursor: snapshotLabelState(state),
           issues: failedProviders.map((failedProvider) => failedProvider.did),
         }
       }
@@ -97,11 +93,8 @@ export class LabelDataService {
       if (nextCursor) seenCursors.add(nextCursor)
       provider.seenCursors = [...seenCursors]
       const labels = page.items.filter(
-        (item): item is Omit<LabelEvent, 'source'> =>
-          item.kind === 'labelEvent' && item.sourceDid === provider.did && !emittedIds.has(item.id),
+        (item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent' && item.sourceDid === provider.did,
       )
-      for (const label of labels) emittedIds.add(label.id)
-      state.emittedIds = [...emittedIds]
       const unavailableItems = page.items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
       return {
         items: [...this.hydrateSources(labels, signal), ...unavailableItems].sort(
@@ -109,7 +102,7 @@ export class LabelDataService {
             timestampFor(right.kind === 'unavailable' ? undefined : right.createdAt) -
             timestampFor(left.kind === 'unavailable' ? undefined : left.createdAt),
         ),
-        cursor: state.providers.some((candidate) => !candidate.done) ? storeLabelState(state) : undefined,
+        cursor: state.providers.some((candidate) => !candidate.done) ? snapshotLabelState(state) : undefined,
       }
     }
   }

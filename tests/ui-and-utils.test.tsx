@@ -810,7 +810,6 @@ describe('account labels', () => {
       appViewDone: false,
       seenAppViewCursors: [],
       providers: [],
-      emittedIds: [],
     }
     const labels = vi
       .spyOn(LabelDataService.prototype, 'labels')
@@ -853,7 +852,6 @@ describe('account labels', () => {
           appViewDone: false,
           seenAppViewCursors: [],
           providers: [],
-          emittedIds: [],
         },
       })
       .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'second', reason: 'Second label page' }] })

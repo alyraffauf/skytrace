@@ -85,3 +85,28 @@ it('gives malformed rows stable IDs scoped to their complete request context and
   })
   expect(reordered.items.map((item) => item.id)).toEqual(sorted.items.map((item) => item.id))
 })
+
+it('replays independent cursor snapshots when provider backfill repeats an AppView event', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(input instanceof Request ? input.url : String(input))
+      if (url.hostname === 'plc.directory')
+        return jsonResponse({
+          id: providerDid,
+          service: [{ id: '#atproto_labeler', type: 'AtprotoLabeler', serviceEndpoint: 'https://labels.example' }],
+        })
+      return jsonResponse({ labels: [label(providerDid, 'shared-event')] })
+    }),
+  )
+  const service = createTestService()
+  const appView = await service.labels.labels(did)
+  const snapshot = structuredClone(appView.cursor)
+  expect(snapshot).not.toHaveProperty('emittedIds')
+  const direct = await service.labels.labels(did, appView.cursor)
+  const replay = await service.labels.labels(did, appView.cursor)
+  expect(direct.items).toMatchObject([{ value: 'shared-event' }])
+  expect(direct.items[0].id).toBe(appView.items[0].id)
+  expect(replay).toEqual(direct)
+  expect(appView.cursor).toEqual(snapshot)
+})

@@ -6,6 +6,7 @@ import { AccountLabelsPage } from '../src/pages/profile/AccountLabelsPage'
 import { PublicDataService } from '../src/data/publicData'
 import { queryKeys } from '../src/data/queryKeys'
 import type { LabelPagingState } from '../src/data/labelPaging'
+import type { LabelEvent } from '../src/types'
 import { createTestQueryClient } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
@@ -16,7 +17,6 @@ const cursor: LabelPagingState = {
   appViewDone: true,
   seenAppViewCursors: [],
   providers: [],
-  emittedIds: [],
 }
 const cached = { kind: 'unavailable' as const, id: 'cached', reason: 'Cached label row' }
 
@@ -116,4 +116,30 @@ it('pauses for source issues and retries the next page with its cursor', async (
   expect(screen.queryByText('1 source unavailable')).not.toBeInTheDocument()
   expect(load).toHaveBeenCalledTimes(1)
   expect(load.mock.calls[0][1]).toEqual(cursor)
+})
+
+it('shows one label row when AppView and provider pages repeat the same event', async () => {
+  const { client, load, mount } = setup({ cached: false })
+  const sourceDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
+  client.setQueryData(queryKeys.labelDefinitions(sourceDid), [])
+  client.setQueryData(queryKeys.profileView(sourceDid), {
+    kind: 'actorProfile',
+    identity: { kind: 'actorIdentity', did: sourceDid, handle: 'labeler.example', pds: 'https://pds.example' },
+    hasNoUnauthenticatedSelfLabel: false,
+  })
+  const event: LabelEvent = {
+    kind: 'labelEvent' as const,
+    id: 'shared-event',
+    sourceDid,
+    source: { kind: 'actorReference', did: sourceDid },
+    subject: did,
+    value: 'shared-label',
+    createdAt: '2026-01-01T00:00:00Z',
+    negated: false,
+  }
+  load.mockResolvedValueOnce({ items: [event], cursor }).mockResolvedValueOnce({ items: [event] })
+  mount()
+  await waitFor(() => expect(load).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(client.getQueryData<{ pages: unknown[] }>(key)?.pages).toHaveLength(2))
+  expect(screen.getAllByText('shared-label')).toHaveLength(1)
 })
