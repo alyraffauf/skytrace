@@ -1,4 +1,4 @@
-import type { ActorIdentity, FeedPost, LabeledPost, LabelEvent, Page, RawRecord } from '../../types'
+import type { ActorIdentity, LabeledPost, LabelEvent, Page, RawRecord } from '../../types'
 import { newestFirst } from '../../lib/sorting'
 import { compareLabeledPostsNewestFirst } from '../../lib/posts/labeledPosts'
 import type { SubjectLabelsDataService } from '../labels/subjectLabelsData'
@@ -42,17 +42,16 @@ export class LabeledPostsDataService {
       signal,
     )
     const labelsByPost = groupLabelsByPost(labels)
-    const parsedItems = await Promise.all(
-      records
-        .filter((record) => labelsByPost.has(record.uri))
-        .map(async (record) => ({
-          post: await this.posts.loadFromRecord({ record, repository: identity, signal }),
-          labels: labelsByPost.get(record.uri)!,
-        })),
+    const labeledPosts = await Promise.all(
+      records.map(async (record): Promise<LabeledPost | undefined> => {
+        const postLabels = labelsByPost.get(record.uri)
+        if (!postLabels) return undefined
+        const post = await this.posts.loadFromRecord({ record, repository: identity, signal })
+        if (post.kind === 'unavailable') return undefined
+        return { kind: 'labeledPost', post, labels: postLabels }
+      }),
     )
-    const items: LabeledPost[] = parsedItems
-      .filter((item): item is { post: FeedPost; labels: LabelEvent[] } => item.post.kind === 'post')
-      .map((item) => ({ kind: 'labeledPost', ...item }))
+    const items = labeledPosts.filter((item) => item !== undefined)
     items.sort(compareLabeledPostsNewestFirst)
     if (!postsPage.cursor) return { items }
     const seenCursors = new Set(cursor?.seenRepositoryCursors ?? [])

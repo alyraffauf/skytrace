@@ -37,19 +37,27 @@ export class SharedQueryRequests {
 
     return new Promise<T>((resolve, reject) => {
       let finished = false
-      const finish = (complete: () => void) => {
+      const cleanup = () => {
         if (finished) return
         finished = true
         consumerSignal?.removeEventListener('abort', abort)
         unsubscribe()
-        complete()
       }
-      const abort = () =>
-        finish(() => reject(consumerSignal?.reason ?? new DOMException('The request was aborted.', 'AbortError')))
-      promise.then(
-        (value) => finish(() => resolve(value)),
-        (error) => finish(() => reject(error)),
-      )
+      const resolveConsumer = (value: T) => {
+        if (finished) return
+        cleanup()
+        resolve(value)
+      }
+      const rejectConsumer = (error: unknown) => {
+        if (finished) return
+        cleanup()
+        reject(error)
+      }
+      const abort = () => {
+        const reason = consumerSignal?.reason ?? new DOMException('The request was aborted.', 'AbortError')
+        rejectConsumer(reason)
+      }
+      promise.then(resolveConsumer, rejectConsumer)
       consumerSignal?.addEventListener('abort', abort, { once: true })
       if (consumerSignal?.aborted) abort()
     })

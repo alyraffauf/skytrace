@@ -50,6 +50,27 @@ describe('shared requests', () => {
 })
 
 describe('shared request lifecycle', () => {
+  it('keeps cancellation final when a cached result is already ready', async () => {
+    const queryClient = createTestQueryClient()
+    const identity = { kind: 'actorIdentity', did, handle: 'atproto.com', pds: 'https://pds.example' }
+    queryClient.setQueryData(queryKeys.identity(did), identity)
+    const service = new PublicDataService(queryClient)
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+    const pending = service.actors.identity(did, controller.signal)
+    controller.abort('The caller left.')
+    await expect(pending).rejects.toBe('The caller left.')
+    expect(queryClient.getQueryData(queryKeys.identity(did))).toEqual(identity)
+    expect(
+      queryClient
+        .getQueryCache()
+        .find({ queryKey: queryKeys.identity(did) })
+        ?.getObserversCount(),
+    ).toBe(0)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('aborts the fetch when the final consumer leaves shared work', async () => {
     const uri = `at://${did}/app.bsky.feed.post/abort`
     let fetchSignal: AbortSignal | undefined
