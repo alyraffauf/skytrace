@@ -1,19 +1,27 @@
 import { memo } from 'react'
 import { ActorAvatar, ActorHandle, actorLabel, HydratedActor } from '../actors/ActorIdentity'
-import { RecordLinksMenu } from '../records/RecordLinksMenu'
+import { RecordLinksMenu } from './RecordLinksMenu'
 import { formatDate } from '../../lib/dates'
 import { socialProfilePath } from '../../lib/links'
 import type { ActorProfile, ActorReference, RelationshipEntry, UnavailableItem } from '../../types'
-import { compactRowClassName, UnavailableRow } from '../records/RecordList'
+import { compactRowClassName, UnavailableRow } from './RecordList'
 
-export const BlockRow = memo(function BlockRow({ entry }: { entry: RelationshipEntry | UnavailableItem }) {
+export const RelationshipRow = memo(function RelationshipRow({
+  entry,
+}: {
+  entry: RelationshipEntry | UnavailableItem
+}) {
   if (entry.kind === 'unavailable') {
     return <UnavailableRow reason={entry.reason} />
   }
-  return <HydratedActor actor={entry.actor}>{(actor) => <BlockRowContent entry={entry} actor={actor} />}</HydratedActor>
+  return (
+    <HydratedActor actor={entry.actor}>
+      {(actor) => <RelationshipRowContent entry={entry} actor={actor} />}
+    </HydratedActor>
+  )
 })
 
-function BlockRowContent({ entry, actor }: { entry: RelationshipEntry; actor: ActorProfile | ActorReference }) {
+function RelationshipRowContent({ entry, actor }: { entry: RelationshipEntry; actor: ActorProfile | ActorReference }) {
   const date = formatDate(entry.createdAt)
   const did = actor.kind === 'actorReference' ? actor.did : actor.identity.did
   return (

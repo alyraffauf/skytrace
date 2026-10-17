@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { BlockRow } from './BlockRow'
+import { RelationshipRow } from '../records/RelationshipRow'
 import { LoadingRowContents } from '../records/LoadingRowContents'
 import { compactRowClassName, UnavailableRow } from '../records/RecordList'
 import type { PublicDataService } from '../../data/publicData'
@@ -17,7 +17,7 @@ export function BlockedByRow({
   const blockQuery = useQuery(
     service.blocks.blockedByRecordQueryOptions(entry.kind === 'relationship' ? entry : undefined, subjectDid),
   )
-  if (entry.kind === 'unavailable') return <BlockRow entry={entry} />
+  if (entry.kind === 'unavailable') return <RelationshipRow entry={entry} />
   if (blockQuery.isPending) {
     return (
       <div className={`${compactRowClassName} flex items-center gap-2.5`} aria-label="Loading block record">
@@ -26,5 +26,5 @@ export function BlockedByRow({
     )
   }
   if (blockQuery.isError) return <UnavailableRow reason="This block record could not be verified." />
-  return <BlockRow entry={blockQuery.data} />
+  return <RelationshipRow entry={blockQuery.data} />
 }

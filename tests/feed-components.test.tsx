@@ -1,10 +1,10 @@
-import { mergeFeedItems } from '../src/data/posts/feedData'
+import { mergeFeedItems } from '../src/lib/posts/feed'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FeedRow } from '../src/components/feed/FeedRow'
-import { BlockRow } from '../src/components/blocks/BlockRow'
+import { RelationshipRow } from '../src/components/records/RelationshipRow'
 import { queryKeys } from '../src/data/queryKeys'
 import { PublicDataService } from '../src/data/publicData'
 import type { FeedPost } from '../src/types'
@@ -40,7 +40,7 @@ describe('relationship rendering', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <BlockRow
+          <RelationshipRow
             entry={{
               kind: 'relationship',
               id: `at://${did}/app.bsky.graph.block/3abc`,

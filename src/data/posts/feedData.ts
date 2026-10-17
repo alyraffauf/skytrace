@@ -1,7 +1,7 @@
 import { AppBskyFeedRepost } from '@atcute/bluesky'
 import type { ActorIdentity, FeedItem, FeedPost, Page, RepositoryRecord } from '../../types'
-import { dedupeBy } from '../../lib/collections'
-import { newestFirst, timestampFor } from '../../lib/sorting'
+import { mergeFeedItems } from '../../lib/posts/feed'
+import { timestampFor } from '../../lib/sorting'
 import { readFeedState, type FeedPagingState, type FeedStreamState } from './feedPaging'
 import type { PostDataService } from './postData'
 import type { PublicDataCore } from '../publicDataCore'
@@ -97,8 +97,4 @@ function rawRecordDate(record: RepositoryRecord): number {
   if (isUnavailableRecord(record)) return Number.NEGATIVE_INFINITY
   const createdAt = objectValue(record.value)?.createdAt
   return timestampFor(typeof createdAt === 'string' ? createdAt : undefined)
-}
-
-export function mergeFeedItems(items: FeedItem[]): FeedItem[] {
-  return newestFirst(dedupeBy(items, (item) => (item.kind === 'unavailable' ? item.id : item.uri)))
 }

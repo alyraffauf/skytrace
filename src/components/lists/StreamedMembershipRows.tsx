@@ -1,6 +1,6 @@
 import { LoadingRowContents } from '../records/LoadingRowContents'
 import { useQuery } from '@tanstack/react-query'
-import { BlockRow } from '../blocks/BlockRow'
+import { RelationshipRow } from '../records/RelationshipRow'
 import { compactRowClassName, UnavailableRow } from '../records/RecordList'
 import type { ListDataService } from '../../data/graph/listData'
 
@@ -16,7 +16,7 @@ export function StreamedListMemberRow({
   const membershipQuery = useQuery(lists.listMemberQueryOptions(listUri, membershipUri))
   if (membershipQuery.isPending) return <MembershipLoadingRow />
   if (membershipQuery.isError) return <UnavailableRow reason="This list membership could not be loaded." />
-  return <BlockRow entry={membershipQuery.data} />
+  return <RelationshipRow entry={membershipQuery.data} />
 }
 
 export function MembershipLoadingRow() {

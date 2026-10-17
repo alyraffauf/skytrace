@@ -1,5 +1,5 @@
 import { useOutletContext } from 'react-router-dom'
-import { BlockRow } from '../../components/blocks/BlockRow'
+import { RelationshipRow } from '../../components/records/RelationshipRow'
 import { queryKeys } from '../../data/queryKeys'
 import type { ProfileOutletContext } from '../../layouts/profileContext'
 import { RecordTab } from '../../components/pagination/RecordTab'
@@ -13,7 +13,7 @@ export function BlockingPage() {
       emptyTitle="No blocked accounts found"
       load={(cursor, signal) => service.blocks.blocking(profile.identity, cursor, signal)}
       itemKey={(item) => item.id}
-      renderItem={(item) => <BlockRow entry={item} />}
+      renderItem={(item) => <RelationshipRow entry={item} />}
     />
   )
 }
