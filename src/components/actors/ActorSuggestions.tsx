@@ -1,11 +1,13 @@
 import type { ActorSuggestion } from '../../types'
 import { ImageWithFallback } from '../ui/ImageWithFallback'
+import { useEffect, useRef } from 'react'
 
 export function ActorSuggestions({
   listboxId,
   suggestions,
   isFetching,
   activeIndex,
+  keyboardSelection,
   onActiveIndexChange,
   onSelect,
 }: {
@@ -13,9 +15,27 @@ export function ActorSuggestions({
   suggestions: ActorSuggestion[]
   isFetching: boolean
   activeIndex: number
+  keyboardSelection: boolean
   onActiveIndexChange: (index: number) => void
   onSelect: (suggestion: ActorSuggestion) => void
 }) {
+  const listboxRef = useRef<HTMLUListElement>(null)
+
+  useEffect(() => {
+    if (!keyboardSelection || activeIndex < 0) return
+    const listbox = listboxRef.current
+    const activeOption = listbox?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!listbox || !activeOption) return
+    const viewportTop = listbox.getBoundingClientRect().top + listbox.clientTop
+    const viewportBottom = viewportTop + listbox.clientHeight
+    const optionBounds = activeOption.getBoundingClientRect()
+    if (optionBounds.top < viewportTop) {
+      listbox.scrollTop -= viewportTop - optionBounds.top
+    } else if (optionBounds.bottom > viewportBottom) {
+      listbox.scrollTop += optionBounds.bottom - viewportBottom
+    }
+  }, [activeIndex, keyboardSelection, suggestions])
+
   return (
     <div className="absolute inset-x-0 top-[calc(100%+0.35rem)] z-50 overflow-hidden rounded-sm border border-zinc-300 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
       {isFetching && suggestions.length === 0 ? (
@@ -23,7 +43,13 @@ export function ActorSuggestions({
           Searching...
         </p>
       ) : suggestions.length > 0 ? (
-        <ul id={listboxId} role="listbox" aria-label="Account suggestions" className="max-h-80 overflow-y-auto py-1">
+        <ul
+          ref={listboxRef}
+          id={listboxId}
+          role="listbox"
+          aria-label="Account suggestions"
+          className="max-h-80 overflow-y-auto py-1"
+        >
           {suggestions.map((suggestion, index) => (
             <li key={suggestion.did} role="none">
               <button

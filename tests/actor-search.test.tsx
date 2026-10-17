@@ -159,3 +159,77 @@ it('keeps selection valid when cached suggestions shrink, grow, and become empty
   fireEvent.keyDown(input, { key: 'Enter' })
   expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${actors[0].did}`)
 })
+
+async function setupScrollableSuggestions() {
+  const manyActors = Array.from({ length: 8 }, (_, index) => ({
+    did: `did:plc:account${index}`,
+    handle: `account${index}.example`,
+    displayName: `Account ${index}`,
+  }))
+  const client = createTestQueryClient()
+  client.setQueryData(queryKeys.actorSuggestions('account'), manyActors)
+  const input = setup(client)
+  input.focus()
+  fireEvent.change(input, { target: { value: 'account' } })
+  await advance()
+  const listbox = screen.getByRole('listbox')
+  const options = screen.getAllByRole('option')
+  Object.defineProperty(listbox, 'clientHeight', { value: 100 })
+  vi.spyOn(listbox, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 200, 300, 100))
+  options.forEach((option, index) => {
+    vi.spyOn(option, 'getBoundingClientRect').mockImplementation(
+      () => new DOMRect(0, 200 + index * 40 - listbox.scrollTop, 300, 40),
+    )
+  })
+  return { input, listbox, options, manyActors }
+}
+
+it('scrolls overflowing keyboard selections into view while preserving input focus and page scroll', async () => {
+  const { input, listbox, options, manyActors } = await setupScrollableSuggestions()
+  const scrollPage = vi.spyOn(window, 'scrollTo')
+
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  expect(listbox.scrollTop).toBe(0)
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(options[7]).toHaveAttribute('aria-selected', 'true')
+  expect(listbox.scrollTop).toBe(220)
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(listbox.scrollTop).toBe(220)
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  expect(options[0]).toHaveAttribute('aria-selected', 'true')
+  expect(listbox.scrollTop).toBe(0)
+
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  expect(listbox.scrollTop).toBe(0)
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  expect(listbox.scrollTop).toBe(20)
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(listbox.scrollTop).toBe(20)
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(listbox.scrollTop).toBe(0)
+  expect(input).toHaveFocus()
+  expect(scrollPage).not.toHaveBeenCalled()
+  expect(input).toHaveAttribute('aria-activedescendant', options[0].id)
+
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${manyActors[0].did}`)
+})
+
+it('does not scroll the list on pointer selection and resumes scrolling on the next arrow key', async () => {
+  const { input, listbox, options } = await setupScrollableSuggestions()
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(listbox.scrollTop).toBe(220)
+
+  fireEvent.pointerMove(options[5])
+  expect(options[5]).toHaveAttribute('aria-selected', 'true')
+  expect(listbox.scrollTop).toBe(220)
+  expect(input).toHaveFocus()
+
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(options[4]).toHaveAttribute('aria-selected', 'true')
+  expect(listbox.scrollTop).toBe(160)
+  fireEvent.keyDown(input, { key: 'Escape' })
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  expect(input).toHaveFocus()
+})

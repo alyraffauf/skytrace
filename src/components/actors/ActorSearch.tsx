@@ -22,6 +22,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
   const [hasFocus, setHasFocus] = useState(false)
   const [isDismissed, setIsDismissed] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
+  const [keyboardSelection, setKeyboardSelection] = useState(false)
   const { suggestions, isFetching, canShowSuggestions } = useActorSuggestions({ input, hasFocus })
   const showSuggestions = canShowSuggestions && !isDismissed
 
@@ -46,9 +47,11 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
     if (!showSuggestions || suggestions.length === 0) return
     if (event.key === 'ArrowDown') {
       event.preventDefault()
+      setKeyboardSelection(true)
       setActiveIndex((current) => (current + 1) % suggestions.length)
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
+      setKeyboardSelection(true)
       setActiveIndex((current) => (current <= 0 ? suggestions.length - 1 : current - 1))
     } else if (event.key === 'Enter') {
       event.preventDefault()
@@ -121,7 +124,11 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
           suggestions={suggestions}
           isFetching={isFetching}
           activeIndex={activeIndex}
-          onActiveIndexChange={setActiveIndex}
+          keyboardSelection={keyboardSelection}
+          onActiveIndexChange={(index) => {
+            setKeyboardSelection(false)
+            setActiveIndex(index)
+          }}
           onSelect={selectSuggestion}
         />
       )}
