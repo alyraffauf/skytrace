@@ -7,6 +7,19 @@ import { actorReference, did } from './actorFixtures'
 import { renderWithRouter } from './profileTestUtils'
 
 describe('plain text links', () => {
+  it('keeps punctuation around multiple links and recognizes mixed-case URLs', () => {
+    const text = 'Read (HTTPS://Example.COM/path), @atproto.com! Then example.org/docs.'
+    const { container } = renderWithRouter(<LinkifiedText text={text} />)
+    expect(screen.getByRole('link', { name: 'HTTPS://Example.COM/path' })).toHaveAttribute(
+      'href',
+      'https://example.com/path',
+    )
+    expect(screen.getByRole('link', { name: '@atproto.com' })).toHaveAttribute('href', '/profile/atproto.com')
+    expect(screen.getByRole('link', { name: 'example.org/docs' })).toHaveAttribute('href', 'https://example.org/docs')
+    expect(screen.getAllByRole('link')).toHaveLength(3)
+    expect(container.textContent).toBe(text)
+  })
+
   it('links handles, bare domains, and full URLs', () => {
     renderWithRouter(<LinkifiedText text="@atproto.com docs at atproto.com and https://example.com/read" />)
     expect(screen.getByRole('link', { name: '@atproto.com' })).toHaveAttribute('href', '/profile/atproto.com')

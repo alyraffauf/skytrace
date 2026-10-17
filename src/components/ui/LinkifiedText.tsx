@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom'
 import { profilePath } from '../../routes/paths'
 import { safeHttpUrl } from '../../lib/urls'
 
-const linkPattern =
-  /(@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}|https?:\/\/[^\s]+|(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?:\/[^\s]*)?)/gi
+const handlePattern = /@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}/
+const httpUrlPattern = /https?:\/\/[^\s]+/
+const bareDomainPattern = /(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?:\/[^\s]*)?/
+const linkPattern = new RegExp(`(${handlePattern.source}|${httpUrlPattern.source}|${bareDomainPattern.source})`, 'gi')
 const trailingPunctuation = /[),.!?;:]+$/
 
 type TextPart = { text: string; href?: string; internal?: boolean }
