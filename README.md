@@ -53,11 +53,13 @@ Use the narrower commands while you work:
 - `src/pages/` contains route screens, with one file per profile tab under `pages/profile/`.
 - `src/components/` contains reusable rendering. Feature components are grouped by actors, profile, feed, labels, lists, and blocks. Shared display elements live in `ui/`, record rows and menus in `records/`, and paging components in `pagination/`.
 - `src/hooks/` contains custom React hooks for queries, timers, and interaction behavior.
-- `src/data/` owns service access, parsing, pagination, query keys, and the query client.
-- `src/lib/` contains non-React utilities and domain transformations.
+- `src/data/` groups services and parsers under `actors/`, `graph/`, `labels/`, and `posts/`. API adapters live in `api/`. Query and request infrastructure lives in `runtime/`.
+- `src/lib/` contains non-React utilities, with actor, AT Protocol, label, and post helpers grouped by domain.
 - `src/config/` contains application settings; `src/types.ts` defines shared domain types.
 
 Hooks use data services and utilities without importing rendering components. Keep helpers used only for rendering beside their component. Put new route registration in `routes/router.tsx` and profile tab definitions in `routes/profileTabs.ts`.
+
+`data/publicData.ts` constructs the services and connects their dependencies. Shared record helpers and query keys stay at the data root.
 
 ## Edit the FAQ
 
