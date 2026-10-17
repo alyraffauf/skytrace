@@ -33,7 +33,7 @@ export class SharedQueryRequests {
     // Imperative callers share the same lifetime accounting as mounted queries.
     const observer = new QueryObserver(this.queryClient, { ...options, enabled: false })
     const unsubscribe = observer.subscribe(() => {})
-    const promise = this.queryClient.fetchQuery(options)
+    const promise = this.queryClient.query(options)
 
     return new Promise<T>((resolve, reject) => {
       let finished = false

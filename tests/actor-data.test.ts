@@ -54,18 +54,16 @@ describe('actor data', () => {
 
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions('atproto.com'))).resolves.toMatchObject(
-      {
-        hasNoUnauthenticatedSelfLabel: expected,
-      },
-    )
+    await expect(queryClient.query(service.actors.actorProfileQueryOptions('atproto.com'))).resolves.toMatchObject({
+      hasNoUnauthenticatedSelfLabel: expected,
+    })
   })
 
   it('returns an identity-only profile when the profile record was deleted', async () => {
     stubProfileRecord({ error: 'NotFound', message: 'Deleted' }, 404)
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
+    await expect(queryClient.query(service.actors.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
       kind: 'actorProfile',
       identity,
       hasNoUnauthenticatedSelfLabel: false,
@@ -88,7 +86,7 @@ describe('actor data', () => {
 
       const queryClient = createTestQueryClient()
       const service = new PublicDataService(queryClient)
-      await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions(did))).resolves.toMatchObject({
+      await expect(queryClient.query(service.actors.actorProfileQueryOptions(did))).resolves.toMatchObject({
         hasNoUnauthenticatedSelfLabel: true,
         displayName: undefined,
         description: undefined,
@@ -110,7 +108,7 @@ describe('actor data', () => {
 
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions(did))).resolves.toMatchObject({
+    await expect(queryClient.query(service.actors.actorProfileQueryOptions(did))).resolves.toMatchObject({
       hasNoUnauthenticatedSelfLabel: false,
     })
   })
@@ -119,7 +117,7 @@ describe('actor data', () => {
     stubProfileRecord({ uri: 'not-an-at-uri', value: {} })
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
+    await expect(queryClient.query(service.actors.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
       kind: 'actorProfile',
       identity,
       hasNoUnauthenticatedSelfLabel: false,
@@ -130,7 +128,7 @@ describe('actor data', () => {
     stubProfileRecord({ error: 'UpstreamFailure', message: 'Try later' }, 503)
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
-    await expect(queryClient.fetchQuery(service.actors.actorProfileQueryOptions('atproto.com'))).rejects.toMatchObject({
+    await expect(queryClient.query(service.actors.actorProfileQueryOptions('atproto.com'))).rejects.toMatchObject({
       status: 503,
     })
   })

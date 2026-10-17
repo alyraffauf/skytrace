@@ -3,7 +3,7 @@ import { useActorSuggestions } from './useActorSuggestions'
 import { Combobox, ComboboxInput } from '@headlessui/react'
 import type { ActorSuggestion } from '../../types'
 import { ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import { type FormEvent, useState } from 'react'
+import { type SubmitEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { normalizeActorInput } from '../../lib/actors/input'
 import { profilePath } from '../../routes/paths'
@@ -47,7 +47,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
     ? 'size-10 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'
     : 'size-14 text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-200'
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     try {
       const actor = normalizeActorInput(input)

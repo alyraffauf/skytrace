@@ -12,7 +12,7 @@ describe('list data', () => {
     vi.stubGlobal('fetch', fetch)
     const client = createTestQueryClient()
     const service = new PublicDataService(client)
-    const query = () => client.fetchQuery(service.lists.listBlockCountQueryOptions(listUri))
+    const query = () => client.query(service.lists.listBlockCountQueryOptions(listUri))
     const imperative = () => service.lists.listBlockCount(listUri)
 
     const pending = first === 'query' ? [query(), imperative()] : [imperative(), query()]
@@ -48,7 +48,7 @@ describe('list data', () => {
     expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('subject')).toBe(listUri)
     expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get('limit')).toBe('24')
     await expect(
-      queryClient.fetchQuery(service.lists.listMemberQueryOptions(listUri, membershipUri)),
+      queryClient.query(service.lists.listMemberQueryOptions(listUri, membershipUri)),
     ).resolves.toMatchObject({
       kind: 'relationship',
       actor: { did: memberDid },
@@ -75,7 +75,7 @@ describe('list data', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
     await expect(
-      queryClient.fetchQuery(new PublicDataService(queryClient).lists.listMemberQueryOptions(listUri, membershipUri)),
+      queryClient.query(new PublicDataService(queryClient).lists.listMemberQueryOptions(listUri, membershipUri)),
     ).resolves.toMatchObject({ kind: 'unavailable', reason: 'This list membership is malformed.' })
   })
 })

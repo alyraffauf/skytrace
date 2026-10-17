@@ -83,7 +83,7 @@ describe('block data', () => {
     expect(reference).toMatchObject({ kind: 'relationship', id: blockUri })
     if (!reference || reference.kind !== 'relationship') throw new Error('Expected a relationship reference.')
 
-    await expect(queryClient.fetchQuery(service.blocks.blockedByRecordQueryOptions(reference, did))).resolves.toEqual({
+    await expect(queryClient.query(service.blocks.blockedByRecordQueryOptions(reference, did))).resolves.toEqual({
       ...reference,
       createdAt: '2026-01-05T00:00:00Z',
     })

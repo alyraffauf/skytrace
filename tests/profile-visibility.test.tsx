@@ -177,14 +177,14 @@ describe('unified profile visibility', () => {
     const service = new PublicDataService(client)
     const blockCheck = vi.spyOn(service.blocks, 'actorBlocksActor').mockResolvedValue(true)
 
-    expect(await client.fetchQuery(service.profileVisibility.queryOptions('atproto.com'))).toEqual({
+    expect(await client.query(service.profileVisibility.queryOptions('atproto.com'))).toEqual({
       visible: true,
       profile,
     })
     expect(blockCheck).not.toHaveBeenCalled()
 
     vi.stubGlobal('__SKYTRACE_CONFIG__', { blockTargetDid: instanceDid, hiddenDids: [] })
-    expect(await client.fetchQuery(service.profileVisibility.queryOptions('atproto.com'))).toEqual({
+    expect(await client.query(service.profileVisibility.queryOptions('atproto.com'))).toEqual({
       visible: false,
       reason: 'instance-block',
     })
@@ -200,14 +200,14 @@ describe('unified profile visibility', () => {
       .spyOn(service.blocks, 'actorBlocksActor')
       .mockImplementation(async ({ blockerDid }) => blockerDid === instanceDid)
 
-    expect(await client.fetchQuery(service.profileVisibility.queryOptions('atproto.com'))).toEqual({
+    expect(await client.query(service.profileVisibility.queryOptions('atproto.com'))).toEqual({
       visible: false,
       reason: 'explicit-hide',
     })
     expect(blockCheck).not.toHaveBeenCalled()
 
     vi.stubGlobal('__SKYTRACE_CONFIG__', { blockTargetDid: instanceDid, hiddenDids: [] })
-    expect(await client.fetchQuery(service.profileVisibility.queryOptions('atproto.com'))).toEqual({
+    expect(await client.query(service.profileVisibility.queryOptions('atproto.com'))).toEqual({
       visible: false,
       reason: 'instance-block',
     })

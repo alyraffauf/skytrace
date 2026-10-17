@@ -26,7 +26,7 @@ it('loads labeler definitions through the shared record cache', async () => {
   vi.stubGlobal('fetch', fetch)
 
   await service.core.record(uri)
-  const definitions = await client.fetchQuery(service.labelers.definitionsQueryOptions(did))
+  const definitions = await client.query(service.labelers.definitionsQueryOptions(did))
   expect(definitions).toMatchObject([
     {
       identifier: 'many-replies',
@@ -48,7 +48,7 @@ it.each([
     vi.fn(async () => jsonResponse(repositoryRecord(uri, value))),
   )
 
-  await expect(client.fetchQuery(service.labelers.definitionsQueryOptions(did))).resolves.toEqual([])
+  await expect(client.query(service.labelers.definitionsQueryOptions(did))).resolves.toEqual([])
 })
 
 it.each([
