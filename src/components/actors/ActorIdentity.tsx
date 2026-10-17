@@ -53,7 +53,6 @@ export function ActorAvatar({
       alt={decorative || !profile ? '' : `${actorLabel(profile)}'s avatar`}
       title={actor.kind === 'actorReference' ? actor.did : undefined}
       fallback="avatar"
-      fallbackClassName={`${sizeClass} shrink-0 rounded-full`}
       className={`${sizeClass} shrink-0 rounded-full bg-zinc-100 object-cover dark:bg-zinc-900`}
       loading={size === 'profile' ? 'eager' : 'lazy'}
     />

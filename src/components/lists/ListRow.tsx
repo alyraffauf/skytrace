@@ -77,7 +77,6 @@ export function ListAvatar({ list, size }: { list: ListSummary; size: 'row' | 'h
       src={list.avatarCid ? cdnImageUrl('avatar', ownerDid, list.avatarCid) : undefined}
       alt={`${list.name} list avatar`}
       fallback="image"
-      fallbackClassName={sizeClass}
       className={`${sizeClass} bg-zinc-100 object-cover dark:bg-zinc-900`}
       loading={size === 'header' ? 'eager' : 'lazy'}
     />

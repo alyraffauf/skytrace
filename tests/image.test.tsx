@@ -53,3 +53,14 @@ it('forwards image events and clears loaded status for a replacement source', ()
   expect(onError).toHaveBeenCalledOnce()
   expect(screen.getByRole('img', { name: 'Preview' }).tagName).toBe('SPAN')
 })
+
+it.each([
+  ['missing', ''],
+  ['failed', 'https://example.com/broken.jpg'],
+])('preserves named and decorative semantics for %s images', (_state, src) => {
+  const view = render(<ImageWithFallback src={src} alt="Profile picture" fallback="avatar" />)
+  if (src) fireEvent.error(screen.getByRole('img', { name: 'Profile picture' }))
+  expect(screen.getByRole('img', { name: 'Profile picture' }).tagName).toBe('SPAN')
+  view.rerender(<ImageWithFallback src={src} alt="" fallback="avatar" />)
+  expect(screen.queryByRole('img')).not.toBeInTheDocument()
+})

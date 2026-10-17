@@ -70,7 +70,6 @@ export function PostContent({
                   src={thumbnailUrl}
                   alt={image.alt || `Image ${index + 1} attached to this post`}
                   fallback="image"
-                  fallbackClassName="h-36 w-full sm:h-48"
                   className="h-36 w-full bg-zinc-100 object-cover dark:bg-zinc-900 sm:h-48"
                   loading="lazy"
                 />

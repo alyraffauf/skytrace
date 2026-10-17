@@ -25,7 +25,6 @@ export function ActorSuggestions({ suggestions, isFetching }: { suggestions: Act
               src={suggestion.avatar}
               alt=""
               fallback="avatar"
-              fallbackClassName="size-8 shrink-0 rounded-full"
               className="size-8 shrink-0 rounded-full object-cover"
             />
             <span className="min-w-0">
