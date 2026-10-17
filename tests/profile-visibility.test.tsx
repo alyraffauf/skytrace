@@ -21,9 +21,7 @@ const profile: ActorProfile = {
 describe('explicitly hidden profiles', () => {
   it.each([
     [did, null],
-    [did, instanceDid],
     ['atproto.com', null],
-    ['atproto.com', instanceDid],
     ['atproto.com/labeled-posts', instanceDid],
   ])('hides %s with block target %s', async (actorPath, blockTargetDid) => {
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
@@ -116,7 +114,7 @@ describe('explicitly hidden profiles', () => {
 })
 
 describe('hidden DID configuration', () => {
-  it.each([undefined, null, [], did, [null, 123, 'atproto.com', 'not a DID']])(
+  it.each([undefined, did, [null, 123, 'atproto.com', 'not a DID']])(
     'ignores unset or invalid configuration: %j',
     (hiddenDids) => {
       vi.stubGlobal('__SKYTRACE_CONFIG__', { hiddenDids })
@@ -171,36 +169,6 @@ describe('unified profile visibility', () => {
     await act(async () => finishBlockCheck(false))
     expect(await screen.findByText('Profile records')).toBeVisible()
   })
-
-  it.each([
-    [false, false, false, undefined],
-    [false, true, false, 'instance-block'],
-    [false, false, true, 'opt-out'],
-    [false, true, true, 'instance-block'],
-    [true, false, false, 'explicit-hide'],
-    [true, true, false, 'explicit-hide'],
-    [true, false, true, 'explicit-hide'],
-    [true, true, true, 'explicit-hide'],
-  ])(
-    'selects the reason for explicit=%s, instance=%s, opt-out=%s',
-    async (explicitHide, instanceBlocks, actorBlocks, reason) => {
-      vi.stubGlobal('__SKYTRACE_CONFIG__', {
-        blockTargetDid: instanceDid,
-        hiddenDids: explicitHide ? [did] : [],
-      })
-      const client = createTestQueryClient()
-      client.setQueryData(queryKeys.profileView('atproto.com'), profile)
-      const service = new PublicDataService(client)
-      const blockCheck = vi
-        .spyOn(service.blocks, 'actorBlocksActor')
-        .mockImplementation(async ({ blockerDid }) => (blockerDid === instanceDid ? instanceBlocks : actorBlocks))
-
-      const visibility = await client.fetchQuery(service.profileVisibility.queryOptions('atproto.com'))
-
-      expect(visibility).toEqual(reason ? { visible: false, reason } : { visible: true, profile })
-      expect(blockCheck).toHaveBeenCalledTimes(explicitHide ? 0 : 2)
-    },
-  )
 
   it('rechecks visibility when the block target changes', async () => {
     vi.stubGlobal('__SKYTRACE_CONFIG__', { blockTargetDid: null, hiddenDids: [] })

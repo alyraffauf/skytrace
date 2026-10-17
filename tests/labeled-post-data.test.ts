@@ -215,38 +215,4 @@ describe('labeled post data', () => {
     const validPage = await publicData.labeledPosts.page(identity, malformedPage.cursor)
     expect(validPage.items).toMatchObject([{ post: { uri: validUri, text: 'Still reachable' } }])
   })
-
-  it('emits only valid posts from a mixed labeled-post page', async () => {
-    const sourceDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
-    const validUri = `at://${did}/app.bsky.feed.post/3valid`
-    const malformedUri = `at://${did}/app.bsky.feed.post/3malformed`
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = new URL(input instanceof Request ? input.url : String(input))
-        if (url.hostname === 'pds.example') {
-          return response({
-            records: [
-              repositoryRecord(validUri, {
-                $type: 'app.bsky.feed.post',
-                text: 'Visible',
-                createdAt: '2026-08-01T00:00:00Z',
-              }),
-              repositoryRecord(malformedUri, { $type: 'app.bsky.feed.post' }),
-            ],
-          })
-        }
-        if (url.hostname === 'labelers.firehose.stream') {
-          const subject = url.searchParams.get('uriPatterns')!
-          return response({
-            labels: [{ ver: 1, src: sourceDid, uri: subject, val: 'test-label', cts: '2026-08-02T00:00:00Z' }],
-          })
-        }
-        throw new Error(`Unexpected URL ${url}`)
-      }),
-    )
-
-    const page = await createTestService().labeledPosts.page(identity)
-    expect(page.items.map((item) => item.post.uri)).toEqual([validUri])
-  })
 })

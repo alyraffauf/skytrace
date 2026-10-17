@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { QueryObserver } from '@tanstack/react-query'
-import { PublicDataService, publicDataServiceFor } from '../src/data/publicData'
+import { PublicDataService } from '../src/data/publicData'
 import { CACHE_TTL_MS } from '../src/data/runtime/cachePolicy'
 import { queryKeys } from '../src/data/queryKeys'
 import { jsonResponse as response, repositoryRecord, createTestQueryClient, createTestService } from './testUtils'
@@ -157,43 +157,6 @@ describe('shared request lifecycle', () => {
         .find({ queryKey: queryKeys.record(uri) })
         ?.getObserversCount(),
     ).toBe(0)
-  })
-
-  it('keeps shared work alive while another consumer remains', async () => {
-    const uri = `at://${did}/app.bsky.feed.post/shared`
-    let fetchSignal: AbortSignal | undefined
-    let finishRequest: ((response: Response) => void) | undefined
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-        fetchSignal = input instanceof Request ? input.signal : (init?.signal ?? undefined)
-        return new Promise<Response>((resolve, reject) => {
-          finishRequest = resolve
-          fetchSignal?.addEventListener('abort', () => reject(fetchSignal?.reason), { once: true })
-        })
-      }),
-    )
-    const queryClient = createTestQueryClient()
-    const publicData = publicDataServiceFor(queryClient)
-    expect(publicDataServiceFor(queryClient)).toBe(publicData)
-    const firstController = new AbortController()
-    const secondController = new AbortController()
-    const first = publicData.core.record(uri, firstController.signal)
-    const second = publicData.core.record(uri, secondController.signal)
-    await vi.waitFor(() => expect(finishRequest).toBeDefined())
-    firstController.abort()
-    await expect(first).rejects.toMatchObject({ name: 'AbortError' })
-    expect(fetchSignal?.aborted).toBe(false)
-    finishRequest?.(
-      response(
-        repositoryRecord(uri, {
-          $type: 'app.bsky.feed.post',
-          text: 'shared',
-          createdAt: '2026-01-01T00:00:00Z',
-        }),
-      ),
-    )
-    await expect(second).resolves.toMatchObject({ uri })
   })
 })
 

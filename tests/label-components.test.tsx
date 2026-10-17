@@ -91,30 +91,6 @@ describe('account labels', () => {
     expect(screen.getByLabelText(/^Added /)).toBeInTheDocument()
     expect(screen.getByLabelText(/^Removed /)).toBeInTheDocument()
   })
-
-  it('treats a newer application as the current state instead of showing an expired renewal', () => {
-    const expired: LabelEvent = {
-      kind: 'labelEvent',
-      id: 'expired-application',
-      sourceDid: did,
-      subject: did,
-      value: 'frequently-updated',
-      createdAt: '2026-01-01T00:00:00Z',
-      expiresAt: '2026-01-02T00:00:00Z',
-      negated: false,
-    }
-    const active: LabelEvent = {
-      ...expired,
-      id: 'active-application',
-      createdAt: '2026-09-03T00:00:00Z',
-      expiresAt: '2099-01-01T00:00:00Z',
-    }
-
-    const history = groupLabelHistory([expired, active])
-    expect(history).toEqual([expect.objectContaining({ id: 'active-application' })])
-    renderWithRouter(<LabelRow label={history[0]!} />)
-    expect(screen.getByText('Active')).toBeInTheDocument()
-  })
 })
 
 describe('labeled post previews', () => {

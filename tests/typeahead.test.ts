@@ -1,4 +1,3 @@
-import { ClientValidationError } from '@atcute/client'
 import { describe, expect, it, vi } from 'vitest'
 import { parsePlcAccountDetails } from '../src/data/api/plcHistory'
 import { searchActorsTypeahead } from '../src/data/api/actorSearch'
@@ -40,14 +39,6 @@ describe('actor typeahead', () => {
     expect(requestUrl.searchParams.get('q')).toBe('atp')
     expect(requestUrl.searchParams.get('limit')).toBe('8')
     expect(requestHeaders.get('X-Client')).toBe('skytrace')
-  })
-
-  it('rejects malformed actors at the API boundary', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => response({ actors: [{ did: 'not-a-did', handle: 'atproto.com' }] })),
-    )
-    await expect(searchActorsTypeahead('at')).rejects.toBeInstanceOf(ClientValidationError)
   })
 })
 

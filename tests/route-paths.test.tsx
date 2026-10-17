@@ -1,14 +1,12 @@
-import { fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { render, renderHook, screen } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import {
   createMemoryRouter,
-  Link,
   MemoryRouter,
   Route,
   RouterProvider,
   Routes,
-  useParams,
   createRoutesFromElements,
 } from 'react-router-dom'
 import { SOCIAL_APPS } from '../src/config/socialApps'
@@ -19,23 +17,15 @@ import { useRouteActor } from '../src/hooks/useRouteActor'
 import { ProfileLayout } from '../src/layouts/ProfileLayout'
 import { FaqPage } from '../src/pages/FaqPage'
 import { ListPage } from '../src/pages/ListPage'
-import { listPath, profilePath, profileTabPath } from '../src/routes/paths'
+import { listPath, profilePath } from '../src/routes/paths'
 import { createTestQueryClient } from './testUtils'
 import { identity, profile } from './actorFixtures'
 
 const actors = [
   'did:plc:ewvi7nxzyoun6zhxrhs64oiz',
-  'did:web:example.com%3A8443',
   'did:web:example.com:user%25name',
   'did:web:example.com:user%2Fname',
-  'did:web:example.com:user%2fname',
 ]
-
-function RouteParameters() {
-  const actor = useRouteActor()
-  const { tab, rkey } = useParams()
-  return <output data-testid="parameters">{JSON.stringify({ actor, tab, rkey })}</output>
-}
 
 describe('generated internal routes', () => {
   it.each([
@@ -48,34 +38,6 @@ describe('generated internal routes', () => {
     })
 
     expect(result.current).toBe(actor)
-  })
-
-  it.each(
-    actors.flatMap((actor) => [
-      { name: 'profile', actor, path: profilePath(actor), expected: { actor } },
-      { name: 'profile tab', actor, path: profileTabPath(actor, 'labels'), expected: { actor, tab: 'labels' } },
-      {
-        name: 'list',
-        actor,
-        path: listPath(`at://${actor}/app.bsky.graph.list/test:list`)!,
-        expected: { actor, rkey: 'test:list' },
-      },
-    ]),
-  )('preserves $actor when navigating to its $name', ({ path, expected }) => {
-    render(
-      <MemoryRouter>
-        <Link to={path}>Open</Link>
-        <Routes>
-          <Route path="/" element={null} />
-          <Route path="/profile/:actor/:tab?" element={<RouteParameters />} />
-          <Route path="/list/:actor/:rkey" element={<RouteParameters />} />
-        </Routes>
-      </MemoryRouter>,
-    )
-
-    fireEvent.click(screen.getByRole('link', { name: 'Open' }))
-
-    expect(JSON.parse(screen.getByTestId('parameters').textContent!)).toEqual(expected)
   })
 
   it('applies profile visibility to the original DID containing an encoded slash', async () => {

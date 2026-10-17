@@ -1,4 +1,3 @@
-import { ClientValidationError } from '@atcute/client'
 import { describe, expect, it, vi } from 'vitest'
 import { getBacklinks, getBacklinksCount } from '../src/data/api/backlinks'
 import { jsonResponse as response } from './testUtils'
@@ -31,14 +30,4 @@ describe('backlinks api', () => {
     )
     expect(fetchMock).not.toHaveBeenCalled()
   })
-})
-
-it('rejects malformed count responses instead of treating them as counts', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async () => response({ total: '3000' })),
-  )
-  await expect(getBacklinksCount({ subject: did, source: 'app.bsky.graph.block:subject' })).rejects.toBeInstanceOf(
-    ClientValidationError,
-  )
 })

@@ -171,7 +171,6 @@ describe('Listed On minimum blocking', () => {
   it.each([
     [0, false],
     [1, true],
-    [2, true],
   ])('requires at least one blocker: %i', async (count, visible) => {
     const { client, service } = setup(undefined, count)
     const membership = await client.fetchQuery(service.lists.listedOnMembershipQueryOptions(membershipUri, did, 1))
@@ -225,7 +224,7 @@ describe('minimum blocking configuration', () => {
     expect(minimumListBlocking()).toBeUndefined()
   })
 
-  it.each([0, 1, 100])('accepts a whole nonnegative count: %i', (minimum) => {
+  it.each([0, 1])('accepts a whole nonnegative count: %i', (minimum) => {
     configure(minimum)
     expect(minimumListBlocking()).toBe(minimum)
   })

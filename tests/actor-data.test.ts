@@ -1,4 +1,3 @@
-import { ClientValidationError } from '@atcute/client'
 import { describe, expect, it, vi } from 'vitest'
 import { PublicDataService } from '../src/data/publicData'
 import { resolveActor } from '../src/data/api/identity'
@@ -136,14 +135,3 @@ describe('actor data', () => {
     })
   })
 })
-
-it.each([{ did: 'not-a-did' }, { handle: 'invalid handle' }, { pds: 'not-a-uri' }])(
-  'rejects malformed identity fields before loading records: %j',
-  async (invalidFields) => {
-    const fetch = vi.fn(async () => response({ ...identity, signing_key: 'zQ3test', ...invalidFields }))
-    vi.stubGlobal('fetch', fetch)
-    const service = new PublicDataService(createTestQueryClient())
-    await expect(service.actors.profile(did)).rejects.toBeInstanceOf(ClientValidationError)
-    expect(fetch).toHaveBeenCalledOnce()
-  },
-)

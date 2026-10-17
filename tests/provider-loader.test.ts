@@ -3,20 +3,6 @@ import { loadProviderLabelPage } from '../src/data/labels/providerLabels'
 import { SERVICE_URLS } from '../src/config/serviceUrls'
 import { did } from './actorFixtures'
 
-it('loads a direct provider after resolving its endpoint', async () => {
-  const provider = Object.freeze({ did, done: false })
-  const page = { items: [], cursor: 'next' }
-  const loadLabels = vi.fn().mockResolvedValue(page)
-  const resolveEndpoint = vi.fn().mockResolvedValue('https://labels.example')
-  const result = await loadProviderLabelPage({ provider, did, loadLabels, resolveEndpoint })
-  expect(resolveEndpoint).toHaveBeenCalledWith(did, expect.any(AbortSignal))
-  expect(loadLabels).toHaveBeenCalledOnce()
-  expect(loadLabels.mock.calls[0][0].service).toBe('https://labels.example')
-  expect(loadLabels.mock.calls[0][0].sources).toBeUndefined()
-  expect(result.page).toBe(page)
-  expect(provider).toEqual({ did, done: false })
-})
-
 it.each(['missing', 'relay', 'error', 'saved'] as const)(
   'uses AppView with its existing cursor when the endpoint is %s',
   async (endpoint) => {

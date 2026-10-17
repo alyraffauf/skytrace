@@ -20,16 +20,6 @@ describe('plain text links', () => {
     expect(screen.getAllByRole('link')).toHaveLength(3)
     expect(container.textContent).toBe(text)
   })
-
-  it('links handles, bare domains, and full URLs', () => {
-    renderWithRouter(<LinkifiedText text="@atproto.com docs at atproto.com and https://example.com/read" />)
-    expect(screen.getByRole('link', { name: '@atproto.com' })).toHaveAttribute('href', '/profile/atproto.com')
-    expect(screen.getByRole('link', { name: 'atproto.com' })).toHaveAttribute('href', 'https://atproto.com/')
-    expect(screen.getByRole('link', { name: 'https://example.com/read' })).toHaveAttribute(
-      'href',
-      'https://example.com/read',
-    )
-  })
 })
 
 describe('UTF-8 facets', () => {

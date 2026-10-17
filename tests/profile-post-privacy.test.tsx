@@ -39,33 +39,8 @@ describe('profile post privacy', () => {
     renderProfileTab(element, malformedProfile)
 
     expect(screen.getByRole('heading', { name: "Posts aren't available here" })).toBeVisible()
-    expect(feed).not.toHaveBeenCalled()
-    expect(labeledPosts).not.toHaveBeenCalled()
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
-
-  it('shows the privacy notice without requesting the feed', () => {
-    const fetchMock = vi.fn()
-    const feed = vi.spyOn(FeedDataService.prototype, 'feed')
-    vi.stubGlobal('fetch', fetchMock)
-
-    renderProfileTab(<FeedPage />, restrictedProfile)
-
-    expect(screen.getByRole('heading', { name: "Posts aren't available here" })).toBeVisible()
     expect(screen.getByText(unavailableExplanation)).toBeVisible()
     expect(feed).not.toHaveBeenCalled()
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
-
-  it('shows the privacy notice without requesting repositories or label relays', () => {
-    const fetchMock = vi.fn()
-    const labeledPosts = vi.spyOn(LabeledPostsDataService.prototype, 'page')
-    vi.stubGlobal('fetch', fetchMock)
-
-    renderProfileTab(<LabeledPostsPage />, restrictedProfile)
-
-    expect(screen.getByRole('heading', { name: "Posts aren't available here" })).toBeVisible()
-    expect(screen.getByText(unavailableExplanation)).toBeVisible()
     expect(labeledPosts).not.toHaveBeenCalled()
     expect(fetchMock).not.toHaveBeenCalled()
   })

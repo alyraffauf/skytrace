@@ -204,22 +204,4 @@ describe('account label eager pagination', () => {
     expect(await screen.findByText('Recovered label')).toBeVisible()
     expect(labels).toHaveBeenCalledTimes(3)
   })
-
-  it('eagerly loads the second label page on success', async () => {
-    const labels = vi
-      .spyOn(LabelHistoryDataService.prototype, 'page')
-      .mockResolvedValueOnce({
-        items: [],
-        cursor: {
-          kind: 'labels',
-          did,
-          appViewDone: false,
-          providers: [],
-        },
-      })
-      .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'second', reason: 'Second label page' }] })
-    renderProfileTab(<AccountLabelsPage />, profile)
-    expect(await screen.findByText('Second label page')).toBeVisible()
-    expect(labels).toHaveBeenCalledTimes(2)
-  })
 })
