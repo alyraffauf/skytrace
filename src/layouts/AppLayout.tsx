@@ -91,7 +91,7 @@ export function AppLayout() {
         </div>
       </footer>
       <ScrollRestoration />
-      <DonateReminder />
+      {isExplorerRoute && <DonateReminder />}
     </div>
   )
 }
