@@ -101,21 +101,19 @@ function ProfileIdentity({ profile, service }: { profile: ActorProfile; service:
 
   return (
     <div className="p-6 sm:px-8 lg:py-8">
-      <header className="relative flex items-center gap-4">
+      <header className="flex items-center gap-4">
         <ActorAvatar actor={profile} size="profile" />
         <div className="min-w-0 flex-1">
           <h1 className="break-words text-xl font-semibold leading-tight tracking-[-0.02em] text-zinc-950 dark:text-zinc-100">
             {profile.displayName || visibleHandle}
           </h1>
           <p
-            className={`mt-1 text-zinc-500 [overflow-wrap:anywhere] dark:text-zinc-400 ${hasValidHandle ? 'text-sm' : 'font-mono text-xs leading-5'}`}
+            className={`mt-1 text-zinc-500 wrap-anywhere dark:text-zinc-400 ${hasValidHandle ? 'text-sm' : 'font-mono text-xs leading-5'}`}
           >
             {visibleHandle}
           </p>
           {profile.pronouns && (
-            <p className="mt-0.5 text-sm text-zinc-500 [overflow-wrap:anywhere] dark:text-zinc-400">
-              {profile.pronouns}
-            </p>
+            <p className="mt-0.5 text-sm text-zinc-500 wrap-anywhere dark:text-zinc-400">{profile.pronouns}</p>
           )}
         </div>
         <RecordLinksMenu
@@ -128,7 +126,7 @@ function ProfileIdentity({ profile, service }: { profile: ActorProfile; service:
       {profile.description && (
         <LinkifiedText
           text={profile.description}
-          className="mt-4 max-w-sm whitespace-pre-wrap text-sm leading-5 text-zinc-700 [overflow-wrap:anywhere] dark:text-zinc-300"
+          className="mt-4 max-w-sm whitespace-pre-wrap text-sm leading-5 text-zinc-700 wrap-anywhere dark:text-zinc-300"
         />
       )}
 

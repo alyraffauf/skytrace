@@ -24,7 +24,7 @@ export function AppLayout() {
               <RainCloud className="rain-cloud size-5 shrink-0 stroke-[1.8] text-violet-600 dark:text-violet-400" />
               <span className="text-base font-semibold">SkyTrace</span>
             </Link>
-            <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-3">
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
               {isExplorerRoute && (
                 <div className="hidden w-full max-w-md md:block">
                   <ActorSearch compact />
@@ -63,7 +63,7 @@ export function AppLayout() {
               href="https://bsky.app/profile/skytrace.aly.town"
               target="_blank"
               rel="noreferrer"
-              className="justify-self-start rounded-sm text-zinc-600 hover:text-violet-700 hover:underline dark:text-zinc-400 dark:hover:text-violet-300"
+              className="rounded-sm text-zinc-600 hover:text-violet-700 hover:underline dark:text-zinc-400 dark:hover:text-violet-300"
             >
               Bluesky
             </a>

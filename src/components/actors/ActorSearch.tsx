@@ -30,23 +30,22 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
   }
 
   const inputBaseClassName =
-    'w-full border bg-white text-zinc-950 outline-none placeholder:text-zinc-400 focus-visible:border-violet-500 focus-visible:ring-1 focus-visible:ring-violet-500 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus-visible:border-violet-400 dark:focus-visible:ring-violet-400'
+    'w-full border bg-white text-base text-zinc-950 outline-none placeholder:text-zinc-400 focus-visible:border-violet-500 focus-visible:ring-1 focus-visible:ring-violet-500 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus-visible:border-violet-400 dark:focus-visible:ring-violet-400'
   const inputSizeClassName = compact
-    ? 'h-8 rounded-sm pl-10 pr-11 text-base md:text-sm'
-    : 'h-14 rounded-md pl-12 pr-14 text-base shadow-[0_10px_35px_-22px_rgba(124,58,237,0.45)]'
+    ? 'h-8 rounded-sm pl-10 pr-11 md:text-sm'
+    : 'h-14 rounded-md pl-12 pr-14 shadow-[0_10px_35px_-22px_rgba(124,58,237,0.45)]'
   let inputBorderClassName: string
   if (error) {
     inputBorderClassName = 'border-red-500'
   } else if (compact) {
-    inputBorderClassName = 'border-zinc-500 hover:border-zinc-700 dark:border-zinc-500 dark:hover:border-zinc-300'
+    inputBorderClassName = 'border-zinc-500 hover:border-zinc-700 dark:hover:border-zinc-300'
   } else {
-    inputBorderClassName =
-      'border-violet-500 hover:border-violet-700 dark:border-violet-500 dark:hover:border-violet-300'
+    inputBorderClassName = 'border-violet-500 hover:border-violet-700 dark:hover:border-violet-300'
   }
-  const buttonBaseClassName = 'absolute top-1/2 grid -translate-y-1/2 place-items-center'
+  const buttonBaseClassName = 'absolute right-0 top-1/2 grid -translate-y-1/2 place-items-center'
   const buttonVariantClassName = compact
-    ? 'right-0 size-10 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'
-    : 'right-0 size-14 text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-200'
+    ? 'size-10 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'
+    : 'size-14 text-violet-600 hover:text-violet-800 dark:text-violet-400 dark:hover:text-violet-200'
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -78,7 +77,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
       </label>
       <div className="relative">
         <MagnifyingGlassIcon
-          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 ${compact ? 'left-3 size-[18px]' : 'left-4 size-5'}`}
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 ${compact ? 'left-3 size-4.5' : 'left-4 size-5'}`}
           aria-hidden="true"
         />
         <ComboboxInput
