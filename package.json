@@ -21,6 +21,7 @@
   "dependencies": {
     "@atcute/atproto": "^4.0.4",
     "@atcute/bluesky": "^4.0.20",
+    "@atcute/bluesky-richtext-segmenter": "^3.0.2",
     "@atcute/cbor": "^2.3.7",
     "@atcute/cid": "^2.4.2",
     "@atcute/client": "^5.1.1",

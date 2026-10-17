@@ -1,3 +1,4 @@
+import type { AppBskyRichtextFacet } from '@atcute/bluesky'
 import type { CanonicalResourceUri, Cid, Did, GenericUri, Handle } from '@atcute/lexicons/syntax'
 
 export type ActorIdentity = {
@@ -93,13 +94,7 @@ export type LabeledPost = {
   labels: LabelEvent[]
 }
 
-export type Facet = {
-  byteStart: number
-  byteEnd: number
-  href?: string
-  mentionDid?: Did
-  tag?: string
-}
+export type Facet = AppBskyRichtextFacet.Main
 
 export type FeedImage = { cid: Cid; alt: string }
 

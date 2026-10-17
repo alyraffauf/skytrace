@@ -7,6 +7,7 @@
       "dependencies": {
         "@atcute/atproto": "^4.0.4",
         "@atcute/bluesky": "^4.0.20",
+        "@atcute/bluesky-richtext-segmenter": "^3.0.2",
         "@atcute/cbor": "^2.3.7",
         "@atcute/cid": "^2.4.2",
         "@atcute/client": "^5.1.1",
@@ -58,6 +59,8 @@
     "@atcute/atproto": ["@atcute/atproto@4.0.4", "", { "dependencies": { "@atcute/lexicons": "^2.0.3" } }, "sha512-aEp5wQVPVbZcFJUwoi54tyT+ehRI/xtPe9T0zIvcryHAVXF/zxHtNboM+htbZLOAGsDFsqzgCyxph0Bafw7L8w=="],
 
     "@atcute/bluesky": ["@atcute/bluesky@4.0.20", "", { "dependencies": { "@atcute/atproto": "^4.0.4", "@atcute/lexicons": "^2.1.0" } }, "sha512-rboI/y7QQ9HJjW2yhkzwoBLWBgv0qbqi7uDVSS6HCZi5ZddAusIXOTTG6AALroDPbU6WNg+511HRTl+BnM6VXA=="],
+
+    "@atcute/bluesky-richtext-segmenter": ["@atcute/bluesky-richtext-segmenter@3.0.2", "", {}, "sha512-LXsUuElLQ/gQe2g04SzgTeEbSwhcnmswioGdneve8e3vE+FU353EjuEVIsnA/H5rnGeLswLdrua7Io1twezynA=="],
 
     "@atcute/cbor": ["@atcute/cbor@2.3.7", "", { "dependencies": { "@atcute/cid": "^2.4.2", "@atcute/multibase": "^1.2.5", "@atcute/uint8array": "^1.1.5" } }, "sha512-gkhTqd8yCovatjnLAqJlHyvkpAqyKLLLQjTpcv1XoLYEPnbN/uNNBlX2DJJ+zuIM129V9cEFDBaGp7+pSyCxDw=="],
 

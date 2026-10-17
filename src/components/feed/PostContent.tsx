@@ -1,3 +1,4 @@
+import { segmentize } from '@atcute/bluesky-richtext-segmenter'
 import { Fragment, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ImageWithFallback } from '../ui/ImageWithFallback'
@@ -9,32 +10,16 @@ import type { Facet, FeedPost } from '../../types'
 const richTextLinkClassName =
   'rounded text-violet-700 underline decoration-violet-200 underline-offset-2 hover:text-violet-900 dark:text-violet-300 dark:decoration-violet-900 dark:hover:text-violet-200'
 
-type TextPart = { text: string; facet?: Facet }
-
-export function splitFacetedText(text: string, facets: Facet[]): TextPart[] {
-  const bytes = new TextEncoder().encode(text)
-  const decoder = new TextDecoder()
-  const validFacets = facets
-    .filter((facet) => facet.byteStart >= 0 && facet.byteEnd > facet.byteStart && facet.byteEnd <= bytes.length)
-    .sort((left, right) => left.byteStart - right.byteStart)
-  const parts: TextPart[] = []
-  let position = 0
-  for (const facet of validFacets) {
-    if (facet.byteStart < position) continue
-    if (facet.byteStart > position) parts.push({ text: decoder.decode(bytes.slice(position, facet.byteStart)) })
-    parts.push({ text: decoder.decode(bytes.slice(facet.byteStart, facet.byteEnd)), facet })
-    position = facet.byteEnd
-  }
-  if (position < bytes.length) parts.push({ text: decoder.decode(bytes.slice(position)) })
-  return parts
-}
-
 function RichText({ text, facets, className }: { text: string; facets: Facet[]; className: string }) {
   return (
     <p className={className}>
-      {splitFacetedText(text, facets).map((part, index) => {
-        const externalHref = part.facet?.href && safeHttpUrl(part.facet.href)
-        const mentionPath = part.facet?.mentionDid ? profilePath(part.facet.mentionDid) : undefined
+      {segmentize(text, facets).map((part, index) => {
+        let externalHref: string | undefined
+        let mentionPath: string | undefined
+        for (const feature of part.features ?? []) {
+          if (feature.$type === 'app.bsky.richtext.facet#mention') mentionPath = profilePath(feature.did)
+          else if (feature.$type === 'app.bsky.richtext.facet#link') externalHref = safeHttpUrl(feature.uri)
+        }
         if (mentionPath) {
           return (
             <Link key={index} to={mentionPath} className={richTextLinkClassName}>

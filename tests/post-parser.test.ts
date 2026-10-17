@@ -58,7 +58,12 @@ it('decodes text, facets, media, and a quoted record without fetching identity',
     text,
     quoteUri,
     author: { kind: 'actorReference', did },
-    facets: [{ byteStart: 5, byteEnd: text.length, href: 'https://example.com' }],
+    facets: [
+      {
+        index: { byteStart: 5, byteEnd: text.length },
+        features: [{ $type: 'app.bsky.richtext.facet#link', uri: 'https://example.com' }],
+      },
+    ],
     images: [{ cid, alt: 'Attached photo' }],
   })
   expect(decodePostRecord(record)).not.toHaveProperty('repositoryPds')

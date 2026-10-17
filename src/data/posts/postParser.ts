@@ -48,20 +48,25 @@ export function parseFacets(text: string, facets: AppBskyFeedPost.Main['facets']
   if (!facets) return []
   const encodedText = new TextEncoder().encode(text)
   const strictDecoder = new TextDecoder('utf-8', { fatal: true })
-  return facets.flatMap((facet) => {
+  const normalized: Facet[] = []
+  let position = 0
+  for (const facet of [...facets].sort((left, right) => left.index.byteStart - right.index.byteStart)) {
     const { byteStart, byteEnd } = facet.index
-    if (byteStart < 0 || byteEnd <= byteStart || byteEnd > encodedText.length) return []
+    if (byteStart < position || byteEnd <= byteStart || byteEnd > encodedText.length) continue
     try {
-      strictDecoder.decode(encodedText.slice(byteStart, byteEnd))
+      strictDecoder.decode(encodedText.subarray(byteStart, byteEnd))
     } catch {
-      return []
+      continue
     }
-    const parsed: Facet = { byteStart, byteEnd }
-    for (const feature of facet.features) {
-      if (feature.$type === 'app.bsky.richtext.facet#link') parsed.href = feature.uri
-      else if (feature.$type === 'app.bsky.richtext.facet#mention') parsed.mentionDid = feature.did
-      else if (feature.$type === 'app.bsky.richtext.facet#tag') parsed.tag = stringValue(feature.tag)
-    }
-    return parsed.href || parsed.mentionDid || parsed.tag ? [parsed] : []
-  })
+    const features = facet.features.filter(
+      (feature) =>
+        feature.$type === 'app.bsky.richtext.facet#link' ||
+        feature.$type === 'app.bsky.richtext.facet#mention' ||
+        (feature.$type === 'app.bsky.richtext.facet#tag' && stringValue(feature.tag)),
+    )
+    if (features.length === 0) continue
+    normalized.push({ ...facet, features })
+    position = byteEnd
+  }
+  return normalized
 }
