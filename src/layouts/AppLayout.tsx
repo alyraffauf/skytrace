@@ -1,12 +1,13 @@
 import { HeartIcon } from '@heroicons/react/24/outline'
 import { CloudRain } from 'lucide-react'
-import { Link, Outlet, ScrollRestoration, useLocation } from 'react-router-dom'
+import { Link, Outlet, ScrollRestoration } from 'react-router-dom'
+import { useRouteMetadata } from '../routes/metadata'
 import { ActorSearch } from '../components/actors/ActorSearch'
 
 export function AppLayout() {
-  const location = useLocation()
-  const isHomeRoute = location.pathname === '/'
-  const isExplorerRoute = location.pathname.startsWith('/profile/') || location.pathname.startsWith('/list/')
+  const { presentation } = useRouteMetadata()
+  const isHomeRoute = presentation === 'home'
+  const isExplorerRoute = presentation === 'explorer'
 
   return (
     <div className="flex min-h-screen min-h-dvh flex-col bg-white pb-[calc(2.75rem+env(safe-area-inset-bottom))] text-zinc-950 dark:bg-zinc-950 dark:text-zinc-100">

@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '../layouts/AppLayout'
 import { RouteError } from './RouteError'
 import { HomePage } from '../pages/HomePage'
+import type { RouteHandle } from './metadata'
 import { PROFILE_TABS, type ProfileTabId } from './profileTabs'
 
 const ProfileLayout = lazy(() =>
@@ -32,16 +33,21 @@ export const router = createBrowserRouter([
     element: <AppLayout />,
     errorElement: <RouteError />,
     children: [
-      { index: true, element: <HomePage /> },
+      { index: true, element: <HomePage />, handle: { presentation: 'home' } satisfies RouteHandle },
       { path: 'faq', element: <FaqPage /> },
-      { path: 'list/:actor/:rkey', element: <ListPage /> },
+      { path: 'list/:actor/:rkey', element: <ListPage />, handle: { presentation: 'explorer' } satisfies RouteHandle },
       {
         path: 'profile/:actor',
         element: <ProfileLayout />,
+        handle: { presentation: 'explorer' } satisfies RouteHandle,
         children: [
-          ...PROFILE_TABS.map(({ id }) => {
+          ...PROFILE_TABS.map((tab) => {
+            const { id } = tab
+            const handle = { profileTab: tab } satisfies RouteHandle
             const Component = profilePages[id]
-            return id === 'feed' ? { index: true, element: <Component />, id } : { path: id, element: <Component /> }
+            return id === 'feed'
+              ? { index: true, element: <Component />, id, handle }
+              : { path: id, element: <Component />, handle }
           }),
           { path: 'feed', element: <Navigate to=".." relative="path" replace /> },
         ],

@@ -1,10 +1,11 @@
+import { useRouteMetadata } from '../routes/metadata'
 import { PROFILE_TABS } from '../routes/profileTabs'
 import type { ProfileOutletContext } from './profileContext'
 import { AccountDetails } from '../components/profile/AccountDetails'
 import { ProfileTabsNav } from '../components/profile/ProfileTabsNav'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Suspense } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
 import { LinkifiedText } from '../components/ui/LinkifiedText'
 import { RecordLinksMenu } from '../components/records/RecordLinksMenu'
 import { ActorAvatar, actorHandle, actorLabel } from '../components/actors/ActorIdentity'
@@ -18,7 +19,7 @@ import { useRouteActor } from '../hooks/useRouteActor'
 export function ProfileLayout() {
   const actor = useRouteActor()
   const service = publicDataServiceFor(useQueryClient())
-  const location = useLocation()
+  const { profileTab = PROFILE_TABS[0] } = useRouteMetadata()
   const visibilityQuery = useQuery(service.profileVisibility.queryOptions(actor))
   const visibleIdentity =
     visibilityQuery.isSuccess && visibilityQuery.data.visible ? visibilityQuery.data.profile.identity : undefined
@@ -36,9 +37,7 @@ export function ProfileLayout() {
     content = <BlockedProfileState reason={visibilityQuery.data.reason} />
   } else {
     const profile = visibilityQuery.data.profile
-    const tabPath = location.pathname.replace(/\/$/, '').split('/')[3]
-    const tab = PROFILE_TABS.find((tab) => tab.id === (tabPath || 'feed')) ?? PROFILE_TABS[0]
-    title = `${actorHandle(profile.identity)} — ${tab.label} — SkyTrace`
+    title = `${actorHandle(profile.identity)} — ${profileTab.label} — SkyTrace`
     content = (
       <article className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
         <aside className="border-b border-zinc-200 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-950 lg:sticky lg:top-12 lg:h-[calc(100vh-5.75rem)] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">

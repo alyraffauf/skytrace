@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, createMemoryRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ProfileLayout } from '../src/layouts/ProfileLayout'
 import { jsonResponse as response, repositoryRecord } from './testUtils'
@@ -40,13 +40,18 @@ describe('profile relationship counts', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/profile/atproto.com']}>
-          <Routes>
-            <Route path="profile/:actor" element={<ProfileLayout />}>
-              <Route index element={<div>Feed content</div>} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider
+          router={createMemoryRouter(
+            createRoutesFromElements(
+              <>
+                <Route path="profile/:actor" element={<ProfileLayout />}>
+                  <Route index element={<div>Feed content</div>} />
+                </Route>
+              </>,
+            ),
+            { initialEntries: ['/profile/atproto.com'] },
+          )}
+        />
       </QueryClientProvider>,
     )
 
@@ -135,15 +140,20 @@ describe('profile relationship counts', () => {
 
     const view = render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/profile/atproto.com']}>
-          <main>
-            <Routes>
-              <Route path="profile/:actor" element={<ProfileLayout />}>
-                <Route index element={<div>Feed content</div>} />
-              </Route>
-            </Routes>
-          </main>
-        </MemoryRouter>
+        <main>
+          <RouterProvider
+            router={createMemoryRouter(
+              createRoutesFromElements(
+                <>
+                  <Route path="profile/:actor" element={<ProfileLayout />}>
+                    <Route index element={<div>Feed content</div>} />
+                  </Route>
+                </>,
+              ),
+              { initialEntries: ['/profile/atproto.com'] },
+            )}
+          />
+        </main>
       </QueryClientProvider>,
     )
 

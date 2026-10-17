@@ -1,7 +1,16 @@
 import { fireEvent, render, renderHook, screen } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
-import { createMemoryRouter, Link, MemoryRouter, Route, RouterProvider, Routes, useParams } from 'react-router-dom'
+import {
+  createMemoryRouter,
+  Link,
+  MemoryRouter,
+  Route,
+  RouterProvider,
+  Routes,
+  useParams,
+  createRoutesFromElements,
+} from 'react-router-dom'
 import { SOCIAL_APPS } from '../src/config/socialApps'
 import { socialListPath, socialPathForAtUri, socialPostPath, socialProfilePath } from '../src/lib/links'
 import { normalizeActorInput } from '../src/lib/actors/input'
@@ -78,11 +87,16 @@ describe('generated internal routes', () => {
 
     render(
       <QueryClientProvider client={createTestQueryClient()}>
-        <MemoryRouter initialEntries={[profilePath(actor)]}>
-          <Routes>
-            <Route path="/profile/:actor" element={<ProfileLayout />} />
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider
+          router={createMemoryRouter(
+            createRoutesFromElements(
+              <>
+                <Route path="/profile/:actor" element={<ProfileLayout />} />
+              </>,
+            ),
+            { initialEntries: [profilePath(actor)] },
+          )}
+        />
       </QueryClientProvider>,
     )
 

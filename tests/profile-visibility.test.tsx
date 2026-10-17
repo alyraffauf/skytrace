@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Route, createMemoryRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { hiddenProfileDids } from '../src/config/privacy'
 import { PublicDataService, publicDataServiceFor } from '../src/data/publicData'
@@ -52,16 +52,21 @@ describe('explicitly hidden profiles', () => {
 
     render(
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={[`/profile/${actorPath}`]}>
-          <main>
-            <Routes>
-              <Route path="profile/:actor" element={<ProfileLayout />}>
-                <Route index element={<div>Profile records</div>} />
-                <Route path="labeled-posts" element={<div>Profile records</div>} />
-              </Route>
-            </Routes>
-          </main>
-        </MemoryRouter>
+        <main>
+          <RouterProvider
+            router={createMemoryRouter(
+              createRoutesFromElements(
+                <>
+                  <Route path="profile/:actor" element={<ProfileLayout />}>
+                    <Route index element={<div>Profile records</div>} />
+                    <Route path="labeled-posts" element={<div>Profile records</div>} />
+                  </Route>
+                </>,
+              ),
+              { initialEntries: [`/profile/${actorPath}`] },
+            )}
+          />
+        </main>
       </QueryClientProvider>,
     )
 
@@ -88,13 +93,18 @@ describe('explicitly hidden profiles', () => {
 
     render(
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={['/profile/atproto.com']}>
-          <Routes>
-            <Route path="profile/:actor" element={<ProfileLayout />}>
-              <Route index element={<div>Profile records</div>} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider
+          router={createMemoryRouter(
+            createRoutesFromElements(
+              <>
+                <Route path="profile/:actor" element={<ProfileLayout />}>
+                  <Route index element={<div>Profile records</div>} />
+                </Route>
+              </>,
+            ),
+            { initialEntries: ['/profile/atproto.com'] },
+          )}
+        />
       </QueryClientProvider>,
     )
 
@@ -137,13 +147,18 @@ describe('unified profile visibility', () => {
 
     render(
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={['/profile/atproto.com']}>
-          <Routes>
-            <Route path="profile/:actor" element={<ProfileLayout />}>
-              <Route index element={<div>Profile records</div>} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider
+          router={createMemoryRouter(
+            createRoutesFromElements(
+              <>
+                <Route path="profile/:actor" element={<ProfileLayout />}>
+                  <Route index element={<div>Profile records</div>} />
+                </Route>
+              </>,
+            ),
+            { initialEntries: ['/profile/atproto.com'] },
+          )}
+        />
       </QueryClientProvider>,
     )
 
@@ -243,13 +258,18 @@ describe('unified profile visibility', () => {
 
     render(
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={['/profile/atproto.com']}>
-          <Routes>
-            <Route path="profile/:actor" element={<ProfileLayout />}>
-              <Route index element={<div>Profile records</div>} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider
+          router={createMemoryRouter(
+            createRoutesFromElements(
+              <>
+                <Route path="profile/:actor" element={<ProfileLayout />}>
+                  <Route index element={<div>Profile records</div>} />
+                </Route>
+              </>,
+            ),
+            { initialEntries: ['/profile/atproto.com'] },
+          )}
+        />
       </QueryClientProvider>,
     )
 
