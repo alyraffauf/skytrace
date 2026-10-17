@@ -21,7 +21,7 @@ export function ListedOnPage() {
   const minimumBlocking = minimumListBlocking()
   const membershipQueries = useQueries({
     queries: memberships.map((membership) =>
-      service.graph.listedOnMembershipQueryOptions(membership.uri, minimumBlocking),
+      service.graph.listedOnMembershipQueryOptions(membership.uri, profile.identity.did, minimumBlocking),
     ),
   })
   const allHidden = membershipQueries.every((membership) => membership.isSuccess && membership.data === null)

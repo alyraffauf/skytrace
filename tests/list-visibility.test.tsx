@@ -95,10 +95,75 @@ function renderPage(client: ReturnType<typeof createTestQueryClient>, service: P
   }
 }
 
+describe('Listed On membership validation', () => {
+  it('shows an unavailable row when a membership now refers to another account', async () => {
+    configure(1)
+    const { client, service, fetchMock } = setup()
+    client.setQueryData(
+      queryKeys.record(membershipUri),
+      repositoryRecord(membershipUri, {
+        $type: 'app.bsky.graph.listitem',
+        list: listUri,
+        subject: 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa',
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+    )
+    const record = vi.spyOn(service.core, 'record')
+
+    renderPage(client, service)
+
+    expect(await screen.findByText('This list membership is malformed.')).toBeVisible()
+    expect(screen.queryByText('Moderation test')).not.toBeInTheDocument()
+    expect(record).toHaveBeenCalledTimes(1)
+    expect(record).toHaveBeenCalledWith(membershipUri, expect.any(AbortSignal))
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects a reference to another collection before requesting details or counts', async () => {
+    const { client, service, fetchMock } = setup()
+    client.setQueryData(
+      queryKeys.record(membershipUri),
+      repositoryRecord(membershipUri, {
+        $type: 'app.bsky.graph.listitem',
+        list: `at://${did}/app.bsky.feed.post/not-a-list`,
+        subject: did,
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+    )
+    const record = vi.spyOn(service.core, 'record')
+
+    await expect(
+      client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, did, 1)),
+    ).resolves.toMatchObject({ kind: 'unavailable', reason: 'This membership has no valid list reference.' })
+
+    expect(record).toHaveBeenCalledTimes(1)
+    expect(record).toHaveBeenCalledWith(membershipUri, expect.any(AbortSignal))
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('does not reuse a membership validated for another profile', async () => {
+    const { client, service, fetchMock } = setup()
+    await expect(
+      client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, did)),
+    ).resolves.toMatchObject({ kind: 'membership' })
+    const record = vi.spyOn(service.core, 'record')
+
+    await expect(
+      client.fetchQuery(
+        service.graph.listedOnMembershipQueryOptions(membershipUri, 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'),
+      ),
+    ).resolves.toMatchObject({ kind: 'unavailable' })
+
+    expect(record).toHaveBeenCalledTimes(1)
+    expect(record).toHaveBeenCalledWith(membershipUri, expect.any(AbortSignal))
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
 describe('Listed On minimum blocking', () => {
   it('shows moderation lists without requesting counts when unset', async () => {
     const { client, service, fetchMock } = setup()
-    const membership = await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri))
+    const membership = await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, did))
     expect(membership?.kind).toBe('membership')
     expect(fetchMock).not.toHaveBeenCalled()
   })
@@ -109,13 +174,13 @@ describe('Listed On minimum blocking', () => {
     [2, true],
   ])('requires at least one blocker: %i', async (count, visible) => {
     const { client, service } = setup(undefined, count)
-    const membership = await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, 1))
+    const membership = await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, did, 1))
     expect(membership !== null).toBe(visible)
   })
 
   it('does not filter curation lists or request their counts', async () => {
     const { client, service, fetchMock } = setup('app.bsky.graph.defs#curatelist')
-    expect((await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, 1)))?.kind).toBe(
+    expect((await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, did, 1)))?.kind).toBe(
       'membership',
     )
     expect(fetchMock).not.toHaveBeenCalled()
@@ -124,14 +189,14 @@ describe('Listed On minimum blocking', () => {
   it('uses the existing list count cache', async () => {
     const { client, service, fetchMock } = setup()
     await client.fetchQuery(service.core.listBlockCountQueryOptions(listUri))
-    expect(await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, 1))).toBeNull()
+    expect(await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, did, 1))).toBeNull()
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it('does not reuse unfiltered memberships for an enabled threshold', async () => {
     const { client, service } = setup()
-    expect(await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri))).not.toBeNull()
-    expect(await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, 1))).toBeNull()
+    expect(await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, did))).not.toBeNull()
+    expect(await client.fetchQuery(service.graph.listedOnMembershipQueryOptions(membershipUri, did, 1))).toBeNull()
   })
 
   it('shows an empty state and retains pagination when all memberships are filtered', async () => {
