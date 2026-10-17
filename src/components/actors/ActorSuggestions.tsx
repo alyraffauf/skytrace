@@ -8,7 +8,7 @@ export function ActorSuggestions({ suggestions, isFetching }: { suggestions: Act
       anchor={{ to: 'bottom', gap: 6 }}
       modal={false}
       aria-label="Account suggestions"
-      className="z-50 max-h-80 w-[var(--input-width)] overflow-y-auto rounded-sm border border-zinc-300 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+      className="z-50 w-[var(--input-width)] [--anchor-max-height:20rem] rounded-sm border border-zinc-300 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
     >
       {isFetching && suggestions.length === 0 ? (
         <p role="status" className="p-3 text-sm text-zinc-500 dark:text-zinc-400">

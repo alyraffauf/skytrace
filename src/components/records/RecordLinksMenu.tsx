@@ -20,7 +20,7 @@ export function RecordLinksMenu({
   if (!recordUrl) return null
 
   return (
-    <Menu as="div" className="relative">
+    <Menu>
       <MenuButton
         aria-label={`Open links for ${label}`}
         className="grid size-10 place-items-center text-zinc-600 hover:text-violet-800 dark:text-zinc-400 dark:hover:text-violet-300 sm:size-8"
@@ -30,7 +30,7 @@ export function RecordLinksMenu({
       <MenuItems
         anchor={{ to: 'bottom end', gap: 4, padding: 8 }}
         modal={false}
-        className="z-[100] w-40 max-w-[calc(100vw-1rem)] overflow-hidden rounded-sm border border-zinc-300 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/40"
+        className="z-[100] w-40 rounded-sm border border-zinc-300 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-black/40"
       >
         <MenuLink href={recordUrl} label="PDSls" favicon={PDSLS_FAVICON} />
         {socialPath &&
