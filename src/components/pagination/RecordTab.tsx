@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, type ReactNode, useMemo } from 'react'
 import { PagedQueryView } from './PagedQuery'
 import { RecordList } from '../records/RecordList'
 import { EmptyState } from '../ui/States'
@@ -24,9 +24,11 @@ export function RecordTab<T extends TabRecord>({
   renderItem: (item: T) => ReactNode
 }) {
   const query = usePagedRecords(queryKey, load)
-  const entries = query.data?.pages.flatMap((page) => page.items) ?? []
-  const entriesByKey = new Map(entries.map((entry) => [itemKey(entry), entry]))
-  const items = newestFirst(Array.from(entriesByKey.values()))
+  const items = useMemo(() => {
+    const entries = query.data?.pages.flatMap((page) => page.items) ?? []
+    const entriesByKey = new Map(entries.map((entry) => [itemKey(entry), entry]))
+    return newestFirst(Array.from(entriesByKey.values()))
+  }, [query.data?.pages, itemKey])
 
   return (
     <PagedQueryView query={query} resourceLabel={resourceLabel}>
