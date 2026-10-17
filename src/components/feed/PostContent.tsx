@@ -50,6 +50,7 @@ export function PostContent({
   quoted?: boolean
 }) {
   const authorDid = post.author.did
+  const repositoryPds = post.repositoryPds
   return (
     <div className={quoted ? 'p-2.5' : ''}>
       <RichText
@@ -78,17 +79,28 @@ export function PostContent({
           })}
         </div>
       )}
-      {post.video && post.repositoryPds && (
+      {post.video && repositoryPds && (
+        // oxlint-disable-next-line jsx-a11y/media-has-caption -- Tracks are rendered from optional caption blobs below.
         <video
           className="mt-2 max-h-64 w-full bg-black"
           controls
           preload="none"
+          crossOrigin={post.video.captions?.length ? 'anonymous' : undefined}
           aria-label={post.video.alt || 'Video attached to this post'}
         >
           <source
-            src={pdsBlobUrl(post.repositoryPds, authorDid, post.video.cid)}
+            src={pdsBlobUrl(repositoryPds, authorDid, post.video.cid)}
             type={post.video.mimeType || 'video/mp4'}
           />
+          {post.video.captions?.map((caption) => (
+            <track
+              key={`${caption.lang}:${caption.cid}`}
+              kind="captions"
+              src={pdsBlobUrl(repositoryPds, authorDid, caption.cid)}
+              srcLang={caption.lang}
+              label={caption.lang}
+            />
+          ))}
           Your browser cannot play this video.
         </video>
       )}

@@ -109,7 +109,7 @@ export type FeedPost = {
   replyTo?: CanonicalResourceUri
   quoteUri?: CanonicalResourceUri
   images?: FeedImage[]
-  video?: { cid: Cid; alt?: string; mimeType?: string }
+  video?: { cid: Cid; alt?: string; mimeType?: string; captions?: Array<{ cid: Cid; lang: string }> }
 }
 
 type FeedRepost = {

@@ -37,13 +37,17 @@ it.each([
 it.each([true, false])('reuses a video repository only when its author matches, match=%s', async (matches) => {
   const service = createTestService()
   const lookup = vi.spyOn(service.actors, 'identity').mockResolvedValue(identity)
-  const record = postRecord({ $type: 'app.bsky.embed.video', video: blob })
+  const record = postRecord({
+    $type: 'app.bsky.embed.video',
+    video: blob,
+    captions: [{ lang: 'en', file: { ...blob, mimeType: 'text/vtt' } }],
+  })
   const repository = matches
     ? identity
     : { ...identity, did: 'did:plc:xwc5pfr4q6kthctktdb5turw' as const, pds: 'https://other-pds.example' as const }
   await expect(service.posts.loadFromRecord({ record, repository })).resolves.toMatchObject({
     kind: 'post',
-    video: { cid },
+    video: { cid, captions: [{ cid, lang: 'en' }] },
     repositoryPds: identity.pds,
   })
   expect(lookup).toHaveBeenCalledTimes(matches ? 0 : 1)

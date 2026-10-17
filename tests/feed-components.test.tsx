@@ -21,7 +21,14 @@ describe('repost rendering', () => {
     facets: [],
     repositoryPds: 'https://original-pds.example',
     images: [{ cid, alt: 'Original image' }],
-    video: { cid, alt: 'Original video' },
+    video: {
+      cid,
+      alt: 'Original video',
+      captions: [
+        { cid, lang: 'en' },
+        { cid, lang: 'fr' },
+      ],
+    },
     replyTo: `at://${originalDid}/app.bsky.feed.post/parent`,
     quoteUri: `at://${originalDid}/app.bsky.feed.post/quote`,
   }
@@ -80,6 +87,16 @@ describe('repost rendering', () => {
       'src',
       expect.stringContaining(encodeURIComponent(originalDid)),
     )
+    const video = screen.getAllByLabelText('Original video')[0]
+    expect(video).toHaveAttribute('crossorigin', 'anonymous')
+    const tracks = video.querySelectorAll('track')
+    expect([...tracks].map((track) => track.srclang)).toEqual(['en', 'fr'])
+    for (const track of tracks) {
+      expect(track).toHaveAttribute('kind', 'captions')
+      expect(track.src).toContain('https://original-pds.example/')
+      expect(new URL(track.src).searchParams.get('did')).toBe(originalDid)
+      expect(new URL(track.src).searchParams.get('cid')).toBe(cid)
+    }
     expect(load.mock.calls.every(([uri]) => uri === post.uri || uri === post.quoteUri)).toBe(true)
   })
 

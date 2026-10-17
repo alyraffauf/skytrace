@@ -28,6 +28,7 @@ export function decodePostRecord(record: RawRecord): Omit<FeedPost, 'repositoryP
           cid: mediaEmbed.video.ref.$link,
           alt: stringValue(mediaEmbed.alt),
           mimeType: stringValue(mediaEmbed.video.mimeType),
+          captions: mediaEmbed.captions?.map(({ file, lang }) => ({ cid: file.ref.$link, lang })),
         }
       : undefined
   return {
