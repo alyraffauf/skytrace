@@ -4,7 +4,6 @@ import { profilePath } from '../../routes/paths'
 import type { Actor, ActorIdentity, ActorProfile, ActorReference } from '../../types'
 import { Link } from 'react-router-dom'
 import { useActorProfile } from '../../hooks/useActorProfile'
-import type { ReactNode } from 'react'
 
 export function actorLabel(profile: ActorProfile): string {
   if (profile.displayName) return profile.displayName
@@ -61,17 +60,6 @@ export function ActorAvatar({
   )
 }
 
-export function HydratedActor({
-  actor,
-  children,
-}: {
-  actor: ActorReference
-  children: (actor: ActorProfile | ActorReference) => ReactNode
-}) {
-  const query = useActorProfile(actor.did)
-  return children(query.data ?? actor)
-}
-
 export function ActorReferenceText({ actor }: { actor: ActorReference }) {
   return (
     <Link
@@ -98,23 +86,13 @@ export function ActorHandle({ actor, compact = false }: { actor: Actor; compact?
   )
 }
 
-export function MiniActor({ actor, label }: { actor: Actor; label?: string }) {
-  if (actor.kind === 'actorReference') {
-    return (
-      <HydratedActor actor={actor}>
-        {(hydratedActor) => <MiniActorView actor={hydratedActor} label={label} />}
-      </HydratedActor>
-    )
-  }
-  return <MiniActorView actor={actor} label={label} />
-}
-
-function MiniActorView({ actor, label }: { actor: Actor; label?: string }) {
+export function MiniActor({ actor, label }: { actor: ActorReference; label?: string }) {
+  const hydratedActor = useActorProfile(actor.did).data ?? actor
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
       {label && <span>{label}</span>}
-      <ActorAvatar actor={actor} size="small" decorative />
-      <ActorHandle actor={actor} compact />
+      <ActorAvatar actor={hydratedActor} size="small" decorative />
+      <ActorHandle actor={hydratedActor} compact />
     </span>
   )
 }

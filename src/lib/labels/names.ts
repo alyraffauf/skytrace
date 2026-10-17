@@ -11,7 +11,7 @@ const BUILT_IN_LABEL_NAMES: Readonly<Record<string, string>> = {
 export function labelDisplayName(
   value: string,
   definitions: readonly LabelValueDefinition[] | undefined,
-  languages: readonly string[] = browserLanguages(),
+  languages: readonly string[],
 ): string | undefined {
   const definition = definitions?.find((candidate) => candidate.identifier === value)
   if (!definition) return BUILT_IN_LABEL_NAMES[value]
@@ -26,8 +26,4 @@ export function labelDisplayName(
     if (baseMatch) return baseMatch.name
   }
   return locales[0]?.name
-}
-
-function browserLanguages(): readonly string[] {
-  return typeof navigator === 'undefined' ? ['en'] : navigator.languages
 }

@@ -2,9 +2,9 @@ import type { LabelEvent, UnavailableItem } from '../../types'
 
 export type LabelHistoryEvent = LabelEvent & { addedAt?: string }
 
-export function labelState(label: LabelEvent): 'Active' | 'Expired' | 'Removed' {
+export function labelState(label: LabelEvent, nowMs: number): 'Active' | 'Expired' | 'Removed' {
   if (label.negated) return 'Removed'
-  if (label.expiresAt && Date.parse(label.expiresAt) <= Date.now()) return 'Expired'
+  if (label.expiresAt && Date.parse(label.expiresAt) <= nowMs) return 'Expired'
   return 'Active'
 }
 

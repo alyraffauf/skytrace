@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 
-export function useDelayedFlag(active: boolean, showDelayMs = 350, hideDelayMs = 500): boolean {
+export function useDelayedFlag(active: boolean): boolean {
   const [visible, setVisible] = useState(false)
   useEffect(() => {
-    const timeout = window.setTimeout(() => setVisible(active), active ? showDelayMs : hideDelayMs)
+    const timeout = window.setTimeout(() => setVisible(active), active ? 350 : 500)
     return () => window.clearTimeout(timeout)
-  }, [active, hideDelayMs, showDelayMs])
+  }, [active])
   return visible
 }

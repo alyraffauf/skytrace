@@ -11,7 +11,7 @@ export function LabelRow({ label, displayName }: { label: LabelHistoryEvent | Un
     return <UnavailableRow reason={label.reason} />
   }
 
-  const state = labelState(label)
+  const state = labelState(label, Date.now())
   const added = formatDate(label.addedAt ?? (label.negated ? undefined : label.createdAt))
   const expiry = formatDate(label.expiresAt)
   const removed = label.negated ? formatDate(label.createdAt) : undefined

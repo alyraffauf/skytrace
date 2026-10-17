@@ -32,12 +32,13 @@ function PostLabels({
   labels: LabeledPost['labels']
   displayNames?: ReadonlyMap<string, string>
 }) {
+  const nowMs = Date.now()
   return (
     <section aria-label="Post labels" className="mt-2 border-l-2 border-violet-200 pl-2.5 dark:border-violet-900">
       <h3 className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Post labels</h3>
       <ul className="mt-0.5">
         {labels.map((label) => {
-          const state = labelState(label)
+          const state = labelState(label, nowMs)
           return (
             <li key={label.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-0.5 text-xs">
               <div className="flex min-w-0 items-center gap-2">

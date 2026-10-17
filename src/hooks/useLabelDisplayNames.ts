@@ -7,6 +7,7 @@ export function useLabelDisplayNames(
   labels: readonly LabelEvent[],
   service: PublicDataService,
 ): ReadonlyMap<string, string> {
+  const languages = typeof navigator === 'undefined' ? ['en'] : navigator.languages
   const sourceDids = [...new Set(labels.map((label) => label.sourceDid))]
   const definitionQueries = useQueries({
     queries: sourceDids.map((did) => service.labelers.definitionsQueryOptions(did)),
@@ -15,7 +16,7 @@ export function useLabelDisplayNames(
 
   return new Map(
     labels.flatMap((label) => {
-      const name = labelDisplayName(label.value, definitionsBySource.get(label.sourceDid))
+      const name = labelDisplayName(label.value, definitionsBySource.get(label.sourceDid), languages)
       return name ? [[label.id, name] as const] : []
     }),
   )
