@@ -5,6 +5,7 @@ import { dedupeBy } from '../lib/collections'
 import { timestampFor } from '../lib/sorting'
 import { readLabelState, storeLabelState, type LabelPagingState, type ProviderPagingState } from './labelPaging'
 import { actorReference, type PublicDataCore } from './publicDataCore'
+import { PublicDataValidationError } from './xrpc'
 
 const LABEL_PAGE_SIZE = 250
 // Include Bluesky moderation even when the relay has no events from it.
@@ -201,11 +202,23 @@ export class LabelDataService {
     // value when verified on 2026-09-02. Send one subject per request or later
     // labeled posts disappear from the result.
     const pages = await Promise.all(
-      subjects.map((subject) => this.core.labelRecords({ uriPatterns: [subject], limit: LABEL_PAGE_SIZE, signal })),
+      [...new Set(subjects)].map(async (subject) => {
+        const items: Array<Omit<LabelEvent, 'source'> | UnavailableItem> = []
+        const seenCursors = new Set<string>()
+        let cursor: string | undefined
+        do {
+          throwIfAborted(signal)
+          const page = await this.core.labelRecords({ uriPatterns: [subject], cursor, limit: LABEL_PAGE_SIZE, signal })
+          items.push(...page.items)
+          cursor = page.cursor
+          if (cursor && seenCursors.has(cursor))
+            throw new PublicDataValidationError('The label service repeated a pagination cursor.')
+          if (cursor) seenCursors.add(cursor)
+        } while (cursor)
+        return items
+      }),
     )
-    const labels = pages
-      .flatMap((page) => page.items)
-      .filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
+    const labels = pages.flat().filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
     return this.hydrateSources(labels, signal)
   }
 
