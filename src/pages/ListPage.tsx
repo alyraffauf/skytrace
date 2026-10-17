@@ -20,7 +20,7 @@ export function ListPage() {
   const listUri =
     identityQuery.data && isRecordKey(rkey) ? `at://${identityQuery.data.did}/app.bsky.graph.list/${rkey}` : undefined
   const listQuery = useQuery({
-    ...service.graph.listSummaryQueryOptions(listUri),
+    ...service.lists.listSummaryQueryOptions(listUri),
     enabled: Boolean(listUri),
   })
 
@@ -56,7 +56,7 @@ function UnavailableListPage({ reason }: { reason: string }) {
 
 function ResolvedListPage({ list, service }: { list: ListSummary; service: PublicDataService }) {
   const moderationListUri = list.purpose.endsWith('#modlist') ? list.uri : undefined
-  const listBlockCountQuery = useQuery(service.graph.listBlockCountQueryOptions(moderationListUri))
+  const listBlockCountQuery = useQuery(service.lists.listBlockCountQueryOptions(moderationListUri))
 
   return (
     <article className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
@@ -89,7 +89,7 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
         </div>
       )}
 
-      <ListMembers listUri={list.uri} graph={service.graph} />
+      <ListMembers listUri={list.uri} lists={service.lists} />
     </article>
   )
 }

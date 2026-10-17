@@ -1,5 +1,3 @@
-import type { LabeledPost } from '../types'
-
 type DatedItem = { kind: string; createdAt?: string }
 
 export function newestFirst<T extends DatedItem>(items: T[]): T[] {
@@ -13,11 +11,4 @@ export function timestampFor(value?: string): number {
   if (!value) return Number.NEGATIVE_INFINITY
   const timestamp = Date.parse(value)
   return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp
-}
-
-export function compareLabeledPostsNewestFirst(left: LabeledPost, right: LabeledPost): number {
-  return (
-    timestampFor(right.post.createdAt) - timestampFor(left.post.createdAt) ||
-    left.post.uri.localeCompare(right.post.uri)
-  )
 }

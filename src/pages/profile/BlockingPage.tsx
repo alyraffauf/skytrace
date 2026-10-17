@@ -11,7 +11,7 @@ export function BlockingPage() {
       queryKey={queryKeys.profileTab(profile.identity.did, 'blocking')}
       resourceLabel="blocked accounts"
       emptyTitle="No blocked accounts found"
-      load={(cursor, signal) => service.graph.blocking(profile.identity, cursor, signal)}
+      load={(cursor, signal) => service.blocks.blocking(profile.identity, cursor, signal)}
       itemKey={(item) => item.id}
       renderItem={(item) => <BlockRow entry={item} />}
     />

@@ -1,9 +1,9 @@
 import { LabeledPostsDataService } from '../src/data/posts/labeledPostsData'
 import { FeedDataService } from '../src/data/posts/feedData'
-import { LabelDataService } from '../src/data/labels/labelData'
+import { LabelHistoryDataService } from '../src/data/labels/labelHistoryData'
 import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { profileFromRecord } from '../src/data/recordParsers'
+import { profileFromRecord } from '../src/data/actors/profileParser'
 import { FeedPage } from '../src/pages/profile/FeedPage'
 import { LabeledPostsPage } from '../src/pages/profile/LabeledPostsPage'
 import { AccountLabelsPage } from '../src/pages/profile/AccountLabelsPage'
@@ -71,7 +71,7 @@ describe('profile post privacy', () => {
   })
 
   it('keeps Account labels available for the same profile', async () => {
-    const labels = vi.spyOn(LabelDataService.prototype, 'labels').mockResolvedValue({ items: [] })
+    const labels = vi.spyOn(LabelHistoryDataService.prototype, 'page').mockResolvedValue({ items: [] })
 
     renderProfileTab(<AccountLabelsPage />, restrictedProfile)
 

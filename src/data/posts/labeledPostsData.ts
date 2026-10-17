@@ -1,6 +1,7 @@
 import type { ActorIdentity, FeedPost, LabeledPost, LabelEvent, Page, RawRecord } from '../../types'
-import { compareLabeledPostsNewestFirst, timestampFor } from '../../lib/sorting'
-import type { LabelDataService } from '../labels/labelData'
+import { timestampFor } from '../../lib/sorting'
+import { compareLabeledPostsNewestFirst } from '../../lib/posts/labeledPosts'
+import type { SubjectLabelsDataService } from '../labels/subjectLabelsData'
 import type { PostDataService } from './postData'
 import type { PublicDataCore } from '../publicDataCore'
 import { isUnavailableRecord } from '../recordResults'
@@ -19,7 +20,7 @@ export class LabeledPostsDataService {
   constructor(
     private readonly core: PublicDataCore,
     private readonly posts: PostDataService,
-    private readonly labels: LabelDataService,
+    private readonly labels: SubjectLabelsDataService,
   ) {}
 
   async page(
@@ -36,7 +37,7 @@ export class LabeledPostsDataService {
       signal,
     })
     const records = postsPage.items.filter((record): record is RawRecord => !isUnavailableRecord(record))
-    const labels = await this.labels.labelsForSubjects(
+    const labels = await this.labels.forSubjects(
       records.map((record) => record.uri),
       signal,
     )

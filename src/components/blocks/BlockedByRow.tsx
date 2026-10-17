@@ -15,7 +15,7 @@ export function BlockedByRow({
   service: PublicDataService
 }) {
   const blockQuery = useQuery(
-    service.graph.blockedByRecordQueryOptions(entry.kind === 'relationship' ? entry : undefined, subjectDid),
+    service.blocks.blockedByRecordQueryOptions(entry.kind === 'relationship' ? entry : undefined, subjectDid),
   )
   if (entry.kind === 'unavailable') return <BlockRow entry={entry} />
   if (blockQuery.isPending) {

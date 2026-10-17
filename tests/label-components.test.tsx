@@ -1,5 +1,5 @@
 import { mergeLabeledPosts } from '../src/lib/posts/labeledPosts'
-import { LabelDataService } from '../src/data/labels/labelData'
+import { LabelHistoryDataService } from '../src/data/labels/labelHistoryData'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LabelRow } from '../src/components/labels/LabelRow'
@@ -34,7 +34,7 @@ describe('account labels', () => {
       providers: [],
     }
     const labels = vi
-      .spyOn(LabelDataService.prototype, 'labels')
+      .spyOn(LabelHistoryDataService.prototype, 'page')
       .mockResolvedValueOnce({
         items: [{ kind: 'unavailable', id: 'loaded', reason: 'Previously loaded label' }],
         cursor,
@@ -65,7 +65,7 @@ describe('account labels', () => {
 
   it('eagerly loads the second label page on success', async () => {
     const labels = vi
-      .spyOn(LabelDataService.prototype, 'labels')
+      .spyOn(LabelHistoryDataService.prototype, 'page')
       .mockResolvedValueOnce({
         items: [],
         cursor: {

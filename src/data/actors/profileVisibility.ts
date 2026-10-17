@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query'
 import { blockTargetDid, hiddenProfileDids } from '../../config/privacy'
 import { CACHE_TTL_MS } from '../runtime/cachePolicy'
 import type { ActorProfile } from '../../types'
-import type { GraphDataService } from '../graph/graphData'
+import type { BlockDataService } from '../graph/blockData'
 import type { ActorDataService } from './actorData'
 import { queryKeys } from '../queryKeys'
 
@@ -14,7 +14,7 @@ export type ProfileVisibility =
 export class ProfileVisibilityService {
   constructor(
     private readonly actors: ActorDataService,
-    private readonly graph: GraphDataService,
+    private readonly blocks: BlockDataService,
   ) {}
 
   queryOptions(identifier: string) {
@@ -33,8 +33,8 @@ export class ProfileVisibilityService {
 
         if (targetDid) {
           const [actorBlocksInstance, instanceBlocksActor] = await Promise.all([
-            this.graph.actorBlocksConfiguredAccount(did, targetDid, signal),
-            this.graph.actorBlocksConfiguredAccount(targetDid, did, signal),
+            this.blocks.actorBlocksConfiguredAccount(did, targetDid, signal),
+            this.blocks.actorBlocksConfiguredAccount(targetDid, did, signal),
           ])
           // An instance restriction takes precedence over the account's opt-out.
           if (instanceBlocksActor) return { visible: false, reason: 'instance-block' }

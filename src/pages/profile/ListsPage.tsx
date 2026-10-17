@@ -12,7 +12,7 @@ export function ListsPage() {
       queryKey={queryKeys.profileTab(profile.identity.did, 'lists')}
       resourceLabel="lists"
       emptyTitle="No lists found"
-      load={(cursor, signal) => service.graph.lists(profile.identity, cursor, signal)}
+      load={(cursor, signal) => service.lists.lists(profile.identity, cursor, signal)}
       itemKey={(item) => (item.kind === 'unavailable' ? item.id : item.uri)}
       renderItem={(item) => <ListRow list={item} />}
     />

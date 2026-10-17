@@ -12,7 +12,7 @@ import type { ProfileOutletContext } from '../../layouts/profileContext'
 
 export function AccountLabelsPage() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
-  const query = useAccountLabels(profile.identity.did, service.labels)
+  const query = useAccountLabels(profile.identity.did, service.labelHistory)
   if (query.isPending) return <LoadingRows />
   if (!query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />
   const entriesById = new Map(query.data.pages.flatMap((page) => page.items).map((entry) => [entry.id, entry]))

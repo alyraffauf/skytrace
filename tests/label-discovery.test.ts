@@ -21,10 +21,10 @@ describe('label provider history', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
     const service = createTestService()
-    const first = await service.labels.labels(did)
+    const first = await service.labelHistory.page(did)
     expect(first.items).toEqual([])
     expect(first.cursor?.providers).toMatchObject([{ did: memberDid }])
-    const history = await service.labels.labels(did, first.cursor)
+    const history = await service.labelHistory.page(did, first.cursor)
     expect(history.items).toMatchObject([{ value: 'history', sourceDid: memberDid }])
     expect(history.cursor).toBeUndefined()
   })
@@ -51,13 +51,13 @@ describe('label provider history', () => {
       }),
     )
     const service = createTestService()
-    const first = await service.labels.labels(did)
+    const first = await service.labelHistory.page(did)
     expect(relayCursors).toEqual([null])
     const snapshot = structuredClone(first.cursor)
-    const second = await service.labels.labels(did, first.cursor)
+    const second = await service.labelHistory.page(did, first.cursor)
     expect(first.cursor).toEqual(snapshot)
     expect(relayCursors).toEqual([null, 'a'])
-    const third = await service.labels.labels(did, second.cursor)
+    const third = await service.labelHistory.page(did, second.cursor)
     expect(relayCursors).toEqual([null, 'a', 'b'])
     expect(third.cursor?.discoveryDone).toBe(true)
     expect(third.cursor?.appViewSources).toContain(memberDid)
@@ -86,8 +86,8 @@ describe('label provider history', () => {
       }),
     )
     const service = createTestService()
-    await expect(service.labels.labels(did)).rejects.toThrow()
-    const retry = await service.labels.labels(did)
+    await expect(service.labelHistory.page(did)).rejects.toThrow()
+    const retry = await service.labelHistory.page(did)
     expect(relayRequests).toBe(1)
     expect(retry.cursor?.providers).toMatchObject([{ did: memberDid }])
   })
@@ -130,13 +130,13 @@ describe('label provider history', () => {
       }),
     )
     const service = createTestService()
-    let page = await service.labels.labels(did)
+    let page = await service.labelHistory.page(did)
     for (let index = 1; index < cursors.length; index++) {
-      page = await service.labels.labels(did, page.cursor)
+      page = await service.labelHistory.page(did, page.cursor)
       expect(page.items).toMatchObject([{ value: `appView-${index}` }])
       expect(page.issues).toBeUndefined()
     }
-    const backfill = await service.labels.labels(did, page.cursor)
+    const backfill = await service.labelHistory.page(did, page.cursor)
     expect(backfill.items).toMatchObject([{ value: 'backfill' }])
     expect(backfill.cursor).toBeUndefined()
     expect(appViewPages).toBe(cursors.length)
@@ -201,12 +201,12 @@ describe('label provider history', () => {
     )
 
     const publicData = createTestService()
-    const appView = await publicData.labels.labels(did)
+    const appView = await publicData.labelHistory.page(did)
     const savedCursor = structuredClone(appView.cursor)
-    await expect(publicData.labels.labels(memberDid, appView.cursor)).rejects.toThrow('belongs to another query')
-    const firstDirect = await publicData.labels.labels(did, appView.cursor)
+    await expect(publicData.labelHistory.page(memberDid, appView.cursor)).rejects.toThrow('belongs to another query')
+    const firstDirect = await publicData.labelHistory.page(did, appView.cursor)
     expect(appView.cursor).toEqual(savedCursor)
-    const secondDirect = await publicData.labels.labels(did, firstDirect.cursor)
+    const secondDirect = await publicData.labelHistory.page(did, firstDirect.cursor)
     expect(firstDirect.items).toHaveLength(2)
     expect(secondDirect.items).toHaveLength(1)
     expect(secondDirect.items).not.toContainEqual(expect.objectContaining({ value: 'forged-source' }))
@@ -256,8 +256,8 @@ describe('label provider history', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const publicData = createTestService()
-    const appView = await publicData.labels.labels(did)
-    const direct = await publicData.labels.labels(did, appView.cursor)
+    const appView = await publicData.labelHistory.page(did)
+    const direct = await publicData.labelHistory.page(did, appView.cursor)
     const requestedHosts = fetchMock.mock.calls.map(
       ([input]) => new URL(input instanceof Request ? input.url : String(input)).hostname,
     )
@@ -303,8 +303,8 @@ describe('label provider history', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const publicData = createTestService()
-    const appView = await publicData.labels.labels(did)
-    const fallback = await publicData.labels.labels(did, appView.cursor)
+    const appView = await publicData.labelHistory.page(did)
+    const fallback = await publicData.labelHistory.page(did, appView.cursor)
     expect(fallback.items).toEqual([
       expect.objectContaining({ sourceDid: labelerDid, value: 'renewed', createdAt: '2026-09-03T00:00:00Z' }),
     ])
@@ -353,10 +353,10 @@ describe('label provider history', () => {
     )
 
     const publicData = createTestService()
-    const appView = await publicData.labels.labels(did)
-    const first = await publicData.labels.labels(did, appView.cursor)
-    const second = await publicData.labels.labels(did, first.cursor)
-    const repeated = await publicData.labels.labels(did, second.cursor)
+    const appView = await publicData.labelHistory.page(did)
+    const first = await publicData.labelHistory.page(did, appView.cursor)
+    const second = await publicData.labelHistory.page(did, first.cursor)
+    const repeated = await publicData.labelHistory.page(did, second.cursor)
     expect(repeated.cursor).toBeUndefined()
   })
 
@@ -393,8 +393,8 @@ describe('label provider history', () => {
       }),
     )
     const publicData = createTestService()
-    const malformed = await publicData.labels.labels(did)
-    const recovered = await publicData.labels.labels(did, malformed.cursor)
+    const malformed = await publicData.labelHistory.page(did)
+    const recovered = await publicData.labelHistory.page(did, malformed.cursor)
     expect(malformed.cursor).toBeDefined()
     expect(recovered.items).toContainEqual(expect.objectContaining({ kind: 'labelEvent', value: 'recovered' }))
   })

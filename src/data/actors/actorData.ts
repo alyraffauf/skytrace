@@ -9,7 +9,7 @@ import { resolveActor } from '../api/identity'
 import { getPlcAccountDetails } from '../api/plcHistory'
 import type { PublicDataCore } from '../publicDataCore'
 import { queryKeys } from '../queryKeys'
-import { profileFromRecord } from '../recordParsers'
+import { profileFromRecord } from './profileParser'
 import type { DataRequestContext } from '../runtime/sharedQueryRequests'
 import { PublicDataValidationError } from '../validationError'
 

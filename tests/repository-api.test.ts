@@ -34,7 +34,7 @@ describe('repository api', () => {
       id: 'app.bsky.graph.block:first:1',
       reason: 'This repository record is malformed.',
     })
-    const servicePage = await createTestService().graph.blocking(identity)
+    const servicePage = await createTestService().blocks.blocking(identity)
     expect(servicePage.items[1]).toMatchObject({ kind: 'unavailable', reason: 'This repository record is malformed.' })
   })
 
@@ -114,6 +114,6 @@ describe('repository cursor validation', () => {
       'fetch',
       vi.fn(async () => response({ records: [], cursor: 'same' })),
     )
-    await expect(createTestService().graph.blocking(identity, 'same')).rejects.toThrow('repeated a pagination cursor')
+    await expect(createTestService().blocks.blocking(identity, 'same')).rejects.toThrow('repeated a pagination cursor')
   })
 })

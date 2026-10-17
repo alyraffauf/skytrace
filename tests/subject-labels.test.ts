@@ -33,7 +33,7 @@ it('waits for every subject page and deduplicates subjects and label events', as
     }),
   )
   let settled = false
-  const result = createTestService().labels.labelsForSubjects([firstSubject, secondSubject, firstSubject])
+  const result = createTestService().subjectLabels.forSubjects([firstSubject, secondSubject, firstSubject])
   void result.then(() => {
     settled = true
   })
@@ -63,7 +63,7 @@ it('continues after an empty label page with a cursor', async () => {
       )
     }),
   )
-  expect(await createTestService().labels.labelsForSubjects([firstSubject])).toMatchObject([{ value: 'older' }])
+  expect(await createTestService().subjectLabels.forSubjects([firstSubject])).toMatchObject([{ value: 'older' }])
 })
 
 it('rejects later-page failures and reuses earlier cached pages on retry', async () => {
@@ -82,8 +82,8 @@ it('rejects later-page failures and reuses earlier cached pages on retry', async
     }),
   )
   const service = createTestService()
-  await expect(service.labels.labelsForSubjects([firstSubject])).rejects.toThrow()
-  expect(await service.labels.labelsForSubjects([firstSubject])).toHaveLength(2)
+  await expect(service.subjectLabels.forSubjects([firstSubject])).rejects.toThrow()
+  expect(await service.subjectLabels.forSubjects([firstSubject])).toHaveLength(2)
   expect(firstPageRequests).toBe(1)
   expect(olderPageRequests).toBe(2)
 })
@@ -94,7 +94,7 @@ it('rejects cursor cycles while draining a subject', async () => {
     return jsonResponse({ labels: [], cursor: url.searchParams.get('cursor') === 'a' ? 'b' : 'a' })
   })
   vi.stubGlobal('fetch', fetchMock)
-  await expect(createTestService().labels.labelsForSubjects([firstSubject])).rejects.toThrow(
+  await expect(createTestService().subjectLabels.forSubjects([firstSubject])).rejects.toThrow(
     'repeated a pagination cursor',
   )
   expect(fetchMock).toHaveBeenCalledTimes(3)
@@ -115,7 +115,7 @@ it('cancels an in-flight later page without publishing partial labels', async ()
     }),
   )
   const controller = new AbortController()
-  const result = createTestService().labels.labelsForSubjects([firstSubject], controller.signal)
+  const result = createTestService().subjectLabels.forSubjects([firstSubject], controller.signal)
   const rejection = expect(result).rejects.toMatchObject({ name: 'AbortError' })
   await vi.waitFor(() => expect(fetchSignal).toBeDefined())
   controller.abort()

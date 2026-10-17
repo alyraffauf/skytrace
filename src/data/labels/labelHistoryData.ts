@@ -1,9 +1,9 @@
-import { loadProviderLabelPage } from './providerLabels'
-import type { ActorIdentity, LabelEvent, LabelValueDefinition, Page, UnavailableItem } from '../../types'
 import { SERVICE_URLS } from '../../config/serviceUrls'
-import { throwIfAborted } from '../../lib/abort'
-import { dedupeBy } from '../../lib/collections'
 import { timestampFor } from '../../lib/sorting'
+import type { LabelEvent, Page, UnavailableItem } from '../../types'
+import type { PublicDataCore } from '../publicDataCore'
+import type { LabelerDataService } from './labelerData'
+import { hydrateLabelSources } from './labelEvents'
 import {
   LABEL_PAGE_SIZE,
   readLabelState,
@@ -11,54 +11,18 @@ import {
   type LabelPagingState,
   type ProviderPagingState,
 } from './labelPaging'
-import type { PublicDataCore } from '../publicDataCore'
-import { actorReference } from '../recordResults'
-import { queryOptions } from '@tanstack/react-query'
-import { getLabelerEndpoint, isPlcDid, isWebDid } from '@atcute/identity'
-import { CACHE_TTL_MS } from '../runtime/cachePolicy'
-import { didDocumentResolver } from '../api/didDocumentResolver'
-import { queryKeys } from '../queryKeys'
-import { labelDefinitionsFromRecord } from './definitionsParser'
-import type { SharedQueryRequests } from '../runtime/sharedQueryRequests'
-import { PublicDataValidationError } from '../validationError'
+import { loadProviderLabelPage } from './providerLabels'
 
 // Include Bluesky moderation even when the relay has no events from it.
 const BLUESKY_MODERATION_DID = 'did:plc:ar7c4by46qjdydhdevvrndac'
 
-export class LabelDataService {
+export class LabelHistoryDataService {
   constructor(
     private readonly core: PublicDataCore,
-    private readonly sharedRequests: SharedQueryRequests,
+    private readonly labelers: LabelerDataService,
   ) {}
 
-  labelDefinitionsQueryOptions(did: ActorIdentity['did']) {
-    return queryOptions({
-      queryKey: queryKeys.labelDefinitions(did),
-      queryFn: async ({ signal }): Promise<LabelValueDefinition[]> => {
-        const uri = `at://${did}/app.bsky.labeler.service/self`
-        return labelDefinitionsFromRecord(await this.core.record(uri, signal))
-      },
-      staleTime: CACHE_TTL_MS.identity,
-    })
-  }
-
-  async labelerEndpoint(did: string, signal?: AbortSignal): Promise<string | undefined> {
-    return this.sharedRequests.query(
-      queryKeys.labelerEndpoint(did),
-      CACHE_TTL_MS.identity,
-      async (requestSignal) => {
-        if (!isPlcDid(did) && !isWebDid(did)) return undefined
-        const document = await didDocumentResolver.resolve(did, { signal: requestSignal })
-        const rawEndpoint = getLabelerEndpoint(document)
-        if (!rawEndpoint) return undefined
-        const url = new URL(rawEndpoint)
-        return url.protocol === 'https:' ? url.origin : undefined
-      },
-      signal,
-    )
-  }
-
-  async labels(
+  async page(
     did: string,
     cursor?: LabelPagingState,
     signal?: AbortSignal,
@@ -106,7 +70,7 @@ export class LabelDataService {
       if (page.cursor) state.seenAppViewCursors.push(page.cursor)
       const unavailableItems = page.items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
       return {
-        items: [...this.hydrateSources(labels, signal), ...unavailableItems].sort(
+        items: [...hydrateLabelSources(labels, signal), ...unavailableItems].sort(
           (left, right) =>
             timestampFor(right.kind === 'unavailable' ? undefined : right.createdAt) -
             timestampFor(left.kind === 'unavailable' ? undefined : left.createdAt),
@@ -132,7 +96,7 @@ export class LabelDataService {
         did,
         signal,
         loadLabels: (options) => this.core.labelRecords(options),
-        resolveEndpoint: (sourceDid, requestSignal) => this.labelerEndpoint(sourceDid, requestSignal),
+        resolveEndpoint: (sourceDid, requestSignal) => this.labelers.endpoint(sourceDid, requestSignal),
       })
       state.providers[providerIndex] = provider
       if (!page) continue
@@ -147,7 +111,7 @@ export class LabelDataService {
       )
       const unavailableItems = page.items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
       return {
-        items: [...this.hydrateSources(labels, signal), ...unavailableItems].sort(
+        items: [...hydrateLabelSources(labels, signal), ...unavailableItems].sort(
           (left, right) =>
             timestampFor(right.kind === 'unavailable' ? undefined : right.createdAt) -
             timestampFor(left.kind === 'unavailable' ? undefined : left.createdAt),
@@ -190,36 +154,5 @@ export class LabelDataService {
     }
     providers.sort((left, right) => timestampFor(right.latestEventAt) - timestampFor(left.latestEventAt))
     return page
-  }
-
-  async labelsForSubjects(subjects: string[], signal?: AbortSignal): Promise<LabelEvent[]> {
-    // labelers.firehose.stream processed only the first repeated uriPatterns
-    // value when verified on 2026-09-02. Send one subject per request or later
-    // labeled posts disappear from the result.
-    const pages = await Promise.all(
-      [...new Set(subjects)].map(async (subject) => {
-        const items: Array<Omit<LabelEvent, 'source'> | UnavailableItem> = []
-        const seenCursors = new Set<string>()
-        let cursor: string | undefined
-        do {
-          throwIfAborted(signal)
-          const page = await this.core.labelRecords({ uriPatterns: [subject], cursor, limit: LABEL_PAGE_SIZE, signal })
-          items.push(...page.items)
-          cursor = page.cursor
-          if (cursor && seenCursors.has(cursor))
-            throw new PublicDataValidationError('The label service repeated a pagination cursor.')
-          if (cursor) seenCursors.add(cursor)
-        } while (cursor)
-        return items
-      }),
-    )
-    const labels = pages.flat().filter((item): item is Omit<LabelEvent, 'source'> => item.kind === 'labelEvent')
-    return this.hydrateSources(labels, signal)
-  }
-
-  private hydrateSources(labels: Omit<LabelEvent, 'source'>[], signal?: AbortSignal): LabelEvent[] {
-    const uniqueLabels = dedupeBy(labels, (label) => label.id)
-    throwIfAborted(signal)
-    return uniqueLabels.map((label) => ({ ...label, source: actorReference(label.sourceDid) }))
   }
 }

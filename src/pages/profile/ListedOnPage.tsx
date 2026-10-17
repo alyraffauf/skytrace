@@ -15,13 +15,13 @@ export function ListedOnPage() {
   const { profile, service } = useOutletContext<ProfileOutletContext>()
   const query = usePagedRecords<{ uri: string }>(
     queryKeys.profileTab(profile.identity.did, 'listedOn'),
-    (cursor, signal) => service.graph.listedOnReferences(profile.identity.did, cursor, signal),
+    (cursor, signal) => service.lists.listedOnReferences(profile.identity.did, cursor, signal),
   )
   const memberships = dedupeBy(query.data?.pages.flatMap((page) => page.items) ?? [], (reference) => reference.uri)
   const minimumBlocking = minimumListBlocking()
   const membershipQueries = useQueries({
     queries: memberships.map((membership) =>
-      service.graph.listedOnMembershipQueryOptions(membership.uri, profile.identity.did, minimumBlocking),
+      service.lists.listedOnMembershipQueryOptions(membership.uri, profile.identity.did, minimumBlocking),
     ),
   })
   const allHidden = membershipQueries.every((membership) => membership.isSuccess && membership.data === null)

@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { splitFacetedText } from '../src/components/feed/PostContent'
 import { LinkifiedText } from '../src/components/ui/LinkifiedText'
-import { parseFacets } from '../src/data/recordParsers'
+import { parseFacets } from '../src/data/posts/postParser'
 import { did } from './actorFixtures'
 import { renderWithRouter } from './profileTestUtils'
 

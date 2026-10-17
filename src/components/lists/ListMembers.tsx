@@ -1,4 +1,4 @@
-import type { GraphDataService } from '../../data/graph/graphData'
+import type { ListDataService } from '../../data/graph/listData'
 import { queryKeys } from '../../data/queryKeys'
 import { dedupeBy } from '../../lib/collections'
 import { usePagedRecords } from '../../hooks/usePagedRecords'
@@ -7,9 +7,9 @@ import { RecordList } from '../records/RecordList'
 import { EmptyState, ErrorState, LoadingRows } from '../ui/States'
 import { StreamedListMemberRow } from './StreamedMembershipRows'
 
-export function ListMembers({ listUri, graph }: { listUri: string; graph: GraphDataService }) {
+export function ListMembers({ listUri, lists }: { listUri: string; lists: ListDataService }) {
   const membersQuery = usePagedRecords<{ uri: string }>(queryKeys.listMembers(listUri), (cursor, signal) =>
-    graph.listMembers(listUri, cursor, signal),
+    lists.listMembers(listUri, cursor, signal),
   )
   const members = dedupeBy(membersQuery.data?.pages.flatMap((page) => page.items) ?? [], (reference) => reference.uri)
 
@@ -32,7 +32,7 @@ export function ListMembers({ listUri, graph }: { listUri: string; graph: GraphD
           {members.length > 0 && (
             <RecordList>
               {members.map((member) => (
-                <StreamedListMemberRow key={member.uri} listUri={listUri} membershipUri={member.uri} graph={graph} />
+                <StreamedListMemberRow key={member.uri} listUri={listUri} membershipUri={member.uri} lists={lists} />
               ))}
             </RecordList>
           )}

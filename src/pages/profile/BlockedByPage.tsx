@@ -12,7 +12,7 @@ export function BlockedByPage() {
       queryKey={queryKeys.profileTab(profile.identity.did, 'blockedBy')}
       resourceLabel="accounts blocking this profile"
       emptyTitle="No accounts blocking this profile"
-      load={(cursor, signal) => service.graph.blockedBy(profile.identity.did, cursor, signal)}
+      load={(cursor, signal) => service.blocks.blockedBy(profile.identity.did, cursor, signal)}
       itemKey={(item) => item.id}
       renderItem={(item) => <BlockedByRow entry={item} subjectDid={profile.identity.did} service={service} />}
     />

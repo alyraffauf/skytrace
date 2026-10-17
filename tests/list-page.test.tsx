@@ -1,4 +1,4 @@
-import { GraphDataService } from '../src/data/graph/graphData'
+import { ListDataService } from '../src/data/graph/listData'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -118,7 +118,7 @@ describe('list member pagination', () => {
 
   it('shows loading and the initial error without showing an empty result', async () => {
     let reject!: (error: Error) => void
-    vi.spyOn(GraphDataService.prototype, 'listMembers').mockImplementation(
+    vi.spyOn(ListDataService.prototype, 'listMembers').mockImplementation(
       () =>
         new Promise((_resolve, fail) => {
           reject = fail
@@ -159,7 +159,7 @@ describe('list member pagination', () => {
     })
     let reject!: (error: Error) => void
     const members = vi
-      .spyOn(GraphDataService.prototype, 'listMembers')
+      .spyOn(ListDataService.prototype, 'listMembers')
       .mockImplementationOnce(
         () =>
           new Promise((_resolve, fail) => {

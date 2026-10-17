@@ -23,8 +23,8 @@ export function ProfileLayout() {
   const visibilityQuery = useQuery(service.profileVisibility.queryOptions(actor))
   const visibleIdentity =
     visibilityQuery.isSuccess && visibilityQuery.data.visible ? visibilityQuery.data.profile.identity : undefined
-  const blockedCountQuery = useQuery(service.graph.blockedCountQueryOptions(visibleIdentity))
-  const blockedByCountQuery = useQuery(service.graph.blockedByCountQueryOptions(visibleIdentity?.did))
+  const blockedCountQuery = useQuery(service.blocks.blockedCountQueryOptions(visibleIdentity))
+  const blockedByCountQuery = useQuery(service.blocks.blockedByCountQueryOptions(visibleIdentity?.did))
 
   useProfileScrollReset()
 
