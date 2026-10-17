@@ -1,5 +1,5 @@
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router-dom'
-import { isPreloadError } from './preloadRecovery'
+import { isPreloadError } from './preloadErrors'
 
 export function RouteError() {
   const routeError = useRouteError()

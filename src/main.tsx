@@ -4,10 +4,10 @@ import { createRoot } from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from 'react-router-dom'
 import { queryClient } from './data/runtime/queryClient'
-import { registerPreloadRecovery } from './routes/preloadRecovery'
+import { registerPreloadErrorTracking } from './routes/preloadErrors'
 import './index.css'
 
-registerPreloadRecovery(() => window.location.reload())
+registerPreloadErrorTracking()
 
 createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={queryClient}>
