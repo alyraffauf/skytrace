@@ -31,11 +31,11 @@ describe('relationship rendering', () => {
     expect(screen.getByRole('link', { name: unresolvedDid })).toBeInTheDocument()
     expect(screen.getByTitle(unresolvedDid)).toHaveAttribute('aria-hidden', 'true')
     fireEvent.click(screen.getByRole('button', { name: `Open links for ${unresolvedDid}` }))
-    expect(screen.getByRole('link', { name: /PDSls/ })).toHaveAttribute(
+    expect(screen.getByRole('menuitem', { name: /PDSls/ })).toHaveAttribute(
       'href',
       `https://pdsls.dev/at://${did}/app.bsky.graph.block/3abc`,
     )
-    expect(screen.getByRole('link', { name: /Witchsky/ })).toHaveAttribute(
+    expect(screen.getByRole('menuitem', { name: /Witchsky/ })).toHaveAttribute(
       'href',
       `https://witchsky.app/profile/${unresolvedDid}`,
     )

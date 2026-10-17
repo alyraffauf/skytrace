@@ -28,6 +28,7 @@
     "@atcute/identity-resolver": "^2.0.1",
     "@atcute/lexicons": "^2.1.0",
     "@atcute/microcosm": "^2.0.2",
+    "@headlessui/react": "^2.2.10",
     "@heroicons/react": "^2.2.0",
     "@noble/hashes": "^2.4.0",
     "@tailwindcss/vite": "^4.3.3",

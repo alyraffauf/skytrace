@@ -1,5 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
-import { expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { expect, it } from 'vitest'
 import { RecordLinksMenu } from '../src/components/records/RecordLinksMenu'
 import { SOCIAL_APPS } from '../src/config/socialApps'
 import { socialProfilePath } from '../src/lib/links'
@@ -22,7 +22,7 @@ it.each([
   fireEvent.click(screen.getByRole('button', { name: 'Open links for record' }))
 
   for (const app of SOCIAL_APPS) {
-    expect(screen.getByRole('link', { name: app.label })).toHaveAttribute(
+    expect(screen.getByRole('menuitem', { name: app.label })).toHaveAttribute(
       'href',
       `${app.origin}/profile/did:plc:3355xpqovrs7rngoid6job4m${suffix}`,
     )
@@ -41,58 +41,39 @@ function setup() {
   return { ...view, button }
 }
 
-it('focuses the first link on every opening and restores trigger focus on Escape', () => {
+it('supports menu keyboard navigation and restores trigger focus on Escape', async () => {
   const { button } = setup()
-  expect(screen.getByRole('link', { name: 'PDSls' })).toHaveFocus()
-  act(() => screen.getByRole('link', { name: 'Skythread' }).focus())
-  expect(button).toHaveAttribute('aria-expanded', 'true')
-  fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
-  expect(button).toHaveFocus()
+  const menu = screen.getByRole('menu')
+  await waitFor(() => expect(menu).toHaveFocus())
+  fireEvent.keyDown(menu, { key: 'ArrowDown' })
+  await waitFor(() =>
+    expect(menu).toHaveAttribute('aria-activedescendant', screen.getByRole('menuitem', { name: 'PDSls' }).id),
+  )
+  fireEvent.keyDown(menu, { key: 'End' })
+  await waitFor(() =>
+    expect(menu).toHaveAttribute('aria-activedescendant', screen.getByRole('menuitem', { name: 'Skythread' }).id),
+  )
+  fireEvent.keyDown(menu, { key: 'Escape' })
+  await waitFor(() => expect(button).toHaveFocus())
   expect(button).toHaveAttribute('aria-expanded', 'false')
   fireEvent.click(button)
-  expect(screen.getByRole('link', { name: 'PDSls' })).toHaveFocus()
+  expect(screen.getByRole('menu')).toBeVisible()
   fireEvent.click(button)
-  expect(screen.queryByRole('link', { name: 'PDSls' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument()
 })
 
-it('dismisses on outside pointer and focus events, and link selection', () => {
+it('dismisses on outside clicks and link selection without locking page scroll', async () => {
   const { button } = setup()
-  fireEvent.pointerDown(screen.getByRole('link', { name: 'PDSls' }))
-  expect(button).toHaveAttribute('aria-expanded', 'true')
-  fireEvent.pointerDown(screen.getByText('Outside'))
+  expect(document.documentElement.style.overflow).not.toBe('hidden')
+  await waitFor(() => expect(screen.getByRole('menu')).toHaveFocus())
+  const outside = screen.getByText('Outside')
+  fireEvent.pointerDown(outside)
+  fireEvent.pointerUp(outside)
   expect(button).toHaveAttribute('aria-expanded', 'false')
   fireEvent.click(button)
-  act(() => screen.getByText('Outside').focus())
+  fireEvent.click(screen.getByRole('menuitem', { name: 'PDSls' }))
   expect(button).toHaveAttribute('aria-expanded', 'false')
   fireEvent.click(button)
-  fireEvent.click(screen.getByRole('link', { name: 'PDSls' }))
-  expect(button).toHaveAttribute('aria-expanded', 'false')
-})
-
-it('positions within viewport edges and repositions on resize and captured scroll', () => {
-  vi.stubGlobal('innerWidth', 390)
-  vi.stubGlobal('innerHeight', 600)
-  let top = 570
-  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
-    return this.hasAttribute('data-record-links')
-      ? ({ width: 160, height: 200 } as DOMRect)
-      : ({ right: 390, top, bottom: top + 30 } as DOMRect)
-  })
-  const { button } = setup()
-  const popup = document.getElementById(button.getAttribute('aria-controls')!)!
-  expect(popup).toBeVisible()
-  expect(parseFloat(popup.style.left)).toBeGreaterThanOrEqual(0)
-  expect(parseFloat(popup.style.left) + 160).toBeLessThanOrEqual(390)
-  expect(parseFloat(popup.style.top)).toBeGreaterThanOrEqual(0)
-  expect(parseFloat(popup.style.top) + 200).toBeLessThanOrEqual(top)
-  top = 10
-  fireEvent.resize(window)
-  const resizedTop = parseFloat(popup.style.top)
-  expect(resizedTop).toBeGreaterThanOrEqual(top + 30)
-  expect(resizedTop + 200).toBeLessThanOrEqual(600)
-  top = 100
-  fireEvent.scroll(button.parentElement!)
-  expect(parseFloat(popup.style.top)).toBeGreaterThan(resizedTop)
-  expect(parseFloat(popup.style.top)).toBeGreaterThanOrEqual(top + 30)
-  expect(parseFloat(popup.style.top) + 200).toBeLessThanOrEqual(600)
+  fireEvent.keyDown(screen.getByRole('menu'), { key: 'Tab' })
+  await waitFor(() => expect(button).toHaveAttribute('aria-expanded', 'false'))
 })
