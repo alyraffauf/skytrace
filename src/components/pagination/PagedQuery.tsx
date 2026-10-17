@@ -28,7 +28,7 @@ export function PagedQueryView({
     )
   }
   return (
-    <div>
+    <>
       <PagedQueryRefreshNotice query={query} resourceLabel={resourceLabel} />
       {children}
       {!query.isRefetchError && (
@@ -36,7 +36,7 @@ export function PagedQueryView({
           <PagedQueryPagination query={query} />
         </div>
       )}
-    </div>
+    </>
   )
 }
 

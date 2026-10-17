@@ -17,7 +17,7 @@ export function LabelRow({ label, displayName }: { label: LabelHistoryEvent | Un
   const removed = label.negated ? formatDate(label.createdAt) : undefined
 
   return (
-    <article className={`${compactRowClassName} grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5`}>
+    <article className={`${compactRowClassName} grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3`}>
       <div className="min-w-0">
         <div className="flex min-w-0 items-baseline gap-2">
           <LabelValue
@@ -38,20 +38,17 @@ export function LabelRow({ label, displayName }: { label: LabelHistoryEvent | Un
       <div className="text-right text-xs text-zinc-500 dark:text-zinc-400">
         {added && (
           <p aria-label={`Added ${added}`}>
-            <span>Added </span>
-            <time dateTime={label.addedAt ?? label.createdAt}>{added}</time>
+            Added <time dateTime={label.addedAt ?? label.createdAt}>{added}</time>
           </p>
         )}
         {removed && (
           <p aria-label={`Removed ${removed}`}>
-            <span>Removed </span>
-            <time dateTime={label.createdAt}>{removed}</time>
+            Removed <time dateTime={label.createdAt}>{removed}</time>
           </p>
         )}
         {!removed && expiry && (
           <p aria-label={`${state === 'Expired' ? 'Expired' : 'Expires'} ${expiry}`}>
-            <span>{state === 'Expired' ? 'Expired' : 'Expires'} </span>
-            <time dateTime={label.expiresAt}>{expiry}</time>
+            {state === 'Expired' ? 'Expired' : 'Expires'} <time dateTime={label.expiresAt}>{expiry}</time>
           </p>
         )}
         {!added && !removed && <span>Date unknown</span>}

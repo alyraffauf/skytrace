@@ -62,11 +62,15 @@ export function AccountDetails({
             </a>
           </dd>
         </div>
-        {detailsOpen && detailsQuery.isPending && (
-          <div className="text-zinc-500 dark:text-zinc-400">Loading identity history...</div>
-        )}
-        {detailsQuery.isError && <div className="text-zinc-500 dark:text-zinc-400">Identity history unavailable.</div>}
       </dl>
+      {detailsOpen && detailsQuery.isPending && (
+        <p role="status" className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+          Loading identity history...
+        </p>
+      )}
+      {detailsQuery.isError && (
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Identity history unavailable.</p>
+      )}
     </details>
   )
 }

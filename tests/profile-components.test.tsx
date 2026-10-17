@@ -54,6 +54,38 @@ it('requests history only after expansion and retains it on reopening', async ()
   expect(load).toHaveBeenCalledTimes(1)
 })
 
+it.each(['pending', 'error'])('keeps %s history messages outside the definition list', async (state) => {
+  const client = createTestQueryClient()
+  const service = new PublicDataService(client)
+  const options = service.actors.accountDetailsQueryOptions('did:plc:example')
+  vi.spyOn(service.actors, 'accountDetailsQueryOptions').mockImplementation(() => ({
+    ...options,
+    queryFn: async () => {
+      if (state === 'error') throw new Error('History unavailable')
+      await new Promise(() => {})
+      return { aliases: [], formerHandles: [] }
+    },
+  }))
+  render(
+    <QueryClientProvider client={client}>
+      <AccountDetails
+        identity={{ kind: 'actorIdentity', did: 'did:plc:example', handle: 'example.com', pds: 'https://pds.example' }}
+        service={service}
+      />
+    </QueryClientProvider>,
+  )
+  const details = screen.getByText('Account details').closest('details')!
+  act(() => {
+    details.open = true
+    fireEvent(details, new Event('toggle'))
+  })
+  const message =
+    state === 'pending' ? await screen.findByRole('status') : await screen.findByText('Identity history unavailable.')
+  expect(message).toBeVisible()
+  expect(message.closest('dl')).toBeNull()
+  expect(details).toContainElement(message)
+})
+
 it('scrolls the active tab on navigation and count changes', () => {
   const scroll = vi.fn()
   Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: scroll })

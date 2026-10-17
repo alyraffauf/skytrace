@@ -65,7 +65,7 @@ export function PostContent({
             const imageUrl = cdnImageUrl('feed_fullsize', authorDid, image.cid)
             const thumbnailUrl = cdnImageUrl('feed_thumbnail', authorDid, image.cid)
             return (
-              <a key={image.cid} href={imageUrl} target="_blank" rel="noreferrer" className="block">
+              <a key={image.cid} href={imageUrl} target="_blank" rel="noreferrer">
                 <ImageWithFallback
                   src={thumbnailUrl}
                   alt={image.alt || `Image ${index + 1} attached to this post`}

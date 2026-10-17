@@ -19,7 +19,7 @@ export function AccountLabelsPage() {
   const items = groupLabelHistory(Array.from(entriesById.values()))
   const issues = query.data.pages.at(-1)?.issues ?? []
   return (
-    <div>
+    <>
       <PagedQueryRefreshNotice query={query} resourceLabel="account labels" />
       {items.length === 0 ? (
         <EmptyState title="No account labels found" />
@@ -30,7 +30,7 @@ export function AccountLabelsPage() {
       )}
       {issues.length > 0 && <SourceIssues issues={issues} retry={() => void query.fetchNextPage()} />}
       <PagedQueryPagination query={query} hasMore={query.hasNextPage && issues.length === 0} />
-    </div>
+    </>
   )
 }
 

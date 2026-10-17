@@ -47,11 +47,9 @@ function PostLabels({
                   displayName={displayNames?.get(label.id)}
                   className="truncate font-semibold text-zinc-900 dark:text-zinc-100"
                 />
-                {state !== 'Active' && (
-                  <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">{state}</span>
-                )}
+                {state !== 'Active' && <span className="shrink-0 text-zinc-500 dark:text-zinc-400">{state}</span>}
               </div>
-              <time dateTime={label.createdAt} className="text-xs text-zinc-500 dark:text-zinc-400">
+              <time dateTime={label.createdAt} className="text-zinc-500 dark:text-zinc-400">
                 {formatDate(label.createdAt) ?? 'Date unknown'}
               </time>
               <div className="col-span-2 mt-0.5 min-w-0">
