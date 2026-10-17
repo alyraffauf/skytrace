@@ -18,8 +18,17 @@ export function useLabelDisplayNames(
   }
 
   const displayNames = new Map<string, string>()
+  const namesBySource = new Map<string, Map<string, string | undefined>>()
   for (const label of labels) {
-    const name = labelDisplayName(label.value, definitionsBySource.get(label.sourceDid), languages)
+    let sourceNames = namesBySource.get(label.sourceDid)
+    if (!sourceNames) {
+      sourceNames = new Map()
+      namesBySource.set(label.sourceDid, sourceNames)
+    }
+    if (!sourceNames.has(label.value)) {
+      sourceNames.set(label.value, labelDisplayName(label.value, definitionsBySource.get(label.sourceDid), languages))
+    }
+    const name = sourceNames.get(label.value)
     if (name) displayNames.set(label.id, name)
   }
   return displayNames

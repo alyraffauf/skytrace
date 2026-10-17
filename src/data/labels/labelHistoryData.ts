@@ -5,7 +5,7 @@ import type { PublicDataCore } from '../publicDataCore'
 import type { LabelerDataService } from './labelerData'
 import { throwIfAborted } from '../../lib/abort'
 import { dedupeBy } from '../../lib/collections'
-import { LABEL_PAGE_SIZE, readLabelState, type LabelPagingState } from './labelPaging'
+import { LABEL_PAGE_SIZE, readLabelState, type LabelPagingState, type ProviderPagingState } from './labelPaging'
 import { loadProviderLabelPage } from './providerLabels'
 import { hasCursor } from '../cursorHistory'
 
@@ -24,6 +24,10 @@ export class LabelHistoryDataService {
     signal?: AbortSignal,
   ): Promise<Page<LabelEvent | UnavailableItem, LabelPagingState>> {
     const state = readLabelState(did, cursor)
+    const providersByDid = new Map<string, ProviderPagingState>()
+    for (const provider of state.providers) {
+      if (!providersByDid.has(provider.did)) providersByDid.set(provider.did, provider)
+    }
 
     if (!state.discoveryDone) {
       const discovery = await this.core.labelRecords({
@@ -38,8 +42,10 @@ export class LabelHistoryDataService {
       for (const label of discovery.items) {
         if (label.kind !== 'labelEvent') continue
         sources.add(label.sourceDid)
-        if (!state.providers.some((provider) => provider.did === label.sourceDid)) {
-          state.providers.push({ did: label.sourceDid, done: false, latestEventAt: label.createdAt })
+        if (!providersByDid.has(label.sourceDid)) {
+          const provider = { did: label.sourceDid, done: false, latestEventAt: label.createdAt }
+          providersByDid.set(label.sourceDid, provider)
+          state.providers.push(provider)
         }
       }
       state.appViewSources = [...sources]
@@ -65,12 +71,16 @@ export class LabelHistoryDataService {
       throwIfAborted(signal)
       for (const label of page.items) {
         if (label.kind !== 'labelEvent') continue
-        const provider = state.providers.find((candidate) => candidate.did === label.sourceDid)
+        const provider = providersByDid.get(label.sourceDid)
         if (provider) {
           if (!provider.latestEventAt || timestampFor(label.createdAt) > timestampFor(provider.latestEventAt)) {
             provider.latestEventAt = label.createdAt
           }
-        } else state.providers.push({ did: label.sourceDid, done: false, latestEventAt: label.createdAt })
+        } else {
+          const provider = { did: label.sourceDid, done: false, latestEventAt: label.createdAt }
+          providersByDid.set(label.sourceDid, provider)
+          state.providers.push(provider)
+        }
       }
       state.providers.sort((left, right) => timestampFor(right.latestEventAt) - timestampFor(left.latestEventAt))
       state.appViewDone = !page.cursor || hasCursor(state.appViewCursorHistory, page.cursor)

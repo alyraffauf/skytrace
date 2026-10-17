@@ -6,6 +6,36 @@ import { createTestService } from './testUtils'
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const sourceDid = 'did:plc:xwc5pfr4q6kthctktdb5turw'
 
+it('deduplicates providers and prioritizes their latest AppView events', async () => {
+  const otherDid = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
+  const label = (sourceDid: LabelEvent['sourceDid'], createdAt: string): LabelEvent => ({
+    kind: 'labelEvent',
+    id: `${sourceDid}:${createdAt}`,
+    sourceDid,
+    subject: did,
+    value: 'custom',
+    createdAt,
+    negated: false,
+  })
+  const discovered = label(sourceDid, '2026-01-01T00:00:00Z')
+  const service = createTestService()
+  vi.spyOn(service.core, 'labelRecords')
+    .mockResolvedValueOnce({ items: [discovered, discovered] })
+    .mockResolvedValueOnce({
+      items: [
+        label(otherDid, '2026-01-01T00:00:00Z'),
+        label(otherDid, '2026-03-01T00:00:00Z'),
+        label(sourceDid, '2025-12-01T00:00:00Z'),
+        label(sourceDid, '2026-02-01T00:00:00Z'),
+      ],
+    })
+  const page = await service.labelHistory.page(did)
+  expect(page.cursor?.providers).toEqual([
+    { did: otherDid, done: false, latestEventAt: '2026-03-01T00:00:00Z' },
+    { did: sourceDid, done: false, latestEventAt: '2026-02-01T00:00:00Z' },
+  ])
+})
+
 it.each(['discovery', 'AppView', 'provider'])(
   'replays a saved %s cursor without changing its snapshot',
   async (stage) => {
