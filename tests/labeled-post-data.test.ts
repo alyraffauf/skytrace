@@ -70,7 +70,6 @@ describe('labeled post data', () => {
     expect(page.items[0]?.labels.map((label) => label.value)).toEqual(['second-label', 'first-label'])
     expect(page.items[0]?.labels[0]?.sourceDid).toBe(sourceDid)
     expect(page.items[0]?.post).toMatchObject({ kind: 'post', author: { kind: 'actorReference', did } })
-    expect(page.items[0]?.post).toMatchObject({ repositoryPds: identity.pds })
     expect(identityRequests).toBe(0)
   })
 

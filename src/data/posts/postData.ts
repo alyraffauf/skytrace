@@ -6,6 +6,7 @@ import type { PublicDataCore } from '../publicDataCore'
 import { decodePostRecord } from './postParser'
 import { queryKeys } from '../queryKeys'
 import { unavailable } from '../recordResults'
+import { throwIfAborted } from '../../lib/abort'
 
 export class PostDataService {
   constructor(
@@ -22,8 +23,9 @@ export class PostDataService {
     repository?: ActorIdentity
     signal?: AbortSignal
   }): Promise<FeedPost | UnavailableItem> {
+    throwIfAborted(signal)
     const post = decodePostRecord(record)
-    if (post.kind === 'unavailable') return post
+    if (post.kind === 'unavailable' || !post.video) return post
     const authorDid = post.author.did
     const repositoryPds =
       repository?.did === authorDid ? repository.pds : (await this.actors.optionalIdentity(authorDid, signal))?.pds

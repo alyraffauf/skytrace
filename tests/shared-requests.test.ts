@@ -4,6 +4,7 @@ import { PublicDataService, publicDataServiceFor } from '../src/data/publicData'
 import { CACHE_TTL_MS } from '../src/data/runtime/cachePolicy'
 import { queryKeys } from '../src/data/queryKeys'
 import { jsonResponse as response, repositoryRecord, createTestQueryClient, createTestService } from './testUtils'
+import { cid } from './actorFixtures'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 
@@ -271,6 +272,10 @@ it.each([false, true])('shares identity hydration across services when all consu
       $type: 'app.bsky.feed.post',
       text: 'Shared identity',
       createdAt: '2026-01-01T00:00:00Z',
+      embed: {
+        $type: 'app.bsky.embed.video',
+        video: { $type: 'blob', ref: { $link: cid }, mimeType: 'video/mp4', size: 100 },
+      },
     }),
     uri,
   }
