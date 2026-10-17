@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -118,22 +117,6 @@ describe('hidden DID configuration', () => {
   it('normalizes valid DIDs for a stable visibility cache key', () => {
     vi.stubGlobal('__SKYTRACE_CONFIG__', { hiddenDids: ['did:web:example.com', did, 'invalid', did] })
     expect(hiddenProfileDids()).toEqual([did, 'did:web:example.com'])
-  })
-
-  it.each([
-    ['', []],
-    [did, [did]],
-    [` ${did},\n did:web:example.com ,, invalid `, [did, 'did:web:example.com']],
-    ['did:web:example.com:user%3Aname', ['did:web:example.com:user%3Aname']],
-    ['did:plc:example";alert(1)//,did:plc:bad\\value,atproto.com', []],
-    [`invalid,${did},did:plc:`, [did]],
-  ])('serializes container env value %s as a safe array', (value, expected) => {
-    const output = execFileSync(
-      'sh',
-      ['-c', '. ./container/15-runtime-config.envsh; printf "%s" "$SKYTRACE_HIDDEN_DIDS_VALUE"'],
-      { env: { ...process.env, SKYTRACE_HIDDEN_DIDS: value }, encoding: 'utf8' },
-    )
-    expect(JSON.parse(output)).toEqual(expected)
   })
 })
 

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { expect, it } from 'vitest'
+import { did } from './actorFixtures'
 
 const entrypointPath = fileURLToPath(new URL('../container/15-runtime-config.envsh', import.meta.url))
 const template = readFileSync(new URL('../container/runtime-config.js.template', import.meta.url), 'utf8')
@@ -14,7 +15,7 @@ const variableNames = [
   'SKYTRACE_HIDDEN_DIDS_VALUE',
 ]
 
-function runtimeConfig(blockTargetDid: string) {
+function runtimeConfig(environment: Record<string, string>) {
   const output = execFileSync(
     'sh',
     [
@@ -26,10 +27,11 @@ function runtimeConfig(blockTargetDid: string) {
     {
       env: {
         ...process.env,
-        SKYTRACE_BLOCK_TARGET_DID: blockTargetDid,
+        SKYTRACE_BLOCK_TARGET_DID: '',
         SKYTRACE_IGNORE_NO_UNAUTHENTICATED: 'true',
         MIN_LIST_BLOCKING: '3',
         SKYTRACE_HIDDEN_DIDS: 'did:plc:hidden,did:web:example.com',
+        ...environment,
       },
       encoding: 'utf8',
     },
@@ -45,7 +47,7 @@ function runtimeConfig(blockTargetDid: string) {
 it.each(['did:plc:example', 'did:web:example.com', 'did:web:example.com%3A8443:users:alice'])(
   'emits valid runtime JavaScript for block target %s',
   (did) => {
-    expect(runtimeConfig(did)).toEqual({
+    expect(runtimeConfig({ SKYTRACE_BLOCK_TARGET_DID: did })).toEqual({
       ignoreNoUnauthenticated: true,
       minListBlocking: 3,
       blockTargetDid: did,
@@ -68,10 +70,21 @@ it.each([
   "did:plc:example'",
   'did:plc:example\n"}; window.injected = true; //',
 ])('disables an invalid block target %j while preserving the rest of runtime config', (did) => {
-  expect(runtimeConfig(did)).toEqual({
+  expect(runtimeConfig({ SKYTRACE_BLOCK_TARGET_DID: did })).toEqual({
     ignoreNoUnauthenticated: true,
     minListBlocking: 3,
     blockTargetDid: null,
     hiddenDids: ['did:plc:hidden', 'did:web:example.com'],
   })
+})
+
+it.each([
+  ['', []],
+  [did, [did]],
+  [` ${did},\n did:web:example.com ,, invalid `, [did, 'did:web:example.com']],
+  ['did:web:example.com:user%3Aname', ['did:web:example.com:user%3Aname']],
+  ['did:plc:example";alert(1)//,did:plc:bad\\value,atproto.com', []],
+  [`invalid,${did},did:plc:`, [did]],
+])('serializes container env value %s as a safe array', (value, expected) => {
+  expect(runtimeConfig({ SKYTRACE_HIDDEN_DIDS: value })).toMatchObject({ hiddenDids: expected })
 })

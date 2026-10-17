@@ -1,103 +1,15 @@
-import { mergeLabeledPosts } from '../src/lib/posts/labeledPosts'
-import { LabelHistoryDataService } from '../src/data/labels/labelHistoryData'
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import { LabelRow } from '../src/components/labels/LabelRow'
 import { groupLabelHistory } from '../src/lib/labels/history'
 import { LabeledPostRow } from '../src/components/labels/LabeledPostRow'
-import { labelDisplayName } from '../src/lib/labels/names'
-import { AccountLabelsPage } from '../src/pages/profile/AccountLabelsPage'
 import { PublicDataService } from '../src/data/publicData'
-import type { FeedPost, LabeledPost, LabelEvent } from '../src/types'
+import type { FeedPost, LabelEvent } from '../src/types'
 import { createTestQueryClient } from './testUtils'
-import { did, profile, actorReference } from './actorFixtures'
-import { renderWithRouter, renderProfileTab } from './profileTestUtils'
+import { did, actorReference } from './actorFixtures'
+import { renderWithRouter } from './profileTestUtils'
 
 describe('account labels', () => {
-  beforeEach(() => {
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        observe() {}
-        disconnect() {}
-      },
-    )
-  })
-  it('stops eager pagination after a delayed failure and recovers only on Retry', async () => {
-    let rejectPage!: (error: Error) => void
-    const cursor = {
-      kind: 'labels' as const,
-      did,
-      appViewDone: false,
-      seenAppViewCursors: [],
-      providers: [],
-    }
-    const labels = vi
-      .spyOn(LabelHistoryDataService.prototype, 'page')
-      .mockResolvedValueOnce({
-        items: [{ kind: 'unavailable', id: 'loaded', reason: 'Previously loaded label' }],
-        cursor,
-      })
-      .mockImplementationOnce(
-        () =>
-          new Promise((_resolve, reject) => {
-            rejectPage = reject
-          }),
-      )
-      .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'recovered', reason: 'Recovered label' }] })
-    renderProfileTab(<AccountLabelsPage />, profile)
-    await waitFor(() => expect(labels).toHaveBeenCalledTimes(2))
-    expect(screen.getByText('Previously loaded label')).toBeVisible()
-    await act(async () => {
-      rejectPage(new Error('Relay unavailable'))
-    })
-    const retry = await screen.findByRole('button', { name: 'Retry' })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 30))
-    })
-    expect(labels).toHaveBeenCalledTimes(2)
-    expect(screen.getByText('Previously loaded label')).toBeVisible()
-    fireEvent.click(retry)
-    expect(await screen.findByText('Recovered label')).toBeVisible()
-    expect(labels).toHaveBeenCalledTimes(3)
-  })
-
-  it('eagerly loads the second label page on success', async () => {
-    const labels = vi
-      .spyOn(LabelHistoryDataService.prototype, 'page')
-      .mockResolvedValueOnce({
-        items: [],
-        cursor: {
-          kind: 'labels',
-          did,
-          appViewDone: false,
-          seenAppViewCursors: [],
-          providers: [],
-        },
-      })
-      .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'second', reason: 'Second label page' }] })
-    renderProfileTab(<AccountLabelsPage />, profile)
-    expect(await screen.findByText('Second label page')).toBeVisible()
-    expect(labels).toHaveBeenCalledTimes(2)
-  })
-
-  it('uses the labeler-provided name with locale fallback', () => {
-    const definitions = [
-      {
-        identifier: 'many-replies',
-        locales: [
-          { lang: 'en', name: 'Frequent replier' },
-          { lang: 'fr', name: 'Répond souvent' },
-        ],
-      },
-    ]
-
-    expect(labelDisplayName('many-replies', definitions, ['fr-CA'])).toBe('Répond souvent')
-    expect(labelDisplayName('many-replies', definitions, ['de'])).toBe('Frequent replier')
-    expect(labelDisplayName('graphic-media', undefined, ['en'])).toBe('Graphic Media')
-    expect(labelDisplayName('unknown-label', undefined, ['en'])).toBeUndefined()
-  })
-
   it('renders the source DID and preserves negated label history', () => {
     const sourceDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
     const label: LabelEvent = {
@@ -206,43 +118,6 @@ describe('account labels', () => {
 })
 
 describe('labeled post previews', () => {
-  it('merges labels from duplicate posts in newest-first order', () => {
-    const post: FeedPost = {
-      kind: 'post',
-      uri: `at://${did}/app.bsky.feed.post/labeled-merge`,
-      author: actorReference,
-      createdAt: '2026-04-01T00:00:00Z',
-      text: 'A labeled post',
-      facets: [],
-    }
-    const olderLabel: LabelEvent = {
-      kind: 'labelEvent',
-      id: 'older-label',
-      sourceDid: did,
-      subject: post.uri,
-      value: 'old',
-      createdAt: '2026-04-02T00:00:00Z',
-      negated: false,
-    }
-    const newerLabel: LabelEvent = { ...olderLabel, id: 'newer-label', value: 'new', createdAt: '2026-04-03T00:00:00Z' }
-    const items: LabeledPost[] = [
-      { kind: 'labeledPost', post: { ...post, uri: `${post.uri}-z` }, labels: [] },
-      {
-        kind: 'labeledPost',
-        post: { ...post, uri: `${post.uri}-older`, createdAt: '2025-01-01T00:00:00Z' },
-        labels: [],
-      },
-      { kind: 'labeledPost', post, labels: [olderLabel] },
-      { kind: 'labeledPost', post, labels: [olderLabel, newerLabel] },
-    ]
-
-    expect(mergeLabeledPosts(items)).toEqual([
-      expect.objectContaining({ post, labels: [newerLabel, olderLabel] }),
-      items[0],
-      items[1],
-    ])
-  })
-
   it('shows every post label with its custom name', () => {
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)

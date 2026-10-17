@@ -1,7 +1,10 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom'
+import { LabelHistoryDataService } from '../src/data/labels/labelHistoryData'
+import { profile } from './actorFixtures'
+import { renderProfileTab } from './profileTestUtils'
 import { AccountLabelsPage } from '../src/pages/profile/AccountLabelsPage'
 import { PublicDataService } from '../src/data/publicData'
 import { queryKeys } from '../src/data/queryKeys'
@@ -141,4 +144,73 @@ it('shows one label row when AppView and provider pages repeat the same event', 
   await waitFor(() => expect(load).toHaveBeenCalledTimes(2))
   await waitFor(() => expect(client.getQueryData<{ pages: unknown[] }>(key)?.pages).toHaveLength(2))
   expect(screen.getAllByText('shared-label')).toHaveLength(1)
+})
+
+describe('account label eager pagination', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    )
+  })
+  it('stops eager pagination after a delayed failure and recovers only on Retry', async () => {
+    let rejectPage!: (error: Error) => void
+    const cursor = {
+      kind: 'labels' as const,
+      did,
+      appViewDone: false,
+      seenAppViewCursors: [],
+      providers: [],
+    }
+    const labels = vi
+      .spyOn(LabelHistoryDataService.prototype, 'page')
+      .mockResolvedValueOnce({
+        items: [{ kind: 'unavailable', id: 'loaded', reason: 'Previously loaded label' }],
+        cursor,
+      })
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject) => {
+            rejectPage = reject
+          }),
+      )
+      .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'recovered', reason: 'Recovered label' }] })
+    renderProfileTab(<AccountLabelsPage />, profile)
+    await waitFor(() => expect(labels).toHaveBeenCalledTimes(2))
+    expect(screen.getByText('Previously loaded label')).toBeVisible()
+    await act(async () => {
+      rejectPage(new Error('Relay unavailable'))
+    })
+    const retry = await screen.findByRole('button', { name: 'Retry' })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30))
+    })
+    expect(labels).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('Previously loaded label')).toBeVisible()
+    fireEvent.click(retry)
+    expect(await screen.findByText('Recovered label')).toBeVisible()
+    expect(labels).toHaveBeenCalledTimes(3)
+  })
+
+  it('eagerly loads the second label page on success', async () => {
+    const labels = vi
+      .spyOn(LabelHistoryDataService.prototype, 'page')
+      .mockResolvedValueOnce({
+        items: [],
+        cursor: {
+          kind: 'labels',
+          did,
+          appViewDone: false,
+          seenAppViewCursors: [],
+          providers: [],
+        },
+      })
+      .mockResolvedValue({ items: [{ kind: 'unavailable', id: 'second', reason: 'Second label page' }] })
+    renderProfileTab(<AccountLabelsPage />, profile)
+    expect(await screen.findByText('Second label page')).toBeVisible()
+    expect(labels).toHaveBeenCalledTimes(2)
+  })
 })
