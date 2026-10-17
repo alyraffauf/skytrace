@@ -36,13 +36,13 @@ export class ListDataService {
   }
 
   async listBlockCount(listUri: string, signal?: AbortSignal): Promise<number> {
-    return this.context.sharedRequests.query(
-      queryKeys.listBlockCount(listUri),
-      CACHE_TTL_MS.activity,
-      (requestSignal) =>
+    return this.context.sharedRequests.query({
+      queryKey: queryKeys.listBlockCount(listUri),
+      staleTime: CACHE_TTL_MS.activity,
+      load: (requestSignal) =>
         getBacklinksCount({ subject: listUri, source: 'app.bsky.graph.listblock:subject', signal: requestSignal }),
-      signal,
-    )
+      consumerSignal: signal,
+    })
   }
 
   private listFromRecord(record: RawRecord): ListSummary | UnavailableItem {

@@ -44,12 +44,12 @@ export class ActorDataService {
   }
 
   async identity(identifier: string, signal?: AbortSignal): Promise<ActorIdentity> {
-    return this.context.sharedRequests.query(
-      queryKeys.identity(identifier),
-      CACHE_TTL_MS.identity,
-      (requestSignal) => this.resolveAndCacheIdentity(identifier, requestSignal),
-      signal,
-    )
+    return this.context.sharedRequests.query({
+      queryKey: queryKeys.identity(identifier),
+      staleTime: CACHE_TTL_MS.identity,
+      load: (requestSignal) => this.resolveAndCacheIdentity(identifier, requestSignal),
+      consumerSignal: signal,
+    })
   }
 
   private async resolveAndCacheIdentity(identifier: string, signal: AbortSignal): Promise<ActorIdentity> {
@@ -72,12 +72,12 @@ export class ActorDataService {
   }
 
   async profile(identifier: string, signal?: AbortSignal): Promise<ActorProfile> {
-    return this.context.sharedRequests.query(
-      queryKeys.profileView(identifier),
-      CACHE_TTL_MS.profile,
-      (requestSignal) => this.loadProfile(identifier, requestSignal),
-      signal,
-    )
+    return this.context.sharedRequests.query({
+      queryKey: queryKeys.profileView(identifier),
+      staleTime: CACHE_TTL_MS.profile,
+      load: (requestSignal) => this.loadProfile(identifier, requestSignal),
+      consumerSignal: signal,
+    })
   }
 
   private async loadProfile(identifier: string, signal?: AbortSignal): Promise<ActorProfile> {

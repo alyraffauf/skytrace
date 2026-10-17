@@ -5,7 +5,7 @@ import type { PublicDataCore } from '../publicDataCore'
 import type { LabelerDataService } from './labelerData'
 import { throwIfAborted } from '../../lib/abort'
 import { dedupeBy } from '../../lib/collections'
-import { LABEL_PAGE_SIZE, readLabelState, type LabelPagingState, type ProviderPagingState } from './labelPaging'
+import { LABEL_PAGE_SIZE, readLabelState, type LabelPagingState } from './labelPaging'
 import { loadProviderLabelPage } from './providerLabels'
 
 // Include Bluesky moderation even when the relay has no events from it.
@@ -52,18 +52,31 @@ export class LabelHistoryDataService {
     }
 
     if (!state.appViewDone) {
-      const page = await this.loadAppViewPage({
-        did,
+      const page = await this.core.labelRecords({
+        service: SERVICE_URLS.blueskyAppView,
+        uriPatterns: [did],
         cursor: state.appViewCursor,
-        providers: state.providers,
         sources: state.appViewSources ?? [BLUESKY_MODERATION_DID],
+        repeatedCursorPolicy: 'return-page',
+        limit: LABEL_PAGE_SIZE,
         signal,
       })
+      throwIfAborted(signal)
+      for (const label of page.items) {
+        if (label.kind !== 'labelEvent') continue
+        const provider = state.providers.find((candidate) => candidate.did === label.sourceDid)
+        if (provider) {
+          if (!provider.latestEventAt || timestampFor(label.createdAt) > timestampFor(provider.latestEventAt)) {
+            provider.latestEventAt = label.createdAt
+          }
+        } else state.providers.push({ did: label.sourceDid, done: false, latestEventAt: label.createdAt })
+      }
+      state.providers.sort((left, right) => timestampFor(right.latestEventAt) - timestampFor(left.latestEventAt))
       state.appViewDone = !page.cursor || state.seenAppViewCursors.includes(page.cursor)
       state.appViewCursor = state.appViewDone ? undefined : page.cursor
       if (page.cursor) state.seenAppViewCursors.push(page.cursor)
       return {
-        items: orderedHistoryItems(page.items, signal),
+        items: orderedHistoryItems(page.items),
         cursor: !state.appViewDone || state.providers.length > 0 ? state : undefined,
       }
     }
@@ -87,6 +100,7 @@ export class LabelHistoryDataService {
         loadLabels: (options) => this.core.labelRecords(options),
         resolveEndpoint: (sourceDid, requestSignal) => this.labelers.endpoint(sourceDid, requestSignal),
       })
+      throwIfAborted(signal)
       state.providers[providerIndex] = provider
       if (!page) continue
       const nextCursor = page.cursor
@@ -97,54 +111,15 @@ export class LabelHistoryDataService {
       provider.seenCursors = [...seenCursors]
       const items = page.items.filter((item) => item.kind === 'unavailable' || item.sourceDid === provider.did)
       return {
-        items: orderedHistoryItems(items, signal),
+        items: orderedHistoryItems(items),
         cursor: state.providers.some((candidate) => !candidate.done) ? state : undefined,
       }
     }
   }
-
-  private async loadAppViewPage({
-    did,
-    cursor,
-    providers,
-    sources,
-    signal,
-  }: {
-    did: string
-    cursor?: string
-    sources: string[]
-    providers: ProviderPagingState[]
-    signal?: AbortSignal
-  }) {
-    const page = await this.core.labelRecords({
-      service: SERVICE_URLS.blueskyAppView,
-      sources,
-      uriPatterns: [did],
-      cursor,
-      repeatedCursorPolicy: 'return-page',
-      limit: LABEL_PAGE_SIZE,
-      signal,
-    })
-    const labels = page.items.filter((item): item is LabelEvent => item.kind === 'labelEvent')
-    for (const label of labels) {
-      const provider = providers.find((candidate) => candidate.did === label.sourceDid)
-      if (provider) {
-        if (!provider.latestEventAt || timestampFor(label.createdAt) > timestampFor(provider.latestEventAt)) {
-          provider.latestEventAt = label.createdAt
-        }
-      } else providers.push({ did: label.sourceDid, done: false, latestEventAt: label.createdAt })
-    }
-    providers.sort((left, right) => timestampFor(right.latestEventAt) - timestampFor(left.latestEventAt))
-    return page
-  }
 }
 
-function orderedHistoryItems(
-  items: Array<LabelEvent | UnavailableItem>,
-  signal?: AbortSignal,
-): Array<LabelEvent | UnavailableItem> {
+function orderedHistoryItems(items: Array<LabelEvent | UnavailableItem>): Array<LabelEvent | UnavailableItem> {
   const labels = items.filter((item): item is LabelEvent => item.kind === 'labelEvent')
   const unavailableItems = items.filter((item): item is UnavailableItem => item.kind === 'unavailable')
-  throwIfAborted(signal)
   return newestFirst([...dedupeBy(labels, (label) => label.id), ...unavailableItems])
 }

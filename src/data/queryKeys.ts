@@ -1,4 +1,23 @@
 import type { ActorIdentity } from '../types'
+import { SERVICE_URLS } from '../config/serviceUrls'
+
+type LabelRequestOptions = {
+  service?: string
+  uriPatterns: readonly string[]
+  sources?: readonly string[]
+  cursor?: string
+  limit?: number
+}
+
+export function labelRequestIdentity({ service, uriPatterns, sources, cursor, limit }: LabelRequestOptions) {
+  return [
+    service ?? SERVICE_URLS.labelRelay,
+    [...new Set(uriPatterns)].sort(),
+    [...new Set(sources ?? [])].sort(),
+    cursor ?? null,
+    limit ?? 50,
+  ] as const
+}
 
 export const queryKeys = {
   actorSuggestions: (query: string) => ['actorSuggestions', query] as const,
@@ -7,26 +26,38 @@ export const queryKeys = {
   profileView: (identifier: string) => ['actorProfileView', identifier] as const,
   record: (uri: string) => ['record', uri] as const,
   listSummary: (uri: string | undefined) => ['listSummary', uri] as const,
-  repositoryRecords: (identity: ActorIdentity, collection: string, cursor: string | undefined, limit: number) =>
-    ['repositoryRecords', identity.pds, identity.did, collection, cursor ?? null, limit] as const,
+  repositoryRecords: ({
+    identity,
+    collection,
+    cursor,
+    limit,
+  }: {
+    identity: ActorIdentity
+    collection: string
+    cursor?: string
+    limit: number
+  }) => ['repositoryRecords', identity.pds, identity.did, collection, cursor ?? null, limit] as const,
   blockedCount: (identity?: ActorIdentity) => ['blockedCount', identity?.pds ?? null, identity?.did ?? null] as const,
   blockedByCount: (did?: string) => ['blockedByCount', did ?? null] as const,
   listBlockCount: (uri?: string) => ['listBlockCount', uri ?? null] as const,
   profileVisibility: (identifier: string, targetDid: string | undefined, hiddenDids: readonly string[]) =>
     ['profileVisibility', identifier, targetDid ?? null, hiddenDids] as const,
-  backlinks: (subject: string, source: string, cursor: string | undefined, limit: number | undefined, did?: string) =>
-    ['backlinks', subject, source, cursor ?? null, limit ?? null, did ?? null] as const,
+  backlinks: ({
+    subject,
+    source,
+    cursor,
+    limit,
+    did,
+  }: {
+    subject: string
+    source: string
+    cursor?: string
+    limit?: number
+    did?: string
+  }) => ['backlinks', subject, source, cursor ?? null, limit ?? null, did ?? null] as const,
   labelerEndpoint: (did: string) => ['labelerEndpoint', did] as const,
   labelDefinitions: (did: string) => ['labelDefinitions', did] as const,
-  labels: (service: string, uriPatterns: string[], sources: string[], cursor: string | undefined, limit: number) =>
-    [
-      'labelRecords',
-      service,
-      [...new Set(uriPatterns)].sort(),
-      [...new Set(sources)].sort(),
-      cursor ?? null,
-      limit,
-    ] as const,
+  labels: (options: LabelRequestOptions) => ['labelRecords', ...labelRequestIdentity(options)] as const,
   profileTab: (did: string, tab: string) => ['profileTab', did, tab] as const,
   labeledPosts: (did: string) => ['labeledPosts', did] as const,
   feed: (did: string) => ['feed', did] as const,

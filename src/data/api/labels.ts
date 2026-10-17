@@ -10,6 +10,7 @@ import { isDid } from '@atcute/lexicons/syntax'
 import { paginationRequests } from '../runtime/requestScheduler'
 import { objectValue } from '../recordValues'
 import { clientFor } from './client'
+import { labelRequestIdentity } from '../queryKeys'
 
 // Keep the page envelope loose so a single bad label becomes an unavailable row.
 const queryLabelsSchema = v.query(ComAtprotoLabelQueryLabels.mainSchema.nsid, {
@@ -58,13 +59,7 @@ export async function queryLabels(options: {
       ),
     options.signal,
   )
-  const pageId = JSON.stringify([
-    options.service ?? SERVICE_URLS.labelRelay,
-    [...new Set(options.uriPatterns)].sort(),
-    [...new Set(options.sources ?? [])].sort(),
-    options.cursor ?? null,
-    options.limit ?? 50,
-  ])
+  const pageId = JSON.stringify(labelRequestIdentity(options))
   const items = data.labels.map((rawLabel, index) => {
     // The relay uses the compact JSON string form for bytes. Normalize it to
     // the lexicon JSON representation before applying atcute's label schema.

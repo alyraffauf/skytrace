@@ -13,12 +13,17 @@ export class SharedQueryRequests {
     private readonly requestTimeoutMs: number,
   ) {}
 
-  query<T>(
-    queryKey: readonly unknown[],
-    staleTime: number,
-    load: (signal: AbortSignal) => Promise<T>,
-    consumerSignal?: AbortSignal,
-  ): Promise<T> {
+  query<T>({
+    queryKey,
+    staleTime,
+    load,
+    consumerSignal,
+  }: {
+    queryKey: readonly unknown[]
+    staleTime: number
+    load: (signal: AbortSignal) => Promise<T>
+    consumerSignal?: AbortSignal
+  }): Promise<T> {
     throwIfAborted(consumerSignal)
     const options = queryOptions({
       queryKey,

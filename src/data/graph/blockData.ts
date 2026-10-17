@@ -53,18 +53,17 @@ export class BlockDataService {
     })
   }
 
-  async actorBlocksConfiguredAccount(
-    did: ActorIdentity['did'],
-    targetDid: ActorIdentity['did'],
+  async actorBlocksActor(
+    { blockerDid, subjectDid }: { blockerDid: ActorIdentity['did']; subjectDid: ActorIdentity['did'] },
     signal?: AbortSignal,
   ): Promise<boolean> {
     const page = await this.core.backlinks({
-      subject: targetDid,
+      subject: subjectDid,
       source: 'app.bsky.graph.block:subject',
-      did,
+      did: blockerDid,
       signal,
     })
-    return page.items.some((reference) => tryParseRecordUri(reference.uri)?.repo === did)
+    return page.items.some((reference) => tryParseRecordUri(reference.uri)?.repo === blockerDid)
   }
 
   async blocking(

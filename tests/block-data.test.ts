@@ -46,7 +46,7 @@ describe('block data', () => {
     )
 
     await expect(
-      createTestService().blocks.actorBlocksConfiguredAccount(blockingAccountDid, blockTargetDid),
+      createTestService().blocks.actorBlocksActor({ blockerDid: blockingAccountDid, subjectDid: blockTargetDid }),
     ).resolves.toBe(true)
     expect(requestedUrls).toHaveLength(1)
     expect(requestedUrls[0]?.searchParams.get('subject')).toBe(blockTargetDid)

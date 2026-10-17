@@ -131,7 +131,7 @@ describe('unified profile visibility', () => {
     const pendingBlockCheck = new Promise<boolean>((resolve) => {
       finishBlockCheck = resolve
     })
-    const blockCheck = vi.spyOn(service.blocks, 'actorBlocksConfiguredAccount').mockReturnValue(pendingBlockCheck)
+    const blockCheck = vi.spyOn(service.blocks, 'actorBlocksActor').mockReturnValue(pendingBlockCheck)
     const fetchMock = vi.fn(async () => jsonResponse({ records: [], total: 0 }))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -177,8 +177,8 @@ describe('unified profile visibility', () => {
       client.setQueryData(queryKeys.profileView('atproto.com'), profile)
       const service = new PublicDataService(client)
       const blockCheck = vi
-        .spyOn(service.blocks, 'actorBlocksConfiguredAccount')
-        .mockImplementation(async (blockerDid) => (blockerDid === instanceDid ? instanceBlocks : actorBlocks))
+        .spyOn(service.blocks, 'actorBlocksActor')
+        .mockImplementation(async ({ blockerDid }) => (blockerDid === instanceDid ? instanceBlocks : actorBlocks))
 
       const visibility = await client.fetchQuery(service.profileVisibility.queryOptions('atproto.com'))
 
@@ -192,7 +192,7 @@ describe('unified profile visibility', () => {
     const client = createTestQueryClient()
     client.setQueryData(queryKeys.profileView('atproto.com'), profile)
     const service = new PublicDataService(client)
-    const blockCheck = vi.spyOn(service.blocks, 'actorBlocksConfiguredAccount').mockResolvedValue(true)
+    const blockCheck = vi.spyOn(service.blocks, 'actorBlocksActor').mockResolvedValue(true)
 
     expect(await client.fetchQuery(service.profileVisibility.queryOptions('atproto.com'))).toEqual({
       visible: true,
@@ -214,8 +214,8 @@ describe('unified profile visibility', () => {
     client.setQueryData(queryKeys.profileView('atproto.com'), profile)
     const service = new PublicDataService(client)
     const blockCheck = vi
-      .spyOn(service.blocks, 'actorBlocksConfiguredAccount')
-      .mockImplementation(async (blockerDid) => blockerDid === instanceDid)
+      .spyOn(service.blocks, 'actorBlocksActor')
+      .mockImplementation(async ({ blockerDid }) => blockerDid === instanceDid)
 
     expect(await client.fetchQuery(service.profileVisibility.queryOptions('atproto.com'))).toEqual({
       visible: false,
@@ -237,7 +237,7 @@ describe('unified profile visibility', () => {
     const client = createTestQueryClient()
     client.setQueryData(queryKeys.profileView('atproto.com'), profile)
     const service = publicDataServiceFor(client)
-    vi.spyOn(service.blocks, 'actorBlocksConfiguredAccount').mockRejectedValue(new Error('Block check unavailable'))
+    vi.spyOn(service.blocks, 'actorBlocksActor').mockRejectedValue(new Error('Block check unavailable'))
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 

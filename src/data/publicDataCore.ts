@@ -1,5 +1,4 @@
 import type { LabelEvent, Page, RawRecord, RepositoryRecord, UnavailableItem } from '../types'
-import { SERVICE_URLS } from '../config/serviceUrls'
 import { throwIfAborted } from '../lib/abort'
 import { CACHE_TTL_MS } from './runtime/cachePolicy'
 import { getBacklinks } from './api/backlinks'
@@ -13,12 +12,12 @@ export class PublicDataCore {
   constructor(private readonly sharedRequests: SharedQueryRequests) {}
 
   async record(uri: string, signal?: AbortSignal): Promise<RawRecord> {
-    return this.sharedRequests.query(
-      queryKeys.record(uri),
-      CACHE_TTL_MS.record,
-      (requestSignal) => getRecordByUri(uri, requestSignal),
-      signal,
-    )
+    return this.sharedRequests.query({
+      queryKey: queryKeys.record(uri),
+      staleTime: CACHE_TTL_MS.record,
+      load: (requestSignal) => getRecordByUri(uri, requestSignal),
+      consumerSignal: signal,
+    })
   }
 
   async optionalRecord(uri: string, signal?: AbortSignal): Promise<RawRecord | undefined> {
@@ -34,7 +33,7 @@ export class PublicDataCore {
 
   async repositoryRecords(options: Parameters<typeof listRecords>[0]): Promise<Page<RepositoryRecord>> {
     return this.cachedPage({
-      key: queryKeys.repositoryRecords(options.identity, options.collection, options.cursor, options.limit),
+      key: queryKeys.repositoryRecords(options),
       cursor: options.cursor,
       signal: options.signal,
       load: (signal) => listRecords({ ...options, signal }),
@@ -44,7 +43,7 @@ export class PublicDataCore {
 
   async backlinks(options: Parameters<typeof getBacklinks>[0]): Promise<Page<{ uri: string }>> {
     return this.cachedPage({
-      key: queryKeys.backlinks(options.subject, options.source, options.cursor, options.limit, options.did),
+      key: queryKeys.backlinks(options),
       cursor: options.cursor,
       signal: options.signal,
       load: (signal) => getBacklinks({ ...options, signal }),
@@ -55,16 +54,8 @@ export class PublicDataCore {
   async labelRecords(
     options: Parameters<typeof queryLabels>[0] & { repeatedCursorPolicy?: 'return-page' },
   ): Promise<Page<LabelEvent | UnavailableItem>> {
-    const service = options.service ?? SERVICE_URLS.labelRelay
-    const key = queryKeys.labels(
-      service,
-      options.uriPatterns,
-      options.sources ?? [],
-      options.cursor,
-      options.limit ?? 50,
-    )
     return this.cachedPage({
-      key,
+      key: queryKeys.labels(options),
       cursor: options.cursor,
       signal: options.signal,
       load: (signal) => queryLabels({ ...options, signal }),
@@ -81,7 +72,12 @@ export class PublicDataCore {
     repeatedCursorPolicy?: 'return-page'
     repeatedCursorError: string
   }): Promise<Page<T>> {
-    const page = await this.sharedRequests.query(options.key, CACHE_TTL_MS.activity, options.load, options.signal)
+    const page = await this.sharedRequests.query({
+      queryKey: options.key,
+      staleTime: CACHE_TTL_MS.activity,
+      load: options.load,
+      consumerSignal: options.signal,
+    })
     throwIfAborted(options.signal)
     if (options.repeatedCursorPolicy !== 'return-page' && options.cursor && page.cursor === options.cursor) {
       throw new PublicDataValidationError(options.repeatedCursorError)

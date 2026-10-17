@@ -32,8 +32,8 @@ export class ProfileVisibilityService {
 
         if (targetDid) {
           const [actorBlocksInstance, instanceBlocksActor] = await Promise.all([
-            this.blocks.actorBlocksConfiguredAccount(did, targetDid, signal),
-            this.blocks.actorBlocksConfiguredAccount(targetDid, did, signal),
+            this.blocks.actorBlocksActor({ blockerDid: did, subjectDid: targetDid }, signal),
+            this.blocks.actorBlocksActor({ blockerDid: targetDid, subjectDid: did }, signal),
           ])
           // An instance restriction takes precedence over the account's opt-out.
           if (instanceBlocksActor) return { visible: false, reason: 'instance-block' }

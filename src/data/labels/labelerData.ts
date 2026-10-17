@@ -26,10 +26,10 @@ export class LabelerDataService {
   }
 
   async endpoint(did: string, signal?: AbortSignal): Promise<string | undefined> {
-    return this.sharedRequests.query(
-      queryKeys.labelerEndpoint(did),
-      CACHE_TTL_MS.identity,
-      async (requestSignal) => {
+    return this.sharedRequests.query({
+      queryKey: queryKeys.labelerEndpoint(did),
+      staleTime: CACHE_TTL_MS.identity,
+      load: async (requestSignal) => {
         if (!isPlcDid(did) && !isWebDid(did)) return undefined
         const document = await didDocumentResolver.resolve(did, { signal: requestSignal })
         const rawEndpoint = getLabelerEndpoint(document)
@@ -37,7 +37,7 @@ export class LabelerDataService {
         const url = new URL(rawEndpoint)
         return url.protocol === 'https:' ? url.origin : undefined
       },
-      signal,
-    )
+      consumerSignal: signal,
+    })
   }
 }

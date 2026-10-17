@@ -1,10 +1,32 @@
 import { describe, expect, it, vi } from 'vitest'
 import { queryLabels } from '../src/data/api/labels'
-import { jsonResponse as response } from './testUtils'
+import { createTestService, jsonResponse as response } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 
 describe('labels api', () => {
+  it('reuses equivalent label requests and keeps malformed row IDs stable', async () => {
+    const otherDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
+    const fetchMock = vi.fn(async () => response({ labels: [{}] }))
+    vi.stubGlobal('fetch', fetchMock)
+    const service = createTestService()
+    const first = await service.core.labelRecords({
+      uriPatterns: [did, otherDid, did],
+      sources: [otherDid, did, otherDid],
+    })
+    const equivalentRequest = {
+      service: 'https://labelers.firehose.stream',
+      uriPatterns: [otherDid, did],
+      sources: [did, otherDid],
+      limit: 50,
+    }
+    const cached = await service.core.labelRecords(equivalentRequest)
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(cached.items).toEqual(first.items)
+    const direct = await queryLabels(equivalentRequest)
+    expect(direct.items).toEqual(first.items)
+  })
+
   it('paginates labels and contains malformed events to one unavailable row', async () => {
     const sourceDid = 'did:plc:ar7c4by46qjdydhdevvrndac'
     let requestedUrl: URL | undefined
