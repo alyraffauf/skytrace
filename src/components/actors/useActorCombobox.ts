@@ -1,6 +1,6 @@
 import { useState, type FocusEvent, type KeyboardEvent } from 'react'
 import { useActorSuggestions } from './useActorSuggestions'
-import type { ActorSuggestion } from '../types'
+import type { ActorSuggestion } from '../../types'
 
 export function useActorCombobox({ onSelect }: { onSelect: (suggestion: ActorSuggestion) => void }) {
   const [input, setInput] = useState('')

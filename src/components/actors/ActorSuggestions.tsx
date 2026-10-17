@@ -1,6 +1,6 @@
 import type { ActorSuggestion } from '../../types'
 import { ImageWithFallback } from '../ui/ImageWithFallback'
-import { useSuggestionScroll } from '../../hooks/useSuggestionScroll'
+import { useSuggestionScroll } from './useSuggestionScroll'
 
 export function ActorSuggestions({
   listboxId,

@@ -1,5 +1,5 @@
 import { ArrowUpRightIcon, EllipsisHorizontalIcon } from '@heroicons/react/20/solid'
-import { useRecordLinksPopup } from '../../hooks/useRecordLinksPopup'
+import { useRecordLinksPopup } from './useRecordLinksPopup'
 import { createPortal } from 'react-dom'
 import { SOCIAL_APPS } from '../../config/socialApps'
 import { pdslsRecordUrl, skythreadPostUrl, socialPathForAtUri } from '../../lib/links'

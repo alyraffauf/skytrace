@@ -1,4 +1,4 @@
-import { useActiveProfileTabScroll } from '../../hooks/useActiveProfileTabScroll'
+import { useActiveProfileTabScroll } from './useActiveProfileTabScroll'
 import { NavLink, useLocation } from 'react-router-dom'
 import { profilePath, profileTabPath } from '../../routes/paths'
 import { PROFILE_TABS } from '../../routes/profileTabs'

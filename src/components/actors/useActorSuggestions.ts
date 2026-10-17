@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { queryKeys } from '../data/queryKeys'
-import { searchActorsTypeahead } from '../data/api/actorSearch'
+import { queryKeys } from '../../data/queryKeys'
+import { searchActorsTypeahead } from '../../data/api/actorSearch'
 
 export function useActorSuggestions({ input, hasFocus }: { input: string; hasFocus: boolean }) {
   const [debouncedInput, setDebouncedInput] = useState('')

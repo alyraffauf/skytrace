@@ -1,5 +1,5 @@
 import { ActorSuggestions } from './ActorSuggestions'
-import { useActorCombobox } from '../../hooks/useActorCombobox'
+import { useActorCombobox } from './useActorCombobox'
 import { ArrowRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { type FormEvent, useId, useState } from 'react'
 import { useNavigate } from 'react-router-dom'

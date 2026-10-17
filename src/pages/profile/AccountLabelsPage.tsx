@@ -6,7 +6,7 @@ import { useLabelDisplayNames } from '../../hooks/useLabelDisplayNames'
 import { RecordList } from '../../components/records/RecordList'
 import { SourceIssues } from '../../components/labels/SourceIssues'
 import { EmptyState, ErrorState, LoadingRows } from '../../components/ui/States'
-import { useAccountLabels } from '../../hooks/useAccountLabels'
+import { useAccountLabels } from './useAccountLabels'
 import type { UnavailableItem } from '../../types'
 import type { ProfileOutletContext } from '../../layouts/profileContext'
 

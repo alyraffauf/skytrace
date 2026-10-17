@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { ActorSuggestion } from '../types'
+import type { ActorSuggestion } from '../../types'
 
 export function useSuggestionScroll({
   activeIndex,
