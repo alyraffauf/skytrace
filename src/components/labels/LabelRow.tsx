@@ -1,5 +1,6 @@
 import { actorReference } from '../../data/recordResults'
-import { labelState, type LabelHistoryEvent } from '../../lib/labels/history'
+import type { LabelHistoryEvent } from '../../lib/labels/history'
+import { useLabelState } from '../../hooks/useLabelState'
 import { MiniActor } from '../actors/ActorIdentity'
 import { formatDate } from '../../lib/dates'
 import type { UnavailableItem } from '../../types'
@@ -7,11 +8,11 @@ import { compactRowClassName, UnavailableRow } from '../records/RecordList'
 import { LabelValue } from './LabelValue'
 
 export function LabelRow({ label, displayName }: { label: LabelHistoryEvent | UnavailableItem; displayName?: string }) {
+  const state = useLabelState(label.kind === 'labelEvent' ? label : undefined)
   if (label.kind === 'unavailable') {
     return <UnavailableRow reason={label.reason} />
   }
 
-  const state = labelState(label, Date.now())
   const added = formatDate(label.addedAt ?? (label.negated ? undefined : label.createdAt))
   const expiry = formatDate(label.expiresAt)
   const removed = label.negated ? formatDate(label.createdAt) : undefined

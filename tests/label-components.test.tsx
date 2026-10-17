@@ -1,5 +1,5 @@
-import { screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { LabelRow } from '../src/components/labels/LabelRow'
 import { groupLabelHistory } from '../src/lib/labels/history'
 import { LabeledPostRow } from '../src/components/labels/LabeledPostRow'
@@ -45,7 +45,9 @@ describe('account labels', () => {
     expect(screen.queryByText('many-replies')).not.toBeInTheDocument()
   })
 
-  it('uses active state and past tense for expired labels', () => {
+  it('updates a visible label at expiration and handles a replacement expiration', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
     const label = (expiresAt: string): LabelEvent => ({
       kind: 'labelEvent',
       id: expiresAt,
@@ -57,15 +59,20 @@ describe('account labels', () => {
       negated: false,
     })
 
-    const activeView = renderWithRouter(<LabelRow label={label('2099-01-01T00:00:00Z')} />)
+    const activeView = renderWithRouter(<LabelRow label={label('2026-01-01T00:00:01Z')} />)
     expect(screen.getByText('Active')).toBeInTheDocument()
     expect(screen.getByLabelText(/^Expires /)).toBeInTheDocument()
-    activeView.unmount()
-
-    renderWithRouter(<LabelRow label={label('2020-01-01T00:00:00Z')} />)
+    act(() => vi.advanceTimersByTime(1_000))
     expect(screen.getAllByText('Expired')[0]).toBeInTheDocument()
     expect(screen.getByLabelText(/^Expired /)).toBeInTheDocument()
     expect(screen.queryByLabelText(/^Expires /)).not.toBeInTheDocument()
+    const laterExpiration = '2027-01-01T00:00:00Z'
+    activeView.rerender(<LabelRow label={label(laterExpiration)} />)
+    expect(screen.getByText('Active')).toBeInTheDocument()
+    act(() => vi.advanceTimersByTime(2_147_483_647))
+    expect(screen.getByText('Active')).toBeInTheDocument()
+    act(() => vi.advanceTimersByTime(Date.parse(laterExpiration) - Date.now()))
+    expect(screen.getAllByText('Expired')[0]).toBeInTheDocument()
   })
 
   it('pairs an applied label with its removal date', () => {
@@ -95,6 +102,8 @@ describe('account labels', () => {
 
 describe('labeled post previews', () => {
   it('shows every post label with its custom name', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-02T00:00:00Z'))
     const queryClient = createTestQueryClient()
     const service = new PublicDataService(queryClient)
     const postUri = `at://${did}/app.bsky.feed.post/labeled` as const
@@ -114,6 +123,7 @@ describe('labeled post previews', () => {
       subject: postUri,
       value,
       createdAt: '2026-04-02T00:00:00Z',
+      expiresAt: '2026-04-02T00:00:01Z',
       negated: false,
     })
     renderWithRouter(
@@ -128,5 +138,8 @@ describe('labeled post previews', () => {
     expect(screen.getByRole('heading', { name: 'Post labels' })).toBeInTheDocument()
     expect(screen.getByText('Custom warning')).toHaveAttribute('title', 'Raw label: graphic-media')
     expect(screen.getByText('photography')).toBeInTheDocument()
+    expect(screen.queryByText('Expired')).not.toBeInTheDocument()
+    act(() => vi.advanceTimersByTime(1_000))
+    expect(screen.getAllByText('Expired')).toHaveLength(2)
   })
 })

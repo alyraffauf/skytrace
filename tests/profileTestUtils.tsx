@@ -9,11 +9,13 @@ import { createTestQueryClient } from './testUtils'
 
 export function renderWithRouter(element: React.ReactNode, queryClient = createTestQueryClient()) {
   queryClient.setQueryData(queryKeys.profileView(did), profile)
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{element}</MemoryRouter>
-    </QueryClientProvider>,
-  )
+  return render(element, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </QueryClientProvider>
+    ),
+  })
 }
 
 export function renderProfileTab(element: React.ReactElement, selectedProfile: ActorProfile) {
