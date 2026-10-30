@@ -14,6 +14,7 @@ const variableNames = [
   'SKYTRACE_BLOCK_TARGET_DID_VALUE',
   'SKYTRACE_HIDDEN_DIDS_VALUE',
   'SKYTRACE_DONATE_REMINDER_DAYS_VALUE',
+  'SKYTRACE_DISABLED_TABS_VALUE',
 ]
 
 function runtimeConfig(environment: Record<string, string>) {
@@ -21,7 +22,7 @@ function runtimeConfig(environment: Record<string, string>) {
     'sh',
     [
       '-c',
-      '. "$1"; printf "%s\\0" "$SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE" "$SKYTRACE_MIN_LIST_BLOCKING_VALUE" "$SKYTRACE_BLOCK_TARGET_DID_VALUE" "$SKYTRACE_HIDDEN_DIDS_VALUE" "$SKYTRACE_DONATE_REMINDER_DAYS_VALUE"',
+      '. "$1"; printf "%s\\0" "$SKYTRACE_IGNORE_NO_UNAUTHENTICATED_VALUE" "$SKYTRACE_MIN_LIST_BLOCKING_VALUE" "$SKYTRACE_BLOCK_TARGET_DID_VALUE" "$SKYTRACE_HIDDEN_DIDS_VALUE" "$SKYTRACE_DONATE_REMINDER_DAYS_VALUE" "$SKYTRACE_DISABLED_TABS_VALUE"',
       'runtime-config-test',
       entrypointPath,
     ],
@@ -33,6 +34,7 @@ function runtimeConfig(environment: Record<string, string>) {
         SKYTRACE_MIN_LIST_BLOCKING: '3',
         SKYTRACE_HIDDEN_DIDS: 'did:plc:hidden,did:web:example.com',
         SKYTRACE_DONATE_REMINDER_DAYS: '',
+        SKYTRACE_DISABLED_TABS: '',
         ...environment,
       },
       encoding: 'utf8',
@@ -55,6 +57,7 @@ it.each(['did:plc:example', 'did:web:example.com%3A8443:users:alice'])(
       blockTargetDid: did,
       hiddenDids: ['did:plc:hidden', 'did:web:example.com'],
       donateReminderDays: null,
+      disabledTabs: [],
     })
   },
 )
@@ -72,6 +75,7 @@ it.each([
     blockTargetDid: null,
     hiddenDids: ['did:plc:hidden', 'did:web:example.com'],
     donateReminderDays: null,
+    disabledTabs: [],
   })
 })
 
@@ -87,4 +91,8 @@ it.each([
 it('exposes the configured donation interval and rejects executable input', () => {
   expect(runtimeConfig({ SKYTRACE_DONATE_REMINDER_DAYS: '7' })).toMatchObject({ donateReminderDays: 7 })
   expect(runtimeConfig({ SKYTRACE_DONATE_REMINDER_DAYS: '7;alert(1)' })).toMatchObject({ donateReminderDays: null })
+})
+
+it('serializes disabled tab identifiers safely', () => {
+  expect(runtimeConfig({ SKYTRACE_DISABLED_TABS: ' feed, blocked-by, bad\";alert(1)' })).toMatchObject({ disabledTabs: ['feed', 'blocked-by'] })
 })

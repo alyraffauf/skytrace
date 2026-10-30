@@ -4,7 +4,7 @@ import { AppLayout } from '../layouts/AppLayout'
 import { RouteError } from './RouteError'
 import { HomePage } from '../pages/HomePage'
 import type { RouteHandle } from './metadata'
-import { PROFILE_TABS, type ProfileTabId } from './profileTabs'
+import { PROFILE_TABS, enabledProfileTabs, type ProfileTabId } from './profileTabs'
 
 const ProfileLayout = lazy(() =>
   import('../layouts/ProfileLayout').then((module) => ({ default: module.ProfileLayout })),
@@ -28,6 +28,12 @@ const profilePages = {
   'listed-on': lazy(() => import('../pages/profile/ListedOnPage').then((module) => ({ default: module.ListedOnPage }))),
 } satisfies Record<ProfileTabId, ComponentType>
 
+const enabledTabs = enabledProfileTabs()
+const defaultTab = enabledTabs[0]
+const disabledTabElement = defaultTab
+  ? <Navigate to={defaultTab.id === 'feed' ? '..' : `../${defaultTab.id}`} relative="path" replace />
+  : <p>No profile sections are available.</p>
+
 export const router = createBrowserRouter([
   {
     element: <AppLayout />,
@@ -45,9 +51,10 @@ export const router = createBrowserRouter([
             const { id } = tab
             const handle = { profileTab: tab } satisfies RouteHandle
             const Component = profilePages[id]
+            const element = enabledTabs.some((enabled) => enabled.id === id) ? <Component /> : disabledTabElement
             return id === 'feed'
-              ? { index: true, element: <Component />, id, handle }
-              : { path: id, element: <Component />, handle }
+              ? { index: true, element, id, handle }
+              : { path: id, element, handle }
           }),
           { path: 'feed', element: <Navigate to=".." relative="path" replace /> },
         ],

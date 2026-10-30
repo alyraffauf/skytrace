@@ -11,6 +11,7 @@ SkyTrace reads its settings from `runtime-config.js`, a file created at startup 
 | `SKYTRACE_HIDDEN_DIDS`               | `hiddenDids`              | `[]`    | Hides specific profiles. Comma-separated DIDs in the container, trimmed and validated. JavaScript receives an array of strings.     |
 | `SKYTRACE_MIN_LIST_BLOCKING`         | `minListBlocking`         | `null`  | Requires a minimum number of members before a moderation list shows on the Listed On tab. Curation lists stay visible regardless.   |
 | `SKYTRACE_DONATE_REMINDER_DAYS`      | `donateReminderDays`      | `null`  | How often the donate popup reappears, in days. Set to `7` for a weekly reminder. Unset, zero, or out of range disables it entirely. |
+| `SKYTRACE_DISABLED_TABS` | `disabledTabs` | `[]` | Comma-separated profile tab IDs to hide: `feed`, `labels`, `labeled-posts`, `blocking`, `blocked-by`, `lists`, `listed-on`. Unset enables all tabs. Direct links to disabled tabs redirect to the first enabled tab. |
 
 ## How precedence works
 

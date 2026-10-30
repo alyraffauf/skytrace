@@ -10,3 +10,8 @@ export const PROFILE_TABS = [
 
 export type ProfileTabId = (typeof PROFILE_TABS)[number]['id']
 export type ProfileTabSlug = Exclude<ProfileTabId, 'feed'>
+
+export function enabledProfileTabs() {
+  const disabled = window.__SKYTRACE_CONFIG__?.disabledTabs ?? []
+  return PROFILE_TABS.filter((tab) => !disabled.includes(tab.id))
+}

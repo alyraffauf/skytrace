@@ -1,7 +1,7 @@
 import { useActiveProfileTabScroll } from './useActiveProfileTabScroll'
 import { NavLink, useLocation } from 'react-router-dom'
 import { profilePath, profileTabPath } from '../../routes/paths'
-import { PROFILE_TABS } from '../../routes/profileTabs'
+import { enabledProfileTabs } from '../../routes/profileTabs'
 
 export function ProfileTabsNav({
   actor,
@@ -21,7 +21,7 @@ export function ProfileTabsNav({
       className="sticky top-12 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
     >
       <div ref={tabListRef} className="tabs-scroll flex gap-6 overflow-x-auto px-4 sm:px-6 lg:px-7">
-        {PROFILE_TABS.map(({ id, label }) => {
+        {enabledProfileTabs().map(({ id, label }) => {
           const count = id === 'blocking' ? blockedCount : id === 'blocked-by' ? blockedByCount : undefined
           return (
             <NavLink

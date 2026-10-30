@@ -45,3 +45,15 @@ json_count() {
 
 export SKYTRACE_MIN_LIST_BLOCKING_VALUE="$(json_count "${SKYTRACE_MIN_LIST_BLOCKING:-}")"
 export SKYTRACE_DONATE_REMINDER_DAYS_VALUE="$(json_count "${SKYTRACE_DONATE_REMINDER_DAYS:-}" 400)"
+
+export SKYTRACE_DISABLED_TABS_VALUE="$(printf '%s' "${SKYTRACE_DISABLED_TABS:-}" | awk '
+  BEGIN { RS = ","; printf "[" }
+  {
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+    if ($0 ~ /^[a-z][a-z-]*$/) {
+      printf "%s\"%s\"", separator, $0
+      separator = ","
+    }
+  }
+  END { printf "]" }
+')"

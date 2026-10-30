@@ -6,6 +6,7 @@ interface Window {
     readonly minListBlocking?: number | null
     readonly blockTargetDid: string | null
     readonly hiddenDids?: readonly string[]
+    readonly disabledTabs?: readonly string[]
     readonly donateReminderDays?: number | null
   }
 }
