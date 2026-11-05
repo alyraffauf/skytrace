@@ -108,6 +108,48 @@ describe('repository api', () => {
   })
 })
 
+describe('complete record counts', () => {
+  it('counts an empty collection as zero', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response({ records: [] })),
+    )
+    await expect(countRecords({ identity, collection: 'app.bsky.graph.block' })).resolves.toBe(0)
+  })
+
+  it('counts every page of a long collection', async () => {
+    let requests = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        requests += 1
+        return response({ records: [{}], cursor: requests < 125 ? `page-${requests}` : undefined })
+      }),
+    )
+    await expect(countRecords({ identity, collection: 'app.bsky.graph.block' })).resolves.toBe(125)
+  })
+
+  it('aborts the in-flight page when the caller cancels', async () => {
+    let fetchSignal: AbortSignal | undefined
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        fetchSignal = input instanceof Request ? input.signal : (init?.signal ?? undefined)
+        return new Promise<Response>((_resolve, reject) =>
+          fetchSignal?.addEventListener('abort', () => reject(fetchSignal?.reason), { once: true }),
+        )
+      }),
+    )
+    const controller = new AbortController()
+    const count = countRecords({ identity, collection: 'app.bsky.graph.block', signal: controller.signal })
+    const rejection = expect(count).rejects.toMatchObject({ name: 'AbortError' })
+    await vi.waitFor(() => expect(fetchSignal).toBeDefined())
+    controller.abort()
+    await rejection
+    expect(fetchSignal?.aborted).toBe(true)
+  })
+})
+
 describe('repository cursor validation', () => {
   it('rejects a repeated repository cursor', async () => {
     vi.stubGlobal(
