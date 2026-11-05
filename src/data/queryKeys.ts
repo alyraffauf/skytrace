@@ -25,6 +25,7 @@ export const queryKeys = {
   identity: (identifier: string) => ['identity', identifier] as const,
   profileView: (identifier: string) => ['actorProfileView', identifier] as const,
   record: (uri: string) => ['record', uri] as const,
+  verificationRecord: (uri: string) => ['verificationRecord', uri] as const,
   listSummary: (uri: string | undefined) => ['listSummary', uri] as const,
   repositoryRecords: ({
     identity,

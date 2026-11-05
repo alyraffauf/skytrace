@@ -6,9 +6,8 @@ import { tryParseRecordUri } from '../../lib/atproto/uri'
 import type { PublicDataCore } from '../publicDataCore'
 import { actorReference, isUnavailableRecord, unavailable } from '../recordResults'
 import type { DataRequestContext } from '../runtime/sharedQueryRequests'
-import { deadlineSignal } from '../../lib/abort'
 import { countRecords } from '../api/repository'
-import { getBacklinksCount } from '../api/backlinks'
+import { countVerifiedBacklinkPublishers, verifiedBacklinkPublishers } from './verifiedBacklinks'
 import { queryKeys } from '../queryKeys'
 import { parsedRecord } from '../recordValues'
 
@@ -42,11 +41,7 @@ export class BlockDataService {
       queryKey: queryKeys.blockedByCount(did),
       queryFn: ({ signal }) =>
         did
-          ? getBacklinksCount({
-              subject: did,
-              source: 'app.bsky.graph.block:subject',
-              signal: deadlineSignal(signal, this.context.requestTimeoutMs),
-            })
+          ? countVerifiedBacklinkPublishers(this.core, { subject: did, collection: 'app.bsky.graph.block' }, signal)
           : Promise.resolve(undefined),
       enabled: did !== undefined,
       staleTime: CACHE_TTL_MS.activity,
@@ -57,13 +52,14 @@ export class BlockDataService {
     { blockerDid, subjectDid }: { blockerDid: ActorIdentity['did']; subjectDid: ActorIdentity['did'] },
     signal?: AbortSignal,
   ): Promise<boolean> {
-    const page = await this.core.backlinks({
-      subject: subjectDid,
-      source: 'app.bsky.graph.block:subject',
-      did: blockerDid,
+    for await (const publisher of verifiedBacklinkPublishers(
+      this.core,
+      { subject: subjectDid, collection: 'app.bsky.graph.block', did: blockerDid },
       signal,
-    })
-    return page.items.some((reference) => tryParseRecordUri(reference.uri)?.repo === blockerDid)
+    )) {
+      if (publisher === blockerDid) return true
+    }
+    return false
   }
 
   async blocking(
@@ -123,7 +119,12 @@ export class BlockDataService {
         if (!entry) throw new Error('This block reference is unavailable.')
         const record = await this.core.record(entry.id, signal)
         const value = parsedRecord(AppBskyGraphBlock.mainSchema, record)
-        if (!value || value.subject !== subjectDid) return unavailable(entry.id, 'This block record is malformed.')
+        if (
+          tryParseRecordUri(entry.id)?.collection !== 'app.bsky.graph.block' ||
+          !value ||
+          value.subject !== subjectDid
+        )
+          return unavailable(entry.id, 'This block record is malformed.')
         return { ...entry, createdAt: value.createdAt }
       },
       enabled: entry !== undefined,

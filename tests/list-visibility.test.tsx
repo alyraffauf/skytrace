@@ -1,3 +1,4 @@
+import { relationshipFixture } from './backlinkFixtures'
 import { execFileSync } from 'node:child_process'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -22,13 +23,12 @@ const profile: ActorProfile = {
 function setup(purpose = 'app.bsky.graph.defs#modlist', count = 0, countStatus = 200) {
   const client = createTestQueryClient()
   const service = new PublicDataService(client)
+  const countFixture = relationshipFixture(listUri, 'app.bsky.graph.listblock', count)
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(input instanceof Request ? input.url : String(input))
-    if (url.pathname.endsWith('getBacklinksCount')) {
-      expect(url.searchParams.get('source')).toBe('app.bsky.graph.listblock:subject')
-      expect(url.searchParams.get('subject')).toBe(listUri)
-      return jsonResponse(countStatus === 200 ? { total: count } : { error: 'Unavailable' }, countStatus)
-    }
+    if (countStatus !== 200) return jsonResponse({ error: 'Unavailable' }, countStatus)
+    const verifiedResponse = countFixture(url)
+    if (verifiedResponse) return verifiedResponse
     throw new Error(`Unexpected URL ${url}`)
   })
   vi.stubGlobal('fetch', fetchMock)

@@ -33,6 +33,14 @@ describe('block data', () => {
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
         requestedUrls.push(url)
+        if (url.pathname.endsWith('getRecordByUri'))
+          return response(
+            repositoryRecord(`at://${blockingAccountDid}/app.bsky.graph.block/3example`, {
+              $type: 'app.bsky.graph.block',
+              subject: blockTargetDid,
+              createdAt: '2026-01-01T00:00:00Z',
+            }),
+          )
         const requestedBlockingDid = url.searchParams.get('did')
         return response({
           total: requestedBlockingDid === blockingAccountDid ? 1 : 0,
@@ -48,7 +56,7 @@ describe('block data', () => {
     await expect(
       createTestService().blocks.actorBlocksActor({ blockerDid: blockingAccountDid, subjectDid: blockTargetDid }),
     ).resolves.toBe(true)
-    expect(requestedUrls).toHaveLength(1)
+    expect(requestedUrls).toHaveLength(2)
     expect(requestedUrls[0]?.searchParams.get('subject')).toBe(blockTargetDid)
     expect(requestedUrls[0]?.searchParams.get('source')).toBe('app.bsky.graph.block:subject')
     expect(requestedUrls[0]?.searchParams.getAll('did')).toEqual([blockingAccountDid])
@@ -122,4 +130,34 @@ describe('block data', () => {
     await service.blocks.blocking(identity)
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
+})
+
+it('rejects a backlink row from the wrong collection even if its value is shaped like a block', async () => {
+  const uri = `at://${did}/app.bsky.feed.post/not-a-block`
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () =>
+      response(
+        repositoryRecord(uri, {
+          $type: 'app.bsky.graph.block',
+          subject: identity.did,
+          createdAt: '2026-01-01T00:00:00Z',
+        }),
+      ),
+    ),
+  )
+  const client = createTestQueryClient()
+  const service = new PublicDataService(client)
+  expect(
+    await client.query(
+      service.blocks.blockedByRecordQueryOptions(
+        {
+          kind: 'relationship',
+          id: uri,
+          actor: { kind: 'actorReference', did },
+        },
+        identity.did,
+      ),
+    ),
+  ).toMatchObject({ kind: 'unavailable' })
 })

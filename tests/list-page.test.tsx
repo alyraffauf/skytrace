@@ -1,3 +1,4 @@
+import { relationshipFixture } from './backlinkFixtures'
 import { ListDataService } from '../src/data/graph/listData'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
@@ -19,14 +20,16 @@ describe('list block count', () => {
       purpose: 'app.bsky.graph.defs#modlist',
       owner: actorReference,
     }
+    const countFixture = relationshipFixture(listUri, 'app.bsky.graph.listblock', 12)
     let countRequest: URL | undefined
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
-        if (url.pathname.endsWith('getBacklinksCount')) {
-          countRequest = url
-          return response({ total: 12 })
+        const verifiedResponse = countFixture(url)
+        if (verifiedResponse) {
+          if (url.pathname.endsWith('getBacklinks')) countRequest = url
+          return verifiedResponse
         }
         if (url.pathname.endsWith('getBacklinks')) return response({ total: 0, records: [] })
         throw new Error(`Unexpected URL ${url}`)

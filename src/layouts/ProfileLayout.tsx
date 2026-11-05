@@ -1,5 +1,5 @@
 import { useRouteMetadata } from '../routes/metadata'
-import { PROFILE_TABS } from '../routes/profileTabs'
+import { isProfileTabEnabled, PROFILE_TABS } from '../routes/profileTabs'
 import type { ProfileOutletContext } from './profileContext'
 import { AccountDetails } from '../components/profile/AccountDetails'
 import { ProfileTabsNav } from '../components/profile/ProfileTabsNav'
@@ -23,8 +23,13 @@ export function ProfileLayout() {
   const visibilityQuery = useQuery(service.profileVisibility.queryOptions(actor))
   const visibleIdentity =
     visibilityQuery.isSuccess && visibilityQuery.data.visible ? visibilityQuery.data.profile.identity : undefined
-  const blockedCountQuery = useQuery(service.blocks.blockedCountQueryOptions(visibleIdentity))
-  const blockedByCountQuery = useQuery(service.blocks.blockedByCountQueryOptions(visibleIdentity?.did))
+  // Count scans are only needed for visible tabs; profile privacy checks remain independent.
+  const blockedCountQuery = useQuery(
+    service.blocks.blockedCountQueryOptions(isProfileTabEnabled('blocking') ? visibleIdentity : undefined),
+  )
+  const blockedByCountQuery = useQuery(
+    service.blocks.blockedByCountQueryOptions(isProfileTabEnabled('blocked-by') ? visibleIdentity?.did : undefined),
+  )
 
   let content
   let title = 'Profile — SkyTrace'

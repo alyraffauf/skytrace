@@ -20,6 +20,17 @@ export class PublicDataCore {
     })
   }
 
+  /** Share in-flight verification without retaining every scanned record in the long-lived display cache. */
+  async recordForVerification(uri: string, signal?: AbortSignal): Promise<RawRecord> {
+    return this.sharedRequests.query({
+      queryKey: queryKeys.verificationRecord(uri),
+      staleTime: 0,
+      gcTime: 0,
+      load: (requestSignal) => getRecordByUri(uri, requestSignal),
+      consumerSignal: signal,
+    })
+  }
+
   async optionalRecord(uri: string, signal?: AbortSignal): Promise<RawRecord | undefined> {
     try {
       const result = await this.record(uri, signal)

@@ -16,19 +16,25 @@ export class SharedQueryRequests {
   query<T>({
     queryKey,
     staleTime,
+    gcTime,
     load,
     consumerSignal,
+    requestTimeoutMs = this.requestTimeoutMs,
   }: {
     queryKey: readonly unknown[]
     staleTime: number
+    gcTime?: number
     load: (signal: AbortSignal) => Promise<T>
     consumerSignal?: AbortSignal
+    /** Undefined uses the default deadline; null disables it. Aggregate scans apply deadlines to each I/O request. */
+    requestTimeoutMs?: number | null
   }): Promise<T> {
     throwIfAborted(consumerSignal)
     const options = queryOptions({
       queryKey,
-      queryFn: ({ signal }) => load(deadlineSignal(signal, this.requestTimeoutMs)),
+      queryFn: ({ signal }) => load(requestTimeoutMs === null ? signal : deadlineSignal(signal, requestTimeoutMs)),
       staleTime,
+      ...(gcTime === undefined ? {} : { gcTime }),
     })
     // Imperative callers share the same lifetime accounting as mounted queries.
     const observer = new QueryObserver(this.queryClient, { ...options, enabled: false })

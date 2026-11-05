@@ -6,8 +6,7 @@ import { tryParseRecordUri } from '../../lib/atproto/uri'
 import type { PublicDataCore } from '../publicDataCore'
 import { actorReference, isUnavailableRecord, unavailable } from '../recordResults'
 import type { DataRequestContext } from '../runtime/sharedQueryRequests'
-import { deadlineSignal } from '../../lib/abort'
-import { getBacklinksCount } from '../api/backlinks'
+import { countVerifiedBacklinkPublishers } from './verifiedBacklinks'
 import { queryKeys } from '../queryKeys'
 import { parsedRecord } from '../recordValues'
 
@@ -31,16 +30,14 @@ function isPublishedByListOwner(membershipUri: string, listUri: string): boolean
 export class ListDataService {
   constructor(
     private readonly core: PublicDataCore,
-    private readonly context: Pick<DataRequestContext, 'sharedRequests' | 'requestTimeoutMs'>,
+    private readonly context: Pick<DataRequestContext, 'sharedRequests'>,
   ) {}
 
   listBlockCountQueryOptions(listUri?: string) {
     return {
       queryKey: queryKeys.listBlockCount(listUri),
       queryFn: ({ signal }: { signal: AbortSignal }) =>
-        listUri
-          ? this.loadListBlockCount(listUri, deadlineSignal(signal, this.context.requestTimeoutMs))
-          : Promise.resolve(undefined),
+        listUri ? this.loadListBlockCount(listUri, signal) : Promise.resolve(undefined),
       enabled: listUri !== undefined,
       staleTime: CACHE_TTL_MS.activity,
     }
@@ -53,11 +50,16 @@ export class ListDataService {
       staleTime,
       load: (requestSignal) => this.loadListBlockCount(listUri, requestSignal),
       consumerSignal: signal,
+      requestTimeoutMs: null,
     })
   }
 
   private loadListBlockCount(listUri: string, signal: AbortSignal) {
-    return getBacklinksCount({ subject: listUri, source: 'app.bsky.graph.listblock:subject', signal })
+    return countVerifiedBacklinkPublishers(
+      this.core,
+      { subject: listUri, collection: 'app.bsky.graph.listblock' },
+      signal,
+    )
   }
 
   private listFromRecord(record: RawRecord): ListSummary | UnavailableItem {

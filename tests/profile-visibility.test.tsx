@@ -247,3 +247,59 @@ describe('unified profile visibility', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
+
+it.each([
+  ['instance-block', 'cid'],
+  ['instance-block', 'uri'],
+  ['opt-out', 'cid'],
+  ['opt-out', 'uri'],
+])('withholds the profile when the %s record has a %s integrity fault', async (direction, fault) => {
+  vi.stubGlobal('__SKYTRACE_CONFIG__', { blockTargetDid: instanceDid, hiddenDids: [] })
+  const client = createTestQueryClient()
+  client.setQueryData(queryKeys.profileView('atproto.com'), profile)
+  const blocker = direction === 'instance-block' ? instanceDid : did
+  const subject = direction === 'instance-block' ? did : instanceDid
+  const blockUri = `at://${blocker}/app.bsky.graph.block/unverifiable`
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const url = new URL(String(input))
+    if (url.pathname.endsWith('getBacklinks'))
+      return jsonResponse({
+        total: 1,
+        records:
+          url.searchParams.get('did') === blocker
+            ? [{ did: blocker, collection: 'app.bsky.graph.block', rkey: 'unverifiable' }]
+            : [],
+      })
+    const record = repositoryRecord(blockUri, {
+      $type: 'app.bsky.graph.block',
+      subject,
+      createdAt: '2026-01-01T00:00:00Z',
+    })
+    if (fault === 'cid') record.value.createdAt = '2026-01-02T00:00:00Z'
+    else record.uri = `at://${blocker}/app.bsky.graph.block/another`
+    return jsonResponse(record)
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  render(
+    <QueryClientProvider client={client}>
+      <RouterProvider
+        router={createMemoryRouter(
+          createRoutesFromElements(
+            <Route path="profile/:actor" element={<ProfileLayout />}>
+              <Route index element={<div>Profile records</div>} />
+            </Route>,
+          ),
+          { initialEntries: ['/profile/atproto.com'] },
+        )}
+      />
+    </QueryClientProvider>,
+  )
+  expect(await screen.findByRole('alert')).toBeVisible()
+  expect(screen.queryByText('Profile records')).not.toBeInTheDocument()
+  expect(screen.queryByText('AT Protocol')).not.toBeInTheDocument()
+  expect(
+    fetchMock.mock.calls
+      .map(([input]) => new URL(String(input)))
+      .some((url) => url.pathname.endsWith('getBacklinks') && !url.searchParams.has('did')),
+  ).toBe(false)
+})

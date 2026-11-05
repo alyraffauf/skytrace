@@ -1,3 +1,4 @@
+import { relationshipFixture } from './backlinkFixtures'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StreamedListMemberRow } from '../src/components/lists/StreamedMembershipRows'
@@ -10,7 +11,8 @@ const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 describe('list data', () => {
   it.each(['query', 'imperative'])('shares list block counts when %s starts first', async (first) => {
     const listUri = `at://${did}/app.bsky.graph.list/shared-count`
-    const fetch = vi.fn(async () => response({ total: 7 }))
+    const countFixture = relationshipFixture(listUri, 'app.bsky.graph.listblock', 7)
+    const fetch = vi.fn(async (input: RequestInfo | URL) => countFixture(new URL(String(input)))!)
     vi.stubGlobal('fetch', fetch)
     const client = createTestQueryClient()
     const service = new PublicDataService(client)
@@ -21,7 +23,14 @@ describe('list data', () => {
     await expect(Promise.all(pending)).resolves.toEqual([7, 7])
     await expect(query()).resolves.toBe(7)
     await expect(imperative()).resolves.toBe(7)
-    expect(fetch).toHaveBeenCalledOnce()
+    const requestedUrls = fetch.mock.calls.map(([input]) => new URL(String(input)))
+    const recordUris = requestedUrls
+      .filter((url) => url.pathname.endsWith('getRecordByUri'))
+      .map((url) => url.searchParams.get('at_uri'))
+    expect(new Set(recordUris).size).toBe(7)
+    for (const uri of new Set(recordUris)) expect(recordUris.filter((candidate) => candidate === uri)).toHaveLength(1)
+    expect(requestedUrls.filter((url) => url.pathname.endsWith('getBacklinks'))).toHaveLength(1)
+    expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinksCount'))).toBe(false)
   })
 
   it('returns references before requesting a selected list membership', async () => {

@@ -2,12 +2,12 @@ import { ok } from '@atcute/client'
 import type { Did, GenericUri } from '@atcute/lexicons/syntax'
 import { isGenericUri } from '@atcute/lexicons/syntax'
 import * as v from '@atcute/lexicons/validations'
-import { BlueMicrocosmLinksGetBacklinks, BlueMicrocosmLinksGetBacklinksCount } from '@atcute/microcosm'
+import { BlueMicrocosmLinksGetBacklinks } from '@atcute/microcosm'
 import type { Page } from '../../types'
 import { SERVICE_URLS } from '../../config/serviceUrls'
 import { dedupeBy } from '../../lib/collections'
 import { isDid } from '@atcute/lexicons/syntax'
-import { hydrationRequests, paginationRequests } from '../runtime/requestScheduler'
+import { paginationRequests } from '../runtime/requestScheduler'
 import { clientFor } from './client'
 
 const backlinkSources = [
@@ -58,27 +58,4 @@ export async function getBacklinks(options: {
   )
   const items = data.records.map((record) => ({ uri: `at://${record.did}/${record.collection}/${record.rkey}` }))
   return { items: dedupeBy(items, (item) => item.uri), cursor: data.cursor ?? undefined }
-}
-
-export async function getBacklinksCount(options: {
-  subject: string
-  source: BacklinkSource
-  signal?: AbortSignal
-}): Promise<number> {
-  if (!isGenericUri(options.subject)) throw new Error('Cannot count backlinks for an invalid subject URI.')
-  if (!backlinkSources.includes(options.source)) throw new Error('Cannot count backlinks from an unsupported source.')
-  const data = await hydrationRequests.run(
-    () =>
-      ok(
-        clientFor(SERVICE_URLS.constellation).call(BlueMicrocosmLinksGetBacklinksCount, {
-          params: {
-            subject: options.subject as GenericUri,
-            source: options.source,
-          },
-          signal: options.signal,
-        }),
-      ),
-    options.signal,
-  )
-  return data.total
 }
