@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createTestQueryClient, jsonResponse, repositoryRecord } from './testUtils'
 import { PublicDataService } from '../src/data/publicData'
+import { queryOptions } from '@tanstack/react-query'
+import { countVerifiedBacklinkPublishers } from '../src/data/graph/verifiedBacklinks'
 import { PublicDataValidationError } from '../src/data/validationError'
 
 const firstDid = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
@@ -9,18 +11,26 @@ const targetDid = 'did:plc:cccccccccccccccccccccccc'
 const otherDid = 'did:plc:dddddddddddddddddddddddd'
 const createdAt = '2026-01-01T00:00:00Z'
 
+function verifiedBlockCountQueryOptions(service: PublicDataService) {
+  return queryOptions({
+    queryKey: ['verifiedBlockCount', targetDid] as const,
+    queryFn: ({ signal }) =>
+      countVerifiedBacklinkPublishers(service.core, { subject: targetDid, collection: 'app.bsky.graph.block' }, signal),
+  })
+}
+
 describe.each(['app.bsky.graph.block', 'app.bsky.graph.listblock'] as const)('%s verification', (collection) => {
   const subject = collection === 'app.bsky.graph.block' ? targetDid : `at://${targetDid}/app.bsky.graph.list/test`
 
   function countQueryOptions(service: PublicDataService) {
     return collection === 'app.bsky.graph.block'
-      ? service.blocks.blockedByCountQueryOptions(targetDid)
+      ? verifiedBlockCountQueryOptions(service)
       : service.lists.listBlockCountQueryOptions(subject)
   }
 
   function executeCount(client: ReturnType<typeof createTestQueryClient>, service: PublicDataService) {
     return collection === 'app.bsky.graph.block'
-      ? client.query(service.blocks.blockedByCountQueryOptions(targetDid))
+      ? client.query(verifiedBlockCountQueryOptions(service))
       : client.query(service.lists.listBlockCountQueryOptions(subject))
   }
 
@@ -409,7 +419,7 @@ it('checks a page concurrently and releases verification records from the cache'
       })
     }),
   )
-  const result = client.query(new PublicDataService(client).blocks.blockedByCountQueryOptions(targetDid))
+  const result = client.query(verifiedBlockCountQueryOptions(new PublicDataService(client)))
   await vi.waitFor(() => expect(completions.length).toBeGreaterThan(1))
   while (completedRequests < records.length) {
     await vi.waitFor(() => expect(completions.length).toBeGreaterThan(0))
@@ -466,7 +476,7 @@ it('stops a failed verification page without cancelling another consumer of a si
       })
     }),
   )
-  const count = client.query(service.blocks.blockedByCountQueryOptions(targetDid))
+  const count = client.query(verifiedBlockCountQueryOptions(service))
   const failed = expect(count).rejects.toMatchObject({ status: 503 })
   await vi.waitFor(() => expect(finishShared).toBeTypeOf('function'))
   const independent = service.core.recordForVerification(sharedUri)
@@ -475,5 +485,5 @@ it('stops a failed verification page without cancelling another consumer of a si
   expect(sharedSignal?.aborted).toBe(false)
   finishShared()
   expect(await independent).toMatchObject({ uri: sharedUri })
-  expect(client.getQueryData(service.blocks.blockedByCountQueryOptions(targetDid).queryKey)).toBeUndefined()
+  expect(client.getQueryData(verifiedBlockCountQueryOptions(service).queryKey)).toBeUndefined()
 })

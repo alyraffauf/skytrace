@@ -6,8 +6,10 @@ import { tryParseRecordUri } from '../../lib/atproto/uri'
 import type { PublicDataCore } from '../publicDataCore'
 import { actorReference, isUnavailableRecord, unavailable } from '../recordResults'
 import type { DataRequestContext } from '../runtime/sharedQueryRequests'
+import { deadlineSignal } from '../../lib/abort'
+import { getBacklinksCount } from '../api/backlinks'
 import { countRecords } from '../api/repository'
-import { countVerifiedBacklinkPublishers, verifiedBacklinkPublishers } from './verifiedBacklinks'
+import { verifiedBacklinkPublishers } from './verifiedBacklinks'
 import { queryKeys } from '../queryKeys'
 import { parsedRecord } from '../recordValues'
 
@@ -41,7 +43,11 @@ export class BlockDataService {
       queryKey: queryKeys.blockedByCount(did),
       queryFn: ({ signal }) =>
         did
-          ? countVerifiedBacklinkPublishers(this.core, { subject: did, collection: 'app.bsky.graph.block' }, signal)
+          ? getBacklinksCount({
+              subject: did,
+              source: 'app.bsky.graph.block:subject',
+              signal: deadlineSignal(signal, this.context.requestTimeoutMs),
+            })
           : Promise.resolve(undefined),
       enabled: did !== undefined,
       staleTime: CACHE_TTL_MS.activity,

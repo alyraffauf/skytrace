@@ -1,4 +1,3 @@
-import { relationshipFixture } from './backlinkFixtures'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Route, createMemoryRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom'
@@ -11,15 +10,13 @@ import { did, identity, profile } from './actorFixtures'
 describe('profile relationship counts', () => {
   it('shows the independently loaded counts in their tab labels', async () => {
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
-    const countFixture = relationshipFixture(did, 'app.bsky.graph.block', 3)
     const requestedUrls: URL[] = []
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
         requestedUrls.push(url)
-        const verifiedResponse = countFixture(url)
-        if (verifiedResponse) return verifiedResponse
+        if (url.pathname.endsWith('getBacklinksCount')) return response({ total: 3_000 })
         if (url.pathname.endsWith('resolveMiniDoc')) {
           return response({ did, handle: identity.handle, pds: identity.pds, signing_key: 'zQ3test' })
         }
@@ -58,10 +55,11 @@ describe('profile relationship counts', () => {
     )
 
     expect(await screen.findByRole('link', { name: 'Blocked (2)' })).toBeVisible()
-    expect(await screen.findByRole('link', { name: 'Blocked by (3)' })).toBeVisible()
+    expect(await screen.findByRole('link', { name: 'Blocked by (3,000)' })).toBeVisible()
     expect(screen.getByText('they/them')).toBeVisible()
     expect(screen.getByRole('img', { name: `${profile.displayName}'s avatar` })).toBeVisible()
-    expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinksCount'))).toBe(false)
+    expect(requestedUrls.some((url) => url.pathname.endsWith('getBacklinks'))).toBe(false)
+    expect(requestedUrls.filter((url) => url.pathname.endsWith('getRecordByUri'))).toHaveLength(1)
   })
 
   it.each([
@@ -188,17 +186,15 @@ describe('profile relationship counts', () => {
 describe('profile block count configuration', () => {
   function renderProfile(blockPage: (requestNumber: number) => unknown, queryClient: QueryClient) {
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
-    const countFixture = relationshipFixture(did, 'app.bsky.graph.block', 3)
     let blockPageRequests = 0
     let backlinkPageRequests = 0
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
-        const verifiedResponse = countFixture(url)
-        if (verifiedResponse) {
-          if (url.pathname.endsWith('getBacklinks')) backlinkPageRequests++
-          return verifiedResponse
+        if (url.pathname.endsWith('getBacklinksCount')) {
+          backlinkPageRequests++
+          return response({ total: 3 })
         }
         if (url.pathname.endsWith('resolveMiniDoc')) {
           return response({ did, handle: identity.handle, pds: identity.pds, signing_key: 'zQ3test' })

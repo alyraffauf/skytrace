@@ -161,3 +161,24 @@ it('rejects a backlink row from the wrong collection even if its value is shaped
     ),
   ).toMatchObject({ kind: 'unavailable' })
 })
+
+it('uses the raw index total for the Blocked by badge without fetching individual blocks', async () => {
+  const requests: URL[] = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      requests.push(url)
+      // Individual records may be unavailable; the independent display total must still work.
+      return url.pathname.endsWith('getBacklinksCount')
+        ? response({ total: 321 })
+        : response({ error: 'ServerError' }, 500)
+    }),
+  )
+  const client = createTestQueryClient()
+  expect(await client.query(new PublicDataService(client).blocks.blockedByCountQueryOptions(did))).toBe(321)
+  expect(requests).toHaveLength(1)
+  expect(requests[0]?.pathname).toMatch(/getBacklinksCount$/)
+  expect(requests[0]?.searchParams.get('subject')).toBe(did)
+  expect(requests[0]?.searchParams.get('source')).toBe('app.bsky.graph.block:subject')
+})
