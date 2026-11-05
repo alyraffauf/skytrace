@@ -4,7 +4,9 @@ import { AppLayout } from '../layouts/AppLayout'
 import { RouteError } from './RouteError'
 import { HomePage } from '../pages/HomePage'
 import type { RouteHandle } from './metadata'
-import { PROFILE_TABS, enabledProfileTabs, type ProfileTabId } from './profileTabs'
+import { useRouteActor } from '../hooks/useRouteActor'
+import { profilePath, profileTabPath } from './paths'
+import { PROFILE_TABS, enabledProfileTabs, isProfileTabEnabled, type ProfileTabId } from './profileTabs'
 
 const ProfileLayout = lazy(() =>
   import('../layouts/ProfileLayout').then((module) => ({ default: module.ProfileLayout })),
@@ -30,11 +32,14 @@ const profilePages = {
 
 const enabledTabs = enabledProfileTabs()
 const defaultTab = enabledTabs[0]
-const disabledTabElement = defaultTab ? (
-  <Navigate to={defaultTab.id === 'feed' ? '..' : `../${defaultTab.id}`} relative="path" replace />
-) : (
-  <p>No profile sections are available.</p>
-)
+
+/** Sends a disabled section, including the profile index, to the same actor's first enabled section. */
+function DisabledProfileTab() {
+  const actor = useRouteActor()
+  if (!defaultTab) return <p>No profile sections are available.</p>
+  const destination = defaultTab.id === 'feed' ? profilePath(actor) : profileTabPath(actor, defaultTab.id)
+  return <Navigate to={destination} replace />
+}
 
 export const router = createBrowserRouter([
   {
@@ -53,7 +58,7 @@ export const router = createBrowserRouter([
             const { id } = tab
             const handle = { profileTab: tab } satisfies RouteHandle
             const Component = profilePages[id]
-            const element = enabledTabs.some((enabled) => enabled.id === id) ? <Component /> : disabledTabElement
+            const element = isProfileTabEnabled(id) ? <Component /> : <DisabledProfileTab />
             return id === 'feed' ? { index: true, element, id, handle } : { path: id, element, handle }
           }),
           { path: 'feed', element: <Navigate to=".." relative="path" replace /> },

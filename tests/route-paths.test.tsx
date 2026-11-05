@@ -1,6 +1,6 @@
-import { render, renderHook, screen } from '@testing-library/react'
+import { render, renderHook, screen, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import {
   createMemoryRouter,
   MemoryRouter,
@@ -17,7 +17,8 @@ import { useRouteActor } from '../src/hooks/useRouteActor'
 import { ProfileLayout } from '../src/layouts/ProfileLayout'
 import { FaqPage } from '../src/pages/FaqPage'
 import { ListPage } from '../src/pages/ListPage'
-import { listPath, profilePath } from '../src/routes/paths'
+import { listPath, profilePath, profileTabPath } from '../src/routes/paths'
+import { PROFILE_TABS } from '../src/routes/profileTabs'
 import { createTestQueryClient } from './testUtils'
 import { identity, profile } from './actorFixtures'
 
@@ -126,6 +127,72 @@ describe('profile feed alias', () => {
     expect(document.title).toBe(`@${identity.handle} — Feed — SkyTrace`)
     view.unmount()
     memoryRouter.dispose()
+  })
+})
+
+describe('disabled profile sections', () => {
+  const actor = 'did:web:example.com:user%2Fname'
+
+  async function renderProfileRoute(disabledTabs: string[], pathname: string) {
+    vi.stubGlobal('__SKYTRACE_CONFIG__', { disabledTabs })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => undefined)),
+    )
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    const actorIdentity = { ...identity, did: actor } as const
+    const client = createTestQueryClient()
+    client.setQueryData(queryKeys.profileVisibility(actor, undefined, []), {
+      visible: true,
+      profile: { ...profile, identity: actorIdentity },
+    })
+    vi.resetModules()
+    const { router } = await import('../src/routes/router')
+    router.dispose()
+    const memoryRouter = createMemoryRouter(router.routes, { initialEntries: [pathname] })
+    const view = render(
+      <QueryClientProvider client={client}>
+        <RouterProvider router={memoryRouter} />
+      </QueryClientProvider>,
+    )
+    onTestFinished(() => {
+      view.unmount()
+      memoryRouter.dispose()
+    })
+    return memoryRouter
+  }
+
+  it.each([
+    ['profile index', profilePath(actor)],
+    ['feed alias', `${profilePath(actor)}/feed`],
+  ])('keeps the actor when the disabled Feed is opened through the %s', async (_entry, pathname) => {
+    const memoryRouter = await renderProfileRoute(['feed'], pathname)
+
+    await waitFor(() => expect(memoryRouter.state.location.pathname).toBe(profileTabPath(actor, 'labels')))
+    await waitFor(() => expect(document.title).toBe(`@${identity.handle} — Account labels — SkyTrace`))
+  })
+
+  it('sends a disabled named section to the same actor first enabled section', async () => {
+    const memoryRouter = await renderProfileRoute(['feed', 'labels'], profileTabPath(actor, 'labels'))
+
+    await waitFor(() => expect(memoryRouter.state.location.pathname).toBe(profileTabPath(actor, 'labeled-posts')))
+  })
+
+  it('sends a disabled named section back to the same actor enabled Feed', async () => {
+    const memoryRouter = await renderProfileRoute(['labels'], profileTabPath(actor, 'labels'))
+
+    await waitFor(() => expect(memoryRouter.state.location.pathname).toBe(profilePath(actor)))
+    await waitFor(() => expect(document.title).toBe(`@${identity.handle} — Feed — SkyTrace`))
+  })
+
+  it('explains that no sections are available when every section is disabled', async () => {
+    const memoryRouter = await renderProfileRoute(
+      PROFILE_TABS.map((tab) => tab.id),
+      profilePath(actor),
+    )
+
+    expect(await screen.findByText('No profile sections are available.')).toBeVisible()
+    expect(memoryRouter.state.location.pathname).toBe(profilePath(actor))
   })
 })
 
