@@ -12,6 +12,21 @@ import { queryKeys } from '../queryKeys'
 import { parsedRecord } from '../recordValues'
 
 const RELATIONSHIP_PAGE_SIZE = 24
+const FOREIGN_MEMBERSHIP_REASON = 'This list membership was not published by the list owner.'
+
+/**
+ * Anyone can publish a listitem naming any list, so a membership counts only when it lives in the list owner's
+ * repository. A valid CID proves the record's content, not the publisher's authority over the list.
+ */
+function isPublishedByListOwner(membershipUri: string, listUri: string): boolean {
+  const membership = tryParseRecordUri(membershipUri)
+  const list = tryParseRecordUri(listUri)
+  return (
+    membership?.collection === 'app.bsky.graph.listitem' &&
+    list?.collection === 'app.bsky.graph.list' &&
+    membership.repo === list.repo
+  )
+}
 
 export class ListDataService {
   constructor(
@@ -99,6 +114,7 @@ export class ListDataService {
     return this.core.backlinks({
       subject: listUri,
       source: 'app.bsky.graph.listitem:list',
+      did: listRecord.repo,
       limit: RELATIONSHIP_PAGE_SIZE,
       cursor,
       signal,
@@ -109,6 +125,8 @@ export class ListDataService {
     return queryOptions({
       queryKey: queryKeys.listMember(listUri, membershipUri),
       queryFn: async ({ signal }) => {
+        if (!isPublishedByListOwner(membershipUri, listUri))
+          return unavailable(membershipUri, FOREIGN_MEMBERSHIP_REASON)
         const membership = await this.core.record(membershipUri, signal)
         const value = parsedRecord(AppBskyGraphListitem.mainSchema, membership)
         if (!value || value.list !== listUri) return unavailable(membershipUri, 'This list membership is malformed.')
@@ -143,6 +161,8 @@ export class ListDataService {
           return unavailable(membershipUri, 'This list membership is malformed.')
         if (tryParseRecordUri(value.list)?.collection !== 'app.bsky.graph.list')
           return unavailable(membershipUri, 'This membership has no valid list reference.')
+        if (!isPublishedByListOwner(membershipUri, value.list))
+          return unavailable(membershipUri, FOREIGN_MEMBERSHIP_REASON)
         const list = this.listFromRecord(await this.core.record(value.list, signal))
         if (minimumBlocking !== undefined && list.kind === 'list' && list.purpose === 'app.bsky.graph.defs#modlist') {
           const count = await this.listBlockCount(list.uri, signal)

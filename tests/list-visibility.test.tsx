@@ -61,9 +61,13 @@ function configure(minimum: number | null) {
   })
 }
 
-function renderPage(client: ReturnType<typeof createTestQueryClient>, service: PublicDataService) {
+function renderPage(
+  client: ReturnType<typeof createTestQueryClient>,
+  service: PublicDataService,
+  listedMembershipUri = membershipUri,
+) {
   client.setQueryData(queryKeys.profileTab(did, 'listedOn'), {
-    pages: [{ items: [{ uri: membershipUri }], cursor: 'next' }],
+    pages: [{ items: [{ uri: listedMembershipUri }], cursor: 'next' }],
     pageParams: [undefined],
   })
   let observerCallback: IntersectionObserverCallback | undefined
@@ -114,8 +118,30 @@ describe('Listed On membership validation', () => {
 
     expect(await screen.findByText('This list membership is malformed.')).toBeVisible()
     expect(screen.queryByText('Moderation test')).not.toBeInTheDocument()
-    expect(record).toHaveBeenCalledTimes(1)
-    expect(record).toHaveBeenCalledWith(membershipUri, expect.any(AbortSignal))
+    expect(record).not.toHaveBeenCalledWith(listUri, expect.any(AbortSignal))
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('does not attribute a membership published outside the list owner repository to that list', async () => {
+    configure(1)
+    const { client, service, fetchMock } = setup()
+    const foreignMembershipUri = 'at://did:plc:xwc5pfr4q6kthctktdb5turw/app.bsky.graph.listitem/forged'
+    client.setQueryData(
+      queryKeys.record(foreignMembershipUri),
+      repositoryRecord(foreignMembershipUri, {
+        $type: 'app.bsky.graph.listitem',
+        list: listUri,
+        subject: did,
+        createdAt: '2026-01-01T00:00:00Z',
+      }),
+    )
+    const record = vi.spyOn(service.core, 'record')
+
+    renderPage(client, service, foreignMembershipUri)
+
+    expect(await screen.findByText('This list membership was not published by the list owner.')).toBeVisible()
+    expect(screen.queryByText('Moderation test')).not.toBeInTheDocument()
+    expect(record).not.toHaveBeenCalledWith(listUri, expect.any(AbortSignal))
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -136,8 +162,7 @@ describe('Listed On membership validation', () => {
       client.query(service.lists.listedOnMembershipQueryOptions(membershipUri, did, 1)),
     ).resolves.toMatchObject({ kind: 'unavailable', reason: 'This membership has no valid list reference.' })
 
-    expect(record).toHaveBeenCalledTimes(1)
-    expect(record).toHaveBeenCalledWith(membershipUri, expect.any(AbortSignal))
+    expect(record).not.toHaveBeenCalledWith(listUri, expect.any(AbortSignal))
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -152,8 +177,7 @@ describe('Listed On membership validation', () => {
       client.query(service.lists.listedOnMembershipQueryOptions(membershipUri, 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa')),
     ).resolves.toMatchObject({ kind: 'unavailable' })
 
-    expect(record).toHaveBeenCalledTimes(1)
-    expect(record).toHaveBeenCalledWith(membershipUri, expect.any(AbortSignal))
+    expect(record).not.toHaveBeenCalledWith(listUri, expect.any(AbortSignal))
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })

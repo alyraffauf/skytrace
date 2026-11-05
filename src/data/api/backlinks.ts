@@ -47,7 +47,7 @@ export async function getBacklinks(options: {
             did: options.did ? [options.did as Did] : undefined,
             subject: options.subject as GenericUri,
             source: options.source,
-            limit: options.did ? 1 : (options.limit ?? 100),
+            limit: options.limit ?? (options.did ? 1 : 100),
             reverse: false,
             cursor: options.cursor,
           },
