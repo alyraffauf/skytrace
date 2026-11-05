@@ -94,5 +94,7 @@ it('exposes the configured donation interval and rejects executable input', () =
 })
 
 it('serializes disabled tab identifiers safely', () => {
-  expect(runtimeConfig({ SKYTRACE_DISABLED_TABS: ' feed, blocked-by, bad\";alert(1)' })).toMatchObject({ disabledTabs: ['feed', 'blocked-by'] })
+  expect(runtimeConfig({ SKYTRACE_DISABLED_TABS: ' feed, blocked-by, bad";alert(1)' })).toMatchObject({
+    disabledTabs: ['feed', 'blocked-by'],
+  })
 })

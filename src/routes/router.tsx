@@ -30,9 +30,11 @@ const profilePages = {
 
 const enabledTabs = enabledProfileTabs()
 const defaultTab = enabledTabs[0]
-const disabledTabElement = defaultTab
-  ? <Navigate to={defaultTab.id === 'feed' ? '..' : `../${defaultTab.id}`} relative="path" replace />
-  : <p>No profile sections are available.</p>
+const disabledTabElement = defaultTab ? (
+  <Navigate to={defaultTab.id === 'feed' ? '..' : `../${defaultTab.id}`} relative="path" replace />
+) : (
+  <p>No profile sections are available.</p>
+)
 
 export const router = createBrowserRouter([
   {
@@ -52,9 +54,7 @@ export const router = createBrowserRouter([
             const handle = { profileTab: tab } satisfies RouteHandle
             const Component = profilePages[id]
             const element = enabledTabs.some((enabled) => enabled.id === id) ? <Component /> : disabledTabElement
-            return id === 'feed'
-              ? { index: true, element, id, handle }
-              : { path: id, element, handle }
+            return id === 'feed' ? { index: true, element, id, handle } : { path: id, element, handle }
           }),
           { path: 'feed', element: <Navigate to=".." relative="path" replace /> },
         ],
