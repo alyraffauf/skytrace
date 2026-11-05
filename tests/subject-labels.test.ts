@@ -1,4 +1,4 @@
-import { expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createTestService, jsonResponse } from './testUtils'
 
 const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
@@ -121,4 +121,78 @@ it('cancels an in-flight later page without publishing partial labels', async ()
   controller.abort()
   await rejection
   expect(fetchSignal?.aborted).toBe(true)
+})
+
+function requestSignal(input: RequestInfo | URL, init?: RequestInit): AbortSignal | undefined {
+  return input instanceof Request ? input.signal : (init?.signal ?? undefined)
+}
+
+function pendingUntilAborted(signal: AbortSignal | undefined): Promise<Response> {
+  return new Promise<Response>((_resolve, reject) =>
+    signal?.addEventListener('abort', () => reject(signal.reason), { once: true }),
+  )
+}
+
+describe('complete label history and cancellation', () => {
+  it('returns every page of a long label history', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const page = Number(new URL(String(input)).searchParams.get('cursor') ?? '1')
+        return jsonResponse({
+          labels: [label(firstSubject, `page-${page}`)],
+          cursor: page < 125 ? String(page + 1) : undefined,
+        })
+      }),
+    )
+    expect(await createTestService().subjectLabels.forSubjects([firstSubject])).toHaveLength(125)
+  })
+
+  it('stops sibling subjects after one fails and reports the original failure', async () => {
+    let siblingSignal: AbortSignal | undefined
+    let failFirstSubject!: () => void
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const subject = new URL(String(input)).searchParams.get('uriPatterns')
+        if (subject === firstSubject)
+          return new Promise<Response>((resolve) => {
+            failFirstSubject = () => resolve(jsonResponse({ error: 'Unavailable' }, 503))
+          })
+        siblingSignal = requestSignal(input, init)
+        return pendingUntilAborted(siblingSignal)
+      }),
+    )
+    const result = createTestService().subjectLabels.forSubjects([firstSubject, secondSubject])
+    const rejection = expect(result).rejects.toMatchObject({ status: 503 })
+    await vi.waitFor(() => expect(siblingSignal).toBeDefined())
+    failFirstSubject()
+    await rejection
+    expect(siblingSignal?.aborted).toBe(true)
+  })
+
+  it('keeps a shared subject request running for another consumer after a sibling failure', async () => {
+    let failFirstSubject!: () => void
+    let finishSecondSubject!: () => void
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const subject = new URL(String(input)).searchParams.get('uriPatterns')
+        return new Promise<Response>((resolve) => {
+          if (subject === firstSubject) failFirstSubject = () => resolve(jsonResponse({ error: 'Unavailable' }, 503))
+          else finishSecondSubject = () => resolve(jsonResponse({ labels: [label(secondSubject, 'second')] }))
+        })
+      }),
+    )
+    const service = createTestService()
+    const failing = service.subjectLabels.forSubjects([firstSubject, secondSubject])
+    const independent = service.subjectLabels.forSubjects([secondSubject])
+    const rejection = expect(failing).rejects.toMatchObject({ status: 503 })
+    await vi.waitFor(() => expect(finishSecondSubject).toBeTypeOf('function'))
+    await vi.waitFor(() => expect(failFirstSubject).toBeTypeOf('function'))
+    failFirstSubject()
+    await rejection
+    finishSecondSubject()
+    expect(await independent).toMatchObject([{ subject: secondSubject, value: 'second' }])
+  })
 })

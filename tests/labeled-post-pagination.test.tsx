@@ -6,7 +6,7 @@ import { LabeledPostsPage } from '../src/pages/profile/LabeledPostsPage'
 import { PublicDataService } from '../src/data/publicData'
 import { queryKeys } from '../src/data/queryKeys'
 import type { LabeledPost } from '../src/types'
-import { createTestQueryClient } from './testUtils'
+import { createTestQueryClient, jsonResponse, repositoryRecord } from './testUtils'
 
 it('keeps observing after a fast empty page so older labeled posts can load', async () => {
   vi.useFakeTimers()
@@ -107,4 +107,55 @@ it('keeps observing after a fast empty page so older labeled posts can load', as
   expect(screen.queryByText('No labeled posts found')).not.toBeInTheDocument()
   expect(observers.size).toBe(0)
   expect(load).toHaveBeenCalledTimes(3)
+})
+
+it('shows an error instead of an empty result when a post label history repeats a cursor', async () => {
+  const client = createTestQueryClient()
+  const service = new PublicDataService(client)
+  const did = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
+  const postUri = `at://${did}/app.bsky.feed.post/3busy`
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(input instanceof Request ? input.url : String(input))
+      if (url.hostname === 'pds.example')
+        return jsonResponse({
+          records: [
+            repositoryRecord(postUri, {
+              $type: 'app.bsky.feed.post',
+              text: 'Busy post',
+              createdAt: '2026-01-01T00:00:00Z',
+            }),
+          ],
+        })
+      return jsonResponse({ labels: [], cursor: 'repeated' })
+    }),
+  )
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <Routes>
+          <Route
+            element={
+              <Outlet
+                context={{
+                  profile: {
+                    identity: { did, handle: 'atproto.com', pds: 'https://pds.example' },
+                    hasNoUnauthenticatedSelfLabel: false,
+                  },
+                  service,
+                }}
+              />
+            }
+          >
+            <Route index element={<LabeledPostsPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+
+  expect(await screen.findByText("Couldn't load labeled posts")).toBeVisible()
+  expect(screen.queryByText('No labeled posts found')).not.toBeInTheDocument()
+  expect(screen.queryByText('Busy post')).not.toBeInTheDocument()
 })
