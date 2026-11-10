@@ -303,3 +303,59 @@ it.each([
       .some((url) => url.pathname.endsWith('getBacklinks') && !url.searchParams.has('did')),
   ).toBe(false)
 })
+
+describe('profiles resolved without a valid handle', () => {
+  it.each([false, true])('keeps the visibility gate when the account opts out: %s', async (optsOut) => {
+    vi.stubGlobal('__SKYTRACE_CONFIG__', { blockTargetDid: instanceDid, hiddenDids: [] })
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.pathname.endsWith('resolveMiniDoc'))
+        return jsonResponse({ error: 'InvalidRequest', message: "Failed to get DID doc's handle" }, 400)
+      if (url.hostname === 'plc.directory')
+        return jsonResponse({
+          id: did,
+          service: [{ id: '#atproto_pds', type: 'AtprotoPersonalDataServer', serviceEndpoint: 'https://pds.example' }],
+        })
+      if (url.pathname.endsWith('getRecordByUri'))
+        return jsonResponse(
+          repositoryRecord(`at://${did}/app.bsky.actor.profile/self`, { $type: 'app.bsky.actor.profile' }),
+        )
+      throw new Error(`Unexpected URL ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const client = createTestQueryClient()
+    const service = publicDataServiceFor(client)
+    vi.spyOn(service.blocks, 'actorBlocksActor').mockImplementation(
+      async ({ blockerDid }) => optsOut && blockerDid === did,
+    )
+    const blockedCount = vi.spyOn(service.blocks, 'blockedCountQueryOptions')
+    const blockedByCount = vi.spyOn(service.blocks, 'blockedByCountQueryOptions')
+    // Seed counts so this regression exercises visibility, without starting background scans.
+    client.setQueryData(queryKeys.blockedCount({ ...profile.identity, handle: 'handle.invalid' }), 0)
+    client.setQueryData(queryKeys.blockedByCount(did), 0)
+    render(
+      <QueryClientProvider client={client}>
+        <RouterProvider
+          router={createMemoryRouter(
+            createRoutesFromElements(
+              <Route path="profile/:actor" element={<ProfileLayout />}>
+                <Route index element={<div>Profile records</div>} />
+              </Route>,
+            ),
+            { initialEntries: [`/profile/${did}`] },
+          )}
+        />
+      </QueryClientProvider>,
+    )
+    if (optsOut) {
+      expect(await screen.findByRole('heading', { name: 'Profile unavailable' })).toBeVisible()
+      expect(screen.queryByText('Profile records')).not.toBeInTheDocument()
+      expect(blockedCount.mock.calls.every(([identity]) => identity === undefined)).toBe(true)
+      expect(blockedByCount.mock.calls.every(([identityDid]) => identityDid === undefined)).toBe(true)
+    } else {
+      expect(await screen.findByRole('heading', { name: did })).toBeVisible()
+      expect(screen.getByText('Profile records')).toBeVisible()
+    }
+  })
+})

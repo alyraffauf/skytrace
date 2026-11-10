@@ -55,6 +55,7 @@ export class ActorDataService {
 
   private async resolveAndCacheIdentity(identifier: string, signal: AbortSignal): Promise<ActorIdentity> {
     const resolved = await resolveActor(identifier, signal)
+    throwIfAborted(signal)
     const updatedAt = Date.now()
     if (identifier !== resolved.did)
       this.context.queryClient.setQueryData(queryKeys.identity(resolved.did), resolved, { updatedAt })
