@@ -7,6 +7,7 @@
 @import './theme/generated/skytrace.css';
 
 @theme inline {
+  --color-*: initial;
   --color-ui-canvas: var(--color-background-body);
   --color-ui-surface: var(--color-background-surface);
   --color-ui-subtle: var(--color-background-muted);
@@ -22,6 +23,7 @@
   --color-ui-mark: var(--color-brand-mark);
   --color-ui-media: var(--color-background-media);
 
+  --radius-*: initial;
   --radius-ui-inner: var(--radius-inner);
   --radius-ui-full: var(--radius-full);
 
@@ -225,38 +227,5 @@
 
   .profile-tabs .astryx-tab-scroll-button {
     display: none;
-  }
-}
-
-@keyframes soft-pulse {
-  50% {
-    opacity: 0.45;
-  }
-}
-
-.skeleton {
-  animation: soft-pulse 1.5s ease-in-out infinite;
-  @apply bg-zinc-200 dark:bg-zinc-800;
-}
-
-.tabs-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.tabs-scroll {
-  scrollbar-width: none;
-  scroll-padding-inline: 2rem;
-  mask-image: linear-gradient(to right, transparent, black 1rem, black calc(100% - 1rem), transparent);
-}
-
-@media (min-width: 640px) {
-  .tabs-scroll {
-    mask-image: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
   }
 }
