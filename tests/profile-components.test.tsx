@@ -86,28 +86,60 @@ it.each(['pending', 'error'])('keeps %s history messages outside the definition 
   expect(details).toContainElement(message)
 })
 
-it('scrolls the active tab on navigation and count changes', () => {
-  const scroll = vi.fn()
-  Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: scroll })
-  vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockReturnValue(500)
-  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(100)
-  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300)
+it('keeps route tabs and counts synchronized with navigation', () => {
   const view = render(
     <MemoryRouter initialEntries={['/profile/example.com']}>
       <ProfileTabsNav actor="example.com" />
     </MemoryRouter>,
   )
-  expect(scroll.mock.calls.at(-1)?.[0].left).toBeGreaterThan(0)
-  scroll.mockClear()
+  expect(screen.getByRole('link', { name: 'Feed' })).toHaveAttribute('aria-current', 'true')
   fireEvent.click(screen.getByRole('link', { name: 'Blocked' }))
-  expect(scroll).toHaveBeenCalledTimes(1)
+  expect(screen.getByRole('link', { name: 'Blocked' })).toHaveAttribute('href', '/profile/example.com/blocking')
+  expect(screen.getByRole('link', { name: 'Blocked' })).toHaveAttribute('aria-current', 'true')
+  expect(screen.getByRole('link', { name: 'Feed' })).not.toHaveAttribute('aria-current')
   view.rerender(
     <MemoryRouter>
       <ProfileTabsNav actor="example.com" blockedCount={12} />
     </MemoryRouter>,
   )
-  expect(screen.getByRole('link', { name: 'Blocked (12)' })).toHaveAttribute('aria-current', 'page')
-  expect(scroll).toHaveBeenCalledTimes(2)
+  expect(screen.getByRole('link', { name: 'Blocked (12)' })).toHaveAttribute('aria-current', 'true')
+})
+
+it('keeps the selected tab visible when counts widen earlier tabs without moving page focus', () => {
+  const tabs = (blockedCount?: number, blockedByCount?: number) => (
+    <MemoryRouter initialEntries={['/profile/example.com/lists']}>
+      <ProfileTabsNav actor="example.com" blockedCount={blockedCount} blockedByCount={blockedByCount} />
+    </MemoryRouter>
+  )
+  const view = render(tabs())
+  const selected = screen.getByRole('link', { name: 'Lists' })
+  const strip = selected.parentElement!
+  const initialScroll = 220
+  strip.scrollLeft = initialScroll
+  let selectedLeft = 280
+  vi.spyOn(strip, 'getBoundingClientRect').mockImplementation(() => new DOMRect(12, 369, 351, 40))
+  vi.spyOn(selected, 'getBoundingClientRect').mockImplementation(
+    () => new DOMRect(selectedLeft - (strip.scrollLeft - initialScroll), 373, 56, 36),
+  )
+  const scroll = vi.fn(function (this: HTMLElement, options: ScrollToOptions) {
+    this.scrollLeft = options.left ?? this.scrollLeft
+  })
+  Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: scroll })
+  const scrollPage = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  act(() => selected.focus())
+  scroll.mockClear()
+
+  selectedLeft = 370
+  view.rerender(tabs(349, 3242))
+  expect(selected.getBoundingClientRect().right).toBeLessThanOrEqual(strip.getBoundingClientRect().right)
+  expect(selected.getBoundingClientRect().left).toBeGreaterThanOrEqual(strip.getBoundingClientRect().left)
+  expect(selected).toHaveFocus()
+  expect(scrollPage).not.toHaveBeenCalled()
+  expect(selected.scrollIntoView).not.toHaveBeenCalled()
+
+  scroll.mockClear()
+  view.rerender(tabs(349, 3243))
+  expect(scroll).not.toHaveBeenCalled()
 })
 
 it('resets new navigation, restores saved positions, and scrolls to hash targets', async () => {

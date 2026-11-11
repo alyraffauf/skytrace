@@ -1,7 +1,8 @@
-import { useActiveProfileTabScroll } from './useActiveProfileTabScroll'
-import { NavLink, useLocation } from 'react-router-dom'
+import { TabList, Tab } from '@astryxdesign/core/TabList'
+import { Link, matchPath, useLocation } from 'react-router-dom'
 import { profilePath, profileTabPath } from '../../routes/paths'
 import { enabledProfileTabs } from '../../routes/profileTabs'
+import { useLayoutEffect, useRef } from 'react'
 
 export function ProfileTabsNav({
   actor,
@@ -13,31 +14,54 @@ export function ProfileTabsNav({
   blockedByCount?: number
 }) {
   const location = useLocation()
-  const tabListRef = useActiveProfileTabScroll({ pathname: location.pathname, blockedCount, blockedByCount })
+  const tabs = enabledProfileTabs()
+  const activeTab =
+    tabs.find(({ id }) => id !== 'feed' && matchPath(profileTabPath(actor, id), location.pathname))?.id ?? 'feed'
+  const tabListRef = useRef<HTMLElement>(null)
+  const previousCountsRef = useRef({ blockedCount, blockedByCount })
+
+  // Counts can widen earlier tabs without resizing Astryx's scroll strip.
+  useLayoutEffect(() => {
+    const previousCounts = previousCountsRef.current
+    previousCountsRef.current = { blockedCount, blockedByCount }
+    if (previousCounts.blockedCount === blockedCount && previousCounts.blockedByCount === blockedByCount) return
+
+    const selected = tabListRef.current?.querySelector<HTMLElement>('[aria-current]')
+    const strip = selected?.closest<HTMLElement>('.astryx-tab-strip')
+    if (!selected || !strip) return
+    const tabBounds = selected.getBoundingClientRect()
+    const stripBounds = strip.getBoundingClientRect()
+    const inset = parseFloat(getComputedStyle(strip).scrollPaddingLeft) || 0
+    const pastEnd = tabBounds.right - (stripBounds.right - inset)
+    const pastStart = tabBounds.left - (stripBounds.left + inset)
+    const delta = pastEnd > 0 ? pastEnd : pastStart < 0 ? pastStart : 0
+    if (delta !== 0) strip.scrollTo({ left: strip.scrollLeft + delta, behavior: 'instant' })
+  }, [blockedCount, blockedByCount])
 
   return (
-    <nav
+    <TabList
+      ref={tabListRef}
       aria-label="Profile sections"
-      className="sticky top-12 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+      value={activeTab}
+      onChange={() => {}}
+      hasDivider
+      overflow="scroll"
+      size="lg"
+      className="profile-tabs sticky top-12 z-30 gap-1 bg-ui-canvas px-3 pt-1 sm:px-5 lg:px-7"
     >
-      <div ref={tabListRef} className="tabs-scroll flex gap-6 overflow-x-auto px-4 sm:px-6 lg:px-7">
-        {enabledProfileTabs().map(({ id, label }) => {
-          const count = id === 'blocking' ? blockedCount : id === 'blocked-by' ? blockedByCount : undefined
-          return (
-            <NavLink
-              key={id}
-              to={id === 'feed' ? profilePath(actor) : profileTabPath(actor, id)}
-              end={id === 'feed'}
-              className={({ isActive }) =>
-                `flex min-h-12 shrink-0 items-center justify-center whitespace-nowrap border-b-2 px-0.5 text-sm font-medium sm:min-h-0 sm:py-3 ${isActive ? 'border-violet-600 text-violet-700 dark:border-violet-400 dark:text-violet-300' : 'border-transparent text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100'}`
-              }
-            >
-              {label}
-              {count !== undefined && ` (${count.toLocaleString()})`}
-            </NavLink>
-          )
-        })}
-      </div>
-    </nav>
+      {tabs.map(({ id, label }) => {
+        const count = id === 'blocking' ? blockedCount : id === 'blocked-by' ? blockedByCount : undefined
+        return (
+          <Tab
+            key={id}
+            className="min-h-11"
+            as={Link}
+            href={id === 'feed' ? profilePath(actor) : profileTabPath(actor, id)}
+            value={id}
+            label={count === undefined ? label : `${label} (${count.toLocaleString()})`}
+          />
+        )
+      })}
+    </TabList>
   )
 }
