@@ -40,7 +40,7 @@ export function LinkifiedText({ text, className }: { text: string; className?: s
       {parts.map((part, index) => {
         const key = `${part.text}-${index}`
         const className =
-          'underline decoration-zinc-300 underline-offset-2 hover:text-violet-700 hover:decoration-violet-300 dark:decoration-zinc-600 dark:hover:text-violet-300 dark:hover:decoration-violet-700'
+          'underline decoration-ui-border-strong underline-offset-2 hover:text-ui-accent hover:decoration-ui-brand'
         if (part.href && part.internal)
           return (
             <Link key={key} to={part.href} className={className}>

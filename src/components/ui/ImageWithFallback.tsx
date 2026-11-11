@@ -28,7 +28,7 @@ export function ImageWithFallback({
         aria-label={
           isDecorative ? undefined : alt || (fallback === 'avatar' ? 'Avatar unavailable' : 'Image unavailable')
         }
-        className={`grid place-items-center bg-zinc-100 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-500 ${className}`}
+        className={`grid place-items-center bg-ui-subtle text-ui-muted ${className}`}
       >
         <Icon className="size-1/2" aria-hidden="true" />
       </span>

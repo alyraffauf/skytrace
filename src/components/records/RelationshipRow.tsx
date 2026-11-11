@@ -19,14 +19,16 @@ function RelationshipRowContent({ entry }: { entry: RelationshipEntry }) {
   const did = actor.kind === 'actorReference' ? actor.did : actor.identity.did
   return (
     <article
-      className={`${compactRowClassName} grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-0.5 sm:grid-cols-[2rem_minmax(0,1fr)_8rem_2rem]`}
+      className={`${compactRowClassName} grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-2.5 sm:grid-cols-[2rem_minmax(0,1fr)_8rem_2rem]`}
     >
       <ActorAvatar actor={actor} size="row" decorative />
-      <ActorHandle actor={actor} />
-      <p className="col-start-2 row-start-2 truncate text-xs text-zinc-500 dark:text-zinc-400 sm:col-start-3 sm:row-start-1 sm:text-right">
-        {date ?? 'Date unknown'}
-      </p>
-      <div className="col-start-3 row-span-2 row-start-1 sm:col-start-4 sm:row-span-1">
+      <div className="min-w-0 sm:contents">
+        <div className="truncate">
+          <ActorHandle actor={actor} />
+        </div>
+        <p className="mt-0.5 truncate text-xs text-ui-muted sm:mt-0 sm:text-right">{date ?? 'Date unknown'}</p>
+      </div>
+      <div>
         <RecordLinksMenu
           recordUri={entry.id}
           socialPath={socialProfilePath(did)}
