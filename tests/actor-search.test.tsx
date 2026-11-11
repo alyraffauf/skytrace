@@ -50,17 +50,17 @@ it('debounces normalized input, hides stale results, and displays loading and em
   await advance(1)
   expect(fetch).toHaveBeenCalledTimes(1)
   expect(new URL(String(fetch.mock.calls[0]?.[0])).searchParams.get('q')).toBe('at')
-  expect(screen.getByRole('status')).toHaveTextContent('Searching...')
+  expect(screen.getByText('Searching...')).toHaveAttribute('role', 'status')
   await act(async () => resolve(jsonResponse({ actors })))
   await advance(1)
   expect(screen.getAllByRole('option')).toHaveLength(2)
   fireEvent.change(input, { target: { value: 'zz' } })
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
   await advance()
-  expect(screen.getByRole('status')).toHaveTextContent('Searching...')
+  expect(screen.getByText('Searching...')).toHaveAttribute('role', 'status')
   await act(async () => resolve(jsonResponse({ actors: [] })))
   await advance(1)
-  expect(screen.getByRole('status')).toHaveTextContent('No matching accounts')
+  expect(screen.getByText('No matching accounts')).toHaveAttribute('role', 'status')
 })
 
 it.each(['a', 'did:plc:example', 'https://bsky.app/profile/atproto.com'])('does not suggest for %s', async (value) => {
@@ -82,7 +82,7 @@ it('navigates to the selected suggestion DID on Enter', async () => {
   fireEvent.change(input, { target: { value: 'at' } })
   await advance()
   await advance(1)
-  fireEvent.keyDown(input, { key: 'End' })
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
   fireEvent.keyDown(input, { key: 'Enter' })
   expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actors[1].did)}`)
   expect(input).toHaveValue('@another.example')
@@ -105,7 +105,52 @@ it('selects by pointer without moving input focus and dismisses on blur', async 
   const option = screen.getAllByRole('option')[1]
   fireEvent.mouseDown(option, { button: 0 })
   expect(input).toHaveFocus()
+  fireEvent.click(option)
+  expect(input).toHaveFocus()
   expect(screen.getByTestId('location')).toHaveTextContent(`/profile/${encodeURIComponent(actors[1].did)}`)
+})
+
+it('submits the typed query after blur and refocus instead of an old highlighted suggestion', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => jsonResponse({ actors })),
+  )
+  const input = setup()
+  fireEvent.change(input, { target: { value: 'atproto.com' } })
+  await advance()
+  await advance(1)
+  fireEvent.keyDown(input, { key: 'ArrowUp' })
+  expect(input).toHaveAttribute('aria-activedescendant', screen.getAllByRole('option')[1].id)
+  act(() => screen.getByRole('button', { name: 'Outside' }).focus())
+  act(() => input.focus())
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(screen.getByTestId('location')).toHaveTextContent(/^\/profile\/atproto\.com$/)
+})
+
+it('does not carry an ArrowDown highlight from hidden stale suggestions into new results', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ actors }))
+      .mockResolvedValueOnce(jsonResponse({ actors: [actors[1]] })),
+  )
+  const input = setup()
+  fireEvent.change(input, { target: { value: 'at' } })
+  await advance()
+  await advance(1)
+  expect(screen.getAllByRole('option')).toHaveLength(2)
+
+  fireEvent.change(input, { target: { value: 'another.example' } })
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  await advance()
+  await advance(1)
+  expect(screen.getAllByRole('option')).toHaveLength(1)
+  expect(input).not.toHaveAttribute('aria-activedescendant')
+
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(screen.getByTestId('location')).toHaveTextContent(/^\/profile\/another\.example$/)
 })
 
 it('validates direct form submissions and navigates without suggestions', () => {
@@ -115,8 +160,36 @@ it('validates direct form submissions and navigates without suggestions', () => 
   expect(screen.getByRole('alert')).toBeVisible()
   fireEvent.change(input, { target: { value: 'https://bsky.app/profile/atproto.com' } })
   expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-  fireEvent.submit(input.closest('form')!)
+  fireEvent.click(screen.getByRole('button', { name: 'Explore profile' }))
   expect(screen.getByTestId('location')).toHaveTextContent('/profile/atproto.com')
+})
+
+it('keeps IME Enter in the input instead of submitting a profile', () => {
+  const input = setup()
+  fireEvent.change(input, { target: { value: 'atproto.com' } })
+  fireEvent.keyDown(input, { key: 'Enter', isComposing: true })
+  expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+  fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 })
+  expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+})
+
+it('dismisses suggestions with Escape and reopens them without losing the query', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => jsonResponse({ actors })),
+  )
+  const input = setup()
+  fireEvent.change(input, { target: { value: 'at' } })
+  await advance()
+  await advance(1)
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  expect(input).toHaveAttribute('aria-activedescendant', screen.getAllByRole('option')[0].id)
+  fireEvent.keyDown(input, { key: 'Escape' })
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  expect(input).toHaveValue('at')
+  expect(input).toHaveFocus()
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  expect(screen.getByRole('listbox')).toBeVisible()
 })
 
 it.each(['atproto.com', 'did:plc:ewvi7nxzyoun6zhxrhs64oiz', 'https://bsky.app/profile/atproto.com'])(

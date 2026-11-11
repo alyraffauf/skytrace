@@ -1,51 +1,77 @@
+import { Card } from '@astryxdesign/core/Card'
+import { Text } from '@astryxdesign/core/Text'
+import type { HTMLAttributes, RefObject } from 'react'
 import type { ActorSuggestion } from '../../types'
 import { ImageWithFallback } from '../ui/ImageWithFallback'
-import { ComboboxOption, ComboboxOptions } from '@headlessui/react'
+import { useSuggestionPlacement } from './useSuggestionPlacement'
 
-export function ActorSuggestions({ suggestions, isFetching }: { suggestions: ActorSuggestion[]; isFetching: boolean }) {
+export function ActorSuggestions({
+  anchorRef,
+  suggestions,
+  isFetching,
+  listboxProps,
+  getOptionProps,
+}: {
+  anchorRef: RefObject<HTMLDivElement | null>
+  suggestions: ActorSuggestion[]
+  isFetching: boolean
+  listboxProps: HTMLAttributes<HTMLDivElement>
+  getOptionProps: (index: number) => HTMLAttributes<HTMLDivElement>
+}) {
+  const { popupRef, contentRef, side, maxHeight } = useSuggestionPlacement(anchorRef)
   return (
-    <ComboboxOptions
-      anchor={{ to: 'bottom', gap: 6 }}
-      modal={false}
-      aria-label="Account suggestions"
-      className="z-50 w-[var(--input-width)] [--anchor-max-height:20rem] rounded-sm border border-zinc-300 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+    <Card
+      ref={popupRef}
+      padding={0}
+      elevation="low"
+      className={`absolute inset-x-0 z-50 overflow-y-auto text-left ${side === 'above' ? 'bottom-full mb-2' : 'top-full mt-2'}`}
+      style={{ maxHeight }}
     >
-      {isFetching && suggestions.length === 0 ? (
-        <p role="status" className="p-3 text-sm text-zinc-500 dark:text-zinc-400">
-          Searching...
-        </p>
-      ) : suggestions.length > 0 ? (
-        suggestions.map((suggestion) => (
-          <ComboboxOption
-            key={suggestion.did}
-            value={suggestion}
-            className="flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-left data-focus:bg-violet-50 dark:data-focus:bg-violet-950/40"
-          >
-            <ImageWithFallback
-              src={suggestion.avatar}
-              alt=""
-              fallback="avatar"
-              className="size-8 shrink-0 rounded-full object-cover"
-            />
-            <span className="min-w-0">
-              {suggestion.displayName && (
-                <span className="block truncate text-sm font-medium text-zinc-950 dark:text-zinc-100">
-                  {suggestion.displayName}
-                </span>
-              )}
-              <span
-                className={`block truncate text-sm ${suggestion.displayName ? 'text-zinc-600 dark:text-zinc-400' : 'font-medium text-zinc-950 dark:text-zinc-100'}`}
-              >
-                @{suggestion.handle}
-              </span>
-            </span>
-          </ComboboxOption>
-        ))
-      ) : (
-        <p role="status" className="p-3 text-sm text-zinc-500 dark:text-zinc-400">
-          No matching accounts
-        </p>
-      )}
-    </ComboboxOptions>
+      <div ref={contentRef}>
+        {suggestions.length > 0 ? (
+          <>
+            <p role="status" className="sr-only">
+              {suggestions.length} account suggestions
+            </p>
+            <div {...listboxProps} aria-label="Account suggestions" className="py-1">
+              {suggestions.map((suggestion, index) => (
+                <div
+                  key={suggestion.did}
+                  {...getOptionProps(index)}
+                  className="flex min-h-11 cursor-pointer items-center gap-2.5 px-3 py-2 aria-selected:bg-ui-tint"
+                >
+                  <ImageWithFallback
+                    src={suggestion.avatar}
+                    alt=""
+                    fallback="avatar"
+                    className="size-8 shrink-0 rounded-ui-full object-cover"
+                  />
+                  <span className="min-w-0">
+                    {suggestion.displayName && (
+                      <Text type="label" display="block" maxLines={1} hasTruncateTooltip={false}>
+                        {suggestion.displayName}
+                      </Text>
+                    )}
+                    <Text
+                      type={suggestion.displayName ? 'body' : 'label'}
+                      color={suggestion.displayName ? 'secondary' : 'primary'}
+                      display="block"
+                      maxLines={1}
+                      hasTruncateTooltip={false}
+                    >
+                      @{suggestion.handle}
+                    </Text>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <Text as="p" color="secondary" display="block" role="status" className="p-3">
+            {isFetching ? 'Searching...' : 'No matching accounts'}
+          </Text>
+        )}
+      </div>
+    </Card>
   )
 }
