@@ -62,6 +62,8 @@ it('requests history only after expansion and retains it on reopening', async ()
   )
   expect(load).not.toHaveBeenCalled()
   const details = screen.getByText('Account details').closest('details')!
+  const status = details.querySelector('[role="status"]')!
+  expect(status).toBeEmptyDOMElement()
   act(() => {
     details.open = true
     fireEvent(details, new Event('toggle'))
@@ -71,6 +73,7 @@ it('requests history only after expansion and retains it on reopening', async ()
   expect(screen.getByText('@older.example')).toBeVisible()
   expect(screen.getByText('Decentralized Identifier')).toBeVisible()
   expect(screen.getByText('did:plc:example')).toBeVisible()
+  expect(status).toHaveTextContent('Identity history loaded.')
   act(() => {
     details.open = false
     fireEvent(details, new Event('toggle'))
@@ -115,6 +118,8 @@ it.each(['pending', 'error'])('keeps %s history messages outside the definition 
   expect(message).toBeVisible()
   expect(message.closest('dl')).toBeNull()
   expect(details).toContainElement(message)
+  expect(message).toHaveAttribute('role', 'status')
+  expect(message).toHaveAttribute('aria-atomic', 'true')
 })
 
 it('keeps route tabs and counts synchronized with navigation', () => {

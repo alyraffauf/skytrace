@@ -19,6 +19,13 @@ export function AccountDetails({
     .filter((alias) => alias.toLowerCase() !== `at://${identity.handle.toLowerCase()}`)
     .map(formatAlias)
   const formerHandles = detailsQuery.data?.formerHandles ?? []
+  let historyStatus = ''
+  if (detailsOpen) {
+    if (detailsQuery.isPending) historyStatus = 'Loading identity history...'
+    else if (detailsQuery.isError) historyStatus = 'Identity history unavailable.'
+    else historyStatus = 'Identity history loaded.'
+  }
+
   return (
     <details onToggle={(event) => setDetailsOpen(event.currentTarget.open)} className="group mt-3">
       <summary className="inline-flex min-h-8 cursor-pointer list-none items-center gap-1.5 text-xs text-ui-muted hover:text-ui-text">
@@ -58,12 +65,14 @@ export function AccountDetails({
           <DetailList label="Former handles" values={formerHandles.map((handle) => `@${handle}`)} />
         )}
       </dl>
-      {detailsOpen && detailsQuery.isPending && (
-        <p role="status" className="mt-3 text-xs text-ui-muted">
-          Loading identity history...
-        </p>
-      )}
-      {detailsQuery.isError && <p className="mt-3 text-xs text-ui-muted">Identity history unavailable.</p>}
+      <p
+        role="status"
+        aria-label="Identity history"
+        aria-atomic="true"
+        className={detailsOpen && !detailsQuery.isSuccess ? 'mt-3 text-xs text-ui-muted' : 'sr-only'}
+      >
+        {historyStatus}
+      </p>
     </details>
   )
 }
