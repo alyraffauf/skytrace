@@ -21,7 +21,10 @@ afterEach(() => {
 it('requests history only after expansion and retains it on reopening', async () => {
   const client = createTestQueryClient()
   const service = new PublicDataService(client)
-  const load = vi.fn(async () => ({ aliases: ['at://old.example'], formerHandles: [] }))
+  const load = vi.fn(async () => ({
+    aliases: ['at://EXAMPLE.com', 'at://old.example'],
+    formerHandles: ['older.example'],
+  }))
   const options = service.actors.accountDetailsQueryOptions('did:plc:example')
   vi.spyOn(service.actors, 'accountDetailsQueryOptions').mockImplementation(() => ({
     ...options,
@@ -42,6 +45,10 @@ it('requests history only after expansion and retains it on reopening', async ()
     fireEvent(details, new Event('toggle'))
   })
   await waitFor(() => expect(screen.getByText('@old.example')).toBeVisible())
+  expect(screen.queryByText('@EXAMPLE.com')).not.toBeInTheDocument()
+  expect(screen.getByText('@older.example')).toBeVisible()
+  expect(screen.getByText('Decentralized Identifier')).toBeVisible()
+  expect(screen.getByText('did:plc:example')).toBeVisible()
   act(() => {
     details.open = false
     fireEvent(details, new Event('toggle'))
@@ -80,7 +87,9 @@ it.each(['pending', 'error'])('keeps %s history messages outside the definition 
     fireEvent(details, new Event('toggle'))
   })
   const message =
-    state === 'pending' ? await screen.findByRole('status') : await screen.findByText('Identity history unavailable.')
+    state === 'pending'
+      ? await screen.findByText('Loading identity history...')
+      : await screen.findByText('Identity history unavailable.')
   expect(message).toBeVisible()
   expect(message.closest('dl')).toBeNull()
   expect(details).toContainElement(message)

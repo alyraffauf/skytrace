@@ -1,6 +1,6 @@
-import { ChevronRightIcon } from '@heroicons/react/24/outline'
+import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { formatDate } from '../../lib/dates'
 import type { PublicDataService } from '../../data/publicData'
 import type { ActorProfile } from '../../types'
@@ -15,89 +15,79 @@ export function AccountDetails({
   const [detailsOpen, setDetailsOpen] = useState(false)
   const detailsQuery = useQuery({ ...service.actors.accountDetailsQueryOptions(identity.did), enabled: detailsOpen })
   const pdsUrl = new URL(identity.pds)
+  const aliases = (detailsQuery.data?.aliases ?? [])
+    .filter((alias) => alias.toLowerCase() !== `at://${identity.handle.toLowerCase()}`)
+    .map(formatAlias)
+  const formerHandles = detailsQuery.data?.formerHandles ?? []
   return (
-    <details
-      onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
-      className="group mt-5 border-t border-zinc-200 pt-4 dark:border-zinc-800"
-    >
-      <summary className="flex min-h-9 cursor-pointer list-none items-start gap-2.5 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100">
-        <ChevronRightIcon className="mt-0.5 size-4 shrink-0 group-open:rotate-90" aria-hidden="true" />
-        <span>
-          <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">Account details</span>
-          <span className="mt-0.5 block text-xs text-zinc-500">DID, PDS, and identity history</span>
-        </span>
+    <details onToggle={(event) => setDetailsOpen(event.currentTarget.open)} className="group mt-3">
+      <summary className="inline-flex min-h-8 cursor-pointer list-none items-center gap-1.5 text-xs text-ui-muted hover:text-ui-text">
+        Account details
+        <ChevronDownIcon className="size-3.5 shrink-0 group-open:rotate-180" aria-hidden="true" />
       </summary>
-      <dl className="mt-4 grid gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+      <dl className="mt-2 grid gap-3 text-xs">
         {detailsQuery.data?.createdAt && (
-          <Detail label="Created" value={formatDate(detailsQuery.data.createdAt) ?? detailsQuery.data.createdAt} />
+          <Detail label="Created">{formatDate(detailsQuery.data.createdAt) ?? detailsQuery.data.createdAt}</Detail>
         )}
-        {detailsQuery.data?.aliases.length ? (
-          <DetailList label="Aliases" values={detailsQuery.data.aliases.map(formatAlias)} />
-        ) : null}
-        {detailsQuery.data?.formerHandles.length ? (
-          <DetailList label="Former handles" values={detailsQuery.data.formerHandles.map((handle) => `@${handle}`)} />
-        ) : null}
-        <div className="min-w-0">
-          <dt className="font-medium text-zinc-700 dark:text-zinc-300">Decentralized Identifier</dt>
-          <dd className="mt-1 break-all font-mono text-[11px]">{identity.did}</dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="font-medium text-zinc-700 dark:text-zinc-300">Personal Data Server</dt>
-          <dd className="mt-1 break-all font-mono text-[11px]">
-            <a
-              href={identity.pds}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-violet-700 hover:underline dark:text-violet-300"
-            >
-              <img
-                src={new URL('/favicon.ico', pdsUrl).toString()}
-                alt=""
-                className="size-3.5 shrink-0 object-contain"
-                onError={(event) => {
-                  event.currentTarget.hidden = true
-                }}
-              />
-              {pdsUrl.host}
-            </a>
-          </dd>
-        </div>
+        <Detail label="Personal Data Server">
+          <a
+            href={identity.pds}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex max-w-full items-center gap-1.5 text-ui-accent hover:underline"
+          >
+            <img
+              key={pdsUrl.origin}
+              src={new URL('/favicon.ico', pdsUrl).href}
+              alt=""
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              className="size-3.5 shrink-0 object-contain"
+              onError={(event) => {
+                event.currentTarget.hidden = true
+              }}
+            />
+            <span className="wrap-anywhere">{pdsUrl.host}</span>
+          </a>
+        </Detail>
+        <Detail label="Decentralized Identifier">
+          <span className="select-all break-all font-mono">{identity.did}</span>
+        </Detail>
+        {aliases.length > 0 && <DetailList label="Aliases" values={aliases} />}
+        {formerHandles.length > 0 && (
+          <DetailList label="Former handles" values={formerHandles.map((handle) => `@${handle}`)} />
+        )}
       </dl>
       {detailsOpen && detailsQuery.isPending && (
-        <p role="status" className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+        <p role="status" className="mt-3 text-xs text-ui-muted">
           Loading identity history...
         </p>
       )}
-      {detailsQuery.isError && (
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Identity history unavailable.</p>
-      )}
+      {detailsQuery.isError && <p className="mt-3 text-xs text-ui-muted">Identity history unavailable.</p>}
     </details>
   )
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="min-w-0">
-      <dt className="font-medium text-zinc-700 dark:text-zinc-300">{label}</dt>
-      <dd className="mt-1 break-all font-mono text-[11px]">{value}</dd>
+    <div className="grid min-w-0 gap-1">
+      <dt className="text-ui-muted">{label}</dt>
+      <dd className="min-w-0 text-ui-text wrap-anywhere">{children}</dd>
     </div>
   )
 }
 
 function DetailList({ label, values }: { label: string; values: string[] }) {
   return (
-    <div className="min-w-0">
-      <dt className="font-medium text-zinc-700 dark:text-zinc-300">{label}</dt>
-      <dd className="mt-1">
-        <ul className="grid gap-1 font-mono text-[11px]">
-          {values.map((value) => (
-            <li key={value} className="break-all">
-              {value}
-            </li>
-          ))}
-        </ul>
-      </dd>
-    </div>
+    <Detail label={label}>
+      <ul className="grid gap-1">
+        {values.map((value) => (
+          <li key={value} className="wrap-anywhere">
+            {value}
+          </li>
+        ))}
+      </ul>
+    </Detail>
   )
 }
 
