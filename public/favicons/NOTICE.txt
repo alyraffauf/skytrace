@@ -1,0 +1,10 @@
+skythread.svg
+
+Sun behind small cloud (U+1F324) artwork from Twemoji 14.0.2,
+by Twitter, Inc. and other contributors.
+
+Source: https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f324.svg
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+The artwork is unmodified.
