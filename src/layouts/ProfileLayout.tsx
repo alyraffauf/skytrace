@@ -10,7 +10,7 @@ import { Link, Outlet } from 'react-router-dom'
 import { LinkifiedText } from '../components/ui/LinkifiedText'
 import { RecordLinksMenu } from '../components/records/RecordLinksMenu'
 import { ActorAvatar, actorHandle, actorLabel } from '../components/actors/ActorIdentity'
-import { ErrorState } from '../components/ui/States'
+import { ProfileErrorState } from '../components/profile/ProfileErrorState'
 import { publicDataServiceFor, type PublicDataService } from '../data/publicData'
 import { socialProfilePath } from '../lib/links'
 import type { ActorProfile } from '../types'
@@ -37,7 +37,13 @@ export function ProfileLayout() {
   if (visibilityQuery.isPending) content = <ProfileSkeleton />
   else if (visibilityQuery.isError) {
     title = 'Profile unavailable — SkyTrace'
-    content = <ErrorState error={visibilityQuery.error} retry={() => void visibilityQuery.refetch()} />
+    content = (
+      <ProfileErrorState
+        actor={actor}
+        isRetrying={visibilityQuery.isFetching}
+        retry={() => void visibilityQuery.refetch()}
+      />
+    )
   } else if (!visibilityQuery.data.visible) {
     title = 'Profile unavailable — SkyTrace'
     content = <BlockedProfileState reason={visibilityQuery.data.reason} />

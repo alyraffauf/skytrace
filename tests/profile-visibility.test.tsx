@@ -241,7 +241,8 @@ describe('unified profile visibility', () => {
       </QueryClientProvider>,
     )
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Block check unavailable')
+    expect(await screen.findByRole('heading', { name: 'Account unavailable' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible()
     expect(screen.queryByText('AT Protocol')).not.toBeInTheDocument()
     expect(screen.queryByText('Profile records')).not.toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalled()

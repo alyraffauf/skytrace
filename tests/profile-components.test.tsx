@@ -3,12 +3,13 @@ import { HomePage } from '../src/pages/HomePage'
 import { queryKeys } from '../src/data/queryKeys'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { MemoryRouter, createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { AccountDetails } from '../src/components/profile/AccountDetails'
 import { ProfileTabsNav } from '../src/components/profile/ProfileTabsNav'
 import { AppLayout } from '../src/layouts/AppLayout'
 import { ProfileLayout } from '../src/layouts/ProfileLayout'
+import { ProfileErrorState } from '../src/components/profile/ProfileErrorState'
 import { PublicDataService } from '../src/data/publicData'
 import { createTestQueryClient } from './testUtils'
 
@@ -16,6 +17,27 @@ const originalScrollTo = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 
 afterEach(() => {
   if (originalScrollTo) Object.defineProperty(HTMLElement.prototype, 'scrollTo', originalScrollTo)
   else Reflect.deleteProperty(HTMLElement.prototype, 'scrollTo')
+})
+
+it('lets an unavailable account be retried or replaced with a new search', () => {
+  const retry = vi.fn()
+  render(
+    <MemoryRouter initialEntries={['/profile/missing.example']}>
+      <Routes>
+        <Route path="/" element={<h1>Search for an account</h1>} />
+        <Route
+          path="/profile/:actor"
+          element={<ProfileErrorState actor="missing.example" isRetrying={false} retry={retry} />}
+        />
+      </Routes>
+    </MemoryRouter>,
+  )
+  expect(screen.getByRole('heading', { name: 'Account unavailable', level: 1 })).toBeVisible()
+  expect(screen.getByText(/missing\.example/)).toBeVisible()
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+  expect(retry).toHaveBeenCalledOnce()
+  fireEvent.click(screen.getByRole('link', { name: 'Back to search' }))
+  expect(screen.getByRole('heading', { name: 'Search for an account' })).toBeVisible()
 })
 
 it('requests history only after expansion and retains it on reopening', async () => {
