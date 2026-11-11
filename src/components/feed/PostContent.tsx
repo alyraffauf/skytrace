@@ -7,8 +7,7 @@ import { safeHttpUrl } from '../../lib/urls'
 import { profilePath } from '../../routes/paths'
 import type { Facet, FeedPost } from '../../types'
 
-const richTextLinkClassName =
-  'rounded text-violet-700 underline decoration-violet-200 underline-offset-2 hover:text-violet-900 dark:text-violet-300 dark:decoration-violet-900 dark:hover:text-violet-200'
+const richTextLinkClassName = 'rounded-ui-inner text-ui-accent underline decoration-ui-brand underline-offset-2'
 
 function RichText({ text, facets, className }: { text: string; facets: Facet[]; className: string }) {
   return (
@@ -56,11 +55,11 @@ export function PostContent({
       <RichText
         text={post.text}
         facets={post.facets}
-        className={`${quoted ? 'line-clamp-3 ' : ''}whitespace-pre-wrap break-words text-sm leading-5 text-zinc-800 dark:text-zinc-200`}
+        className={`${quoted ? 'line-clamp-3 ' : ''}whitespace-pre-wrap break-words text-sm leading-5 text-ui-text`}
       />
       {post.images && (
         <div
-          className={`mt-2 grid gap-px overflow-hidden border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800 ${post.images.length > 1 ? 'grid-cols-2' : ''}`}
+          className={`mt-2 grid gap-px overflow-hidden border border-ui-border bg-ui-subtle ${post.images.length > 1 ? 'grid-cols-2' : ''}`}
         >
           {post.images.map((image, index) => {
             const imageUrl = cdnImageUrl('feed_fullsize', authorDid, image.cid)
@@ -71,7 +70,7 @@ export function PostContent({
                   src={thumbnailUrl}
                   alt={image.alt || `Image ${index + 1} attached to this post`}
                   fallback="image"
-                  className="h-36 w-full bg-zinc-100 object-cover dark:bg-zinc-900 sm:h-48"
+                  className="h-36 w-full bg-ui-subtle object-cover sm:h-48"
                   loading="lazy"
                 />
               </a>
@@ -82,7 +81,7 @@ export function PostContent({
       {post.video && repositoryPds && (
         // oxlint-disable-next-line jsx-a11y/media-has-caption -- Tracks are rendered from optional caption blobs below.
         <video
-          className="mt-2 max-h-64 w-full bg-black"
+          className="mt-2 max-h-64 w-full bg-ui-media"
           controls
           preload="none"
           crossOrigin={post.video.captions?.length ? 'anonymous' : undefined}

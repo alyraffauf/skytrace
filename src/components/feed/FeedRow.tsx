@@ -40,7 +40,7 @@ function ResolvedFeedRow({
           <div className="relative mb-1 min-w-0 pr-10">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <FeedAuthor author={author} />
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">{formatDateTime(post.createdAt)}</span>
+              <span className="text-xs text-ui-muted">{formatDateTime(post.createdAt)}</span>
             </div>
             <div className="absolute right-0 top-1/2 -translate-y-1/2">
               <RecordLinksMenu recordUri={post.uri} label="post" />
@@ -48,7 +48,7 @@ function ResolvedFeedRow({
           </div>
           <PostContent post={post}>
             {post.quoteUri && (
-              <div className="mt-2 overflow-hidden border border-zinc-200 dark:border-zinc-800">
+              <div className="mt-2 overflow-hidden border border-ui-border">
                 <QuotedPostPreview uri={post.quoteUri} service={service} />
               </div>
             )}
@@ -70,13 +70,12 @@ function ResolvedRepost({
   footer?: ReactNode
 }) {
   const targetQuery = useQuery(service.posts.feedPostQueryOptions(item.subjectUri))
-  if (targetQuery.isPending)
-    return <div className="py-5 text-sm text-zinc-500 dark:text-zinc-400">Loading reposted post…</div>
+  if (targetQuery.isPending) return <div className="py-5 text-sm text-ui-muted">Loading reposted post…</div>
   const post = targetQuery.data ?? unavailable(item.subjectUri, 'This post could not be loaded.')
   if (post.kind === 'unavailable') {
     return (
       <div className="py-2.5">
-        <div className="mb-2 flex items-center justify-between gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+        <div className="mb-2 flex items-center justify-between gap-2 text-xs font-medium text-ui-muted">
           <span className="flex items-center gap-2">
             <ArrowPathRoundedSquareIcon className="size-4" /> Reposted
           </span>
@@ -95,18 +94,18 @@ function ResolvedRepost({
 function RepostByline({ item }: { item: Extract<FeedItem, { kind: 'repost' }> }) {
   const author = useActorProfile(item.author.did).data ?? item.author
   return (
-    <div className="mb-1 flex min-w-0 items-center gap-1.5 pl-11 text-xs text-zinc-500 dark:text-zinc-400">
+    <div className="mb-1 flex min-w-0 items-center gap-1.5 pl-11 text-xs text-ui-muted">
       <ArrowPathRoundedSquareIcon className="size-3.5 shrink-0" aria-hidden="true" />
       <span className="shrink-0">Reposted by</span>
       <ActorHandle actor={author} compact />
-      <span className="ml-auto shrink-0 text-zinc-400 dark:text-zinc-500">{formatDateTime(item.createdAt)}</span>
+      <span className="ml-auto shrink-0 text-ui-muted">{formatDateTime(item.createdAt)}</span>
     </div>
   )
 }
 
 function ReplyByline({ recordUri }: { recordUri: string }) {
   return (
-    <div className="mb-1 flex items-center gap-1 pl-11 text-xs text-zinc-500 dark:text-zinc-400">
+    <div className="mb-1 flex items-center gap-1 pl-11 text-xs text-ui-muted">
       Reply to a public post
       <div className="-my-2">
         <RecordLinksMenu recordUri={recordUri} label="parent post" />
