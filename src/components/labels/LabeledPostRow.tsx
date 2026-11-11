@@ -1,3 +1,5 @@
+import { Text } from '@astryxdesign/core/Text'
+import { TagIcon } from '@heroicons/react/16/solid'
 import { actorReference } from '../../data/recordResults'
 import { MiniActor } from '../actors/ActorIdentity'
 import { FeedRow } from '../feed/FeedRow'
@@ -33,9 +35,8 @@ function PostLabels({
   displayNames?: ReadonlyMap<string, string>
 }) {
   return (
-    <section aria-label="Post labels" className="mt-2 border-l-2 border-violet-200 pl-2.5 dark:border-violet-900">
-      <h3 className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Post labels</h3>
-      <ul className="mt-0.5">
+    <section aria-label="Post labels" className="mt-3 border-t border-ui-border pt-3">
+      <ul className="grid gap-3">
         {labels.map((label) => (
           <PostLabel key={label.id} label={label} displayName={displayNames?.get(label.id)} />
         ))}
@@ -47,20 +48,20 @@ function PostLabels({
 function PostLabel({ label, displayName }: { label: LabeledPost['labels'][number]; displayName?: string }) {
   const state = useLabelState(label)
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-0.5 text-xs">
-      <div className="flex min-w-0 items-center gap-2">
-        <LabelValue
-          value={label.value}
-          displayName={displayName}
-          className="truncate font-semibold text-zinc-900 dark:text-zinc-100"
-        />
-        {state !== 'Active' && <span className="shrink-0 text-zinc-500 dark:text-zinc-400">{state}</span>}
+    <li className="grid grid-cols-[1rem_minmax(0,1fr)] gap-x-2 gap-y-1">
+      <TagIcon className="mt-0.5 size-4 text-ui-muted" aria-hidden="true" />
+      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+        <Text type="supporting" color="primary" weight="medium" className="min-w-0 wrap-anywhere">
+          <LabelValue value={label.value} displayName={displayName} />
+        </Text>
+        {state !== 'Active' && <Text type="supporting">{state}</Text>}
       </div>
-      <time dateTime={label.createdAt} className="text-zinc-500 dark:text-zinc-400">
-        {formatDate(label.createdAt) ?? 'Date unknown'}
-      </time>
-      <div className="col-span-2 mt-0.5 min-w-0">
-        <MiniActor actor={actorReference(label.sourceDid)} label="By" />
+      <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+        <MiniActor actor={actorReference(label.sourceDid)} avatarSize="inline" />
+        <Text type="supporting" className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <span aria-hidden="true">·</span>
+          <time dateTime={label.createdAt}>{formatDate(label.createdAt) ?? 'Date unknown'}</time>
+        </Text>
       </div>
     </li>
   )

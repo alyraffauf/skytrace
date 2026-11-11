@@ -14,9 +14,10 @@ export function actorHandle(identity: ActorIdentity): string {
   return identity.handle === 'handle.invalid' ? identity.did : `@${identity.handle}`
 }
 
-type ActorAvatarSize = 'small' | 'row' | 'profile'
+type ActorAvatarSize = 'inline' | 'small' | 'row' | 'profile'
 
 const actorAvatarSizeClass: Record<ActorAvatarSize, string> = {
+  inline: 'size-4',
   small: 'size-6',
   row: 'size-8',
   profile: 'size-20',
@@ -84,12 +85,20 @@ export function ActorHandle({ actor, compact = false }: { actor: Actor; compact?
   )
 }
 
-export function MiniActor({ actor, label }: { actor: ActorReference; label?: string }) {
+export function MiniActor({
+  actor,
+  label,
+  avatarSize = 'small',
+}: {
+  actor: ActorReference
+  label?: string
+  avatarSize?: 'inline' | 'small'
+}) {
   const hydratedActor = useActorProfile(actor.did).data ?? actor
   return (
     <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs text-ui-muted">
       {label && <span>{label}</span>}
-      <ActorAvatar actor={hydratedActor} size="small" decorative />
+      <ActorAvatar actor={hydratedActor} size={avatarSize} decorative />
       <ActorHandle actor={hydratedActor} compact />
     </span>
   )

@@ -157,7 +157,7 @@ describe('labeled post previews', () => {
       queryClient,
     )
 
-    expect(screen.getByRole('heading', { name: 'Post labels' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Post labels' })).toBeInTheDocument()
     expect(screen.getByText('Custom warning')).toHaveAttribute('title', 'Raw label: graphic-media')
     expect(screen.getByText('photography')).toBeInTheDocument()
     expect(screen.queryByText('Expired')).not.toBeInTheDocument()
