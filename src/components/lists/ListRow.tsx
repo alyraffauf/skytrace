@@ -1,3 +1,4 @@
+import { Badge } from '@astryxdesign/core/Badge'
 import { MiniActor } from '../actors/ActorIdentity'
 import { ImageWithFallback } from '../ui/ImageWithFallback'
 import { RecordLinksMenu } from '../records/RecordLinksMenu'
@@ -20,17 +21,13 @@ export function ListRow({ list, membership }: { list: ListSummary | UnavailableI
   const details = (
     <>
       <div className="flex min-w-0 flex-wrap items-start gap-x-2 gap-y-0.5">
-        <h3 className="line-clamp-2 min-w-0 break-words text-sm font-semibold leading-5 text-zinc-950 group-hover:text-violet-700 dark:text-zinc-100 dark:group-hover:text-violet-300 sm:line-clamp-1">
+        <h3 className="line-clamp-2 min-w-0 break-words text-sm font-semibold leading-5 text-ui-text group-hover:text-ui-accent sm:line-clamp-1">
           {list.name}
         </h3>
-        <span className="shrink-0 pt-0.5 text-xs text-violet-700 dark:text-violet-300">
-          {listPurposeLabel(list.purpose)}
-        </span>
+        <Badge label={listPurposeLabel(list.purpose)} variant="purple" />
       </div>
       {list.description && (
-        <p className="mt-1 line-clamp-2 text-xs leading-4 text-zinc-600 dark:text-zinc-400 sm:line-clamp-1">
-          {list.description}
-        </p>
+        <p className="mt-1 line-clamp-2 text-xs leading-4 text-ui-muted sm:line-clamp-1">{list.description}</p>
       )}
     </>
   )
@@ -42,7 +39,7 @@ export function ListRow({ list, membership }: { list: ListSummary | UnavailableI
       <ListAvatar list={list} size="row" />
       <div className="min-w-0">
         {internalPath ? (
-          <Link to={internalPath} className="block rounded-sm hover:text-violet-700 dark:hover:text-violet-300">
+          <Link to={internalPath} className="block rounded-ui-inner hover:text-ui-accent">
             {details}
           </Link>
         ) : (
@@ -50,12 +47,10 @@ export function ListRow({ list, membership }: { list: ListSummary | UnavailableI
         )}
         <div className={`${list.description ? 'mt-1.5' : 'mt-1'} flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1`}>
           <MiniActor actor={list.owner} label="By" />
-          <span className="ml-auto shrink-0 text-xs text-zinc-500 dark:text-zinc-400 sm:hidden">
-            {date ?? 'Date unknown'}
-          </span>
+          <span className="ml-auto shrink-0 text-xs text-ui-muted sm:hidden">{date ?? 'Date unknown'}</span>
         </div>
       </div>
-      <p className="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:col-start-3 sm:row-start-1 sm:block sm:text-right">
+      <p className="hidden text-xs text-ui-muted sm:col-start-3 sm:row-start-1 sm:block sm:text-right">
         {date ?? 'Date unknown'}
       </p>
       <div className="-my-1 col-start-3 row-span-2 row-start-1 self-start sm:col-start-4 sm:row-span-1">
@@ -77,7 +72,7 @@ export function ListAvatar({ list, size }: { list: ListSummary; size: 'row' | 'h
       src={list.avatarCid ? cdnImageUrl('avatar', ownerDid, list.avatarCid) : undefined}
       alt={`${list.name} list avatar`}
       fallback="image"
-      className={`${sizeClass} bg-zinc-100 object-cover dark:bg-zinc-900`}
+      className={`${sizeClass} bg-ui-subtle object-cover`}
       loading={size === 'header' ? 'eager' : 'lazy'}
     />
   )

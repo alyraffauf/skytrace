@@ -14,9 +14,9 @@ export function ListMembers({ listUri, lists }: { listUri: string; lists: ListDa
   )
   return (
     <>
-      <div className="flex items-center justify-between border-b border-zinc-200 py-3 dark:border-zinc-800">
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Members</h2>
-        <span className="hidden w-[10.5rem] pr-[2.5rem] text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 sm:block">
+      <div className="flex items-center justify-between border-b border-ui-border py-3">
+        <h2 className="text-sm font-semibold text-ui-text">Members</h2>
+        <span className="hidden w-[10.5rem] pr-[2.5rem] text-right text-xs font-medium text-ui-muted sm:block">
           Date added
         </span>
       </div>

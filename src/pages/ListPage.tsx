@@ -1,3 +1,5 @@
+import { Badge } from '@astryxdesign/core/Badge'
+import { Skeleton } from '@astryxdesign/core/Skeleton'
 import { ListMembers } from '../components/lists/ListMembers'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { isRecordKey } from '@atcute/lexicons/syntax'
@@ -60,34 +62,29 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
 
   return (
     <article className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-      <header className="grid grid-cols-[3rem_minmax(0,1fr)_auto] gap-3 border-b border-zinc-200 pb-5 dark:border-zinc-800">
-        <ListAvatar list={list} size="header" />
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <h1 className="truncate text-xl font-semibold text-zinc-950 dark:text-zinc-100 sm:text-2xl">{list.name}</h1>
-            <span className="text-xs text-violet-700 dark:text-violet-300">{listPurposeLabel(list.purpose)}</span>
+      <header className="space-y-4 border-b border-ui-border pb-4">
+        <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-start gap-3">
+          <ListAvatar list={list} size="header" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <h1 className="truncate text-xl font-semibold text-ui-text sm:text-2xl">{list.name}</h1>
+              <Badge label={listPurposeLabel(list.purpose)} variant="purple" />
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <MiniActor actor={list.owner} label="By" />
+              {list.createdAt && <span className="text-xs text-ui-muted">{formatDate(list.createdAt)}</span>}
+            </div>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <MiniActor actor={list.owner} label="By" />
-            {list.createdAt && (
-              <span className="text-xs text-zinc-400 dark:text-zinc-500">{formatDate(list.createdAt)}</span>
-            )}
-          </div>
+          <RecordLinksMenu recordUri={list.uri} label={list.name} />
         </div>
-        <RecordLinksMenu recordUri={list.uri} label={list.name} />
-        {list.description && (
-          <p className="col-span-3 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">{list.description}</p>
-        )}
-      </header>
-
-      {listBlockCountQuery.data !== undefined && (
-        <div className="border-b border-zinc-200 py-3 dark:border-zinc-800">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        {list.description && <p className="max-w-3xl text-sm leading-5 text-ui-muted">{list.description}</p>}
+        {listBlockCountQuery.data !== undefined && (
+          <p className="text-xs text-ui-muted">
             {listBlockCountQuery.data.toLocaleString()}{' '}
             {listBlockCountQuery.data === 1 ? 'account blocks' : 'accounts block'} this moderation list
           </p>
-        </div>
-      )}
+        )}
+      </header>
 
       <ListMembers listUri={list.uri} lists={service.lists} />
     </article>
@@ -96,12 +93,12 @@ function ResolvedListPage({ list, service }: { list: ListSummary; service: Publi
 
 function ListPageSkeleton() {
   return (
-    <div aria-label="Loading list" className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <div className="flex gap-3 border-b border-zinc-200 pb-5 dark:border-zinc-800">
-        <div className="skeleton size-12" />
+    <div aria-label="Loading list" className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="flex gap-3 border-b border-ui-border pb-4">
+        <Skeleton width="3rem" height="3rem" />
         <div className="flex-1">
-          <div className="skeleton h-6 w-48" />
-          <div className="skeleton mt-2 h-3 w-32" />
+          <Skeleton width="12rem" height="1.5rem" />
+          <Skeleton width="8rem" height="0.75rem" className="mt-2" />
         </div>
       </div>
       <div className="mt-4">
