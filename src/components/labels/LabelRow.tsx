@@ -1,3 +1,5 @@
+import { Badge } from '@astryxdesign/core/Badge'
+import { Text } from '@astryxdesign/core/Text'
 import { actorReference } from '../../data/recordResults'
 import type { LabelHistoryEvent } from '../../lib/labels/history'
 import { useLabelState } from '../../hooks/useLabelState'
@@ -13,46 +15,56 @@ export function LabelRow({ label, displayName }: { label: LabelHistoryEvent | Un
     return <UnavailableRow reason={label.reason} />
   }
 
-  const added = formatDate(label.addedAt ?? (label.negated ? undefined : label.createdAt))
-  const expiry = formatDate(label.expiresAt)
-  const removed = label.negated ? formatDate(label.createdAt) : undefined
+  const dates = [
+    { caption: 'Added', timestamp: label.addedAt ?? (label.negated ? undefined : label.createdAt) },
+    label.negated
+      ? { caption: 'Removed', timestamp: label.createdAt }
+      : { caption: state === 'Expired' ? 'Expired' : 'Expires', timestamp: label.expiresAt },
+  ].flatMap(({ caption, timestamp }) => {
+    const formatted = formatDate(timestamp)
+    return formatted ? [{ caption, timestamp, formatted }] : []
+  })
 
   return (
-    <article className={`${compactRowClassName} grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3`}>
+    <article
+      className={`${compactRowClassName} grid grid-cols-1 items-center gap-x-3 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto]`}
+    >
       <div className="min-w-0">
-        <div className="flex min-w-0 items-baseline gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <LabelValue
             value={label.value}
             displayName={displayName}
-            className="min-w-0 break-words text-sm font-semibold leading-4 text-zinc-950 dark:text-zinc-100"
+            className="min-w-0 break-words text-sm font-semibold leading-4 text-ui-text"
           />
-          <span
-            className={`shrink-0 text-xs font-medium ${state === 'Active' ? 'text-violet-700 dark:text-violet-300' : 'text-zinc-600 dark:text-zinc-400'}`}
-          >
-            {state}
-          </span>
+          <Badge label={state} variant={state === 'Active' ? 'purple' : 'neutral'} className="shrink-0" />
         </div>
         <div className="mt-1 min-w-0">
           <MiniActor actor={actorReference(label.sourceDid)} label="By" />
         </div>
       </div>
-      <div className="text-right text-xs text-zinc-500 dark:text-zinc-400">
-        {added && (
-          <p aria-label={`Added ${added}`}>
-            Added <time dateTime={label.addedAt ?? label.createdAt}>{added}</time>
-          </p>
+      <div className="flex flex-wrap gap-x-2 gap-y-1 sm:block">
+        {dates.map(({ caption, timestamp, formatted }, index) => (
+          <Text
+            key={caption}
+            type="supporting"
+            as="p"
+            display="block"
+            className="sm:text-right"
+            aria-label={`${caption} ${formatted}`}
+          >
+            {index > 0 && (
+              <span aria-hidden="true" className="mr-2 sm:hidden">
+                ·
+              </span>
+            )}
+            {caption} <time dateTime={timestamp}>{formatted}</time>
+          </Text>
+        ))}
+        {dates.length === 0 && (
+          <Text type="supporting" display="block" className="sm:text-right">
+            Date unknown
+          </Text>
         )}
-        {removed && (
-          <p aria-label={`Removed ${removed}`}>
-            Removed <time dateTime={label.createdAt}>{removed}</time>
-          </p>
-        )}
-        {!removed && expiry && (
-          <p aria-label={`${state === 'Expired' ? 'Expired' : 'Expires'} ${expiry}`}>
-            {state === 'Expired' ? 'Expired' : 'Expires'} <time dateTime={label.expiresAt}>{expiry}</time>
-          </p>
-        )}
-        {!added && !removed && <span>Date unknown</span>}
       </div>
     </article>
   )

@@ -75,6 +75,28 @@ describe('account labels', () => {
     expect(screen.getAllByText('Expired')[0]).toBeInTheDocument()
   })
 
+  it('shows a valid expiry without an unknown-date fallback when the application date is invalid', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+    renderWithRouter(
+      <LabelRow
+        label={{
+          kind: 'labelEvent',
+          id: 'invalid-application-date',
+          sourceDid: did,
+          subject: did,
+          value: 'test-label',
+          createdAt: 'invalid',
+          expiresAt: '2027-01-01T00:00:00Z',
+          negated: false,
+        }}
+      />,
+    )
+    expect(screen.getByLabelText(/^Expires /)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/^Added /)).not.toBeInTheDocument()
+    expect(screen.queryByText('Date unknown')).not.toBeInTheDocument()
+  })
+
   it('pairs an applied label with its removal date', () => {
     const added: LabelEvent = {
       kind: 'labelEvent',
