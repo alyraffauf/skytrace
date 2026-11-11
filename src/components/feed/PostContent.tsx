@@ -55,7 +55,7 @@ export function PostContent({
       <RichText
         text={post.text}
         facets={post.facets}
-        className={`${quoted ? 'line-clamp-3 ' : ''}whitespace-pre-wrap break-words text-sm leading-5 text-ui-text`}
+        className="whitespace-pre-wrap break-words text-sm leading-5 text-ui-text"
       />
       {post.images && (
         <div
