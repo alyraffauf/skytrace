@@ -1,4 +1,37 @@
-@import 'tailwindcss';
+@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import '@astryxdesign/core/reset.css';
+@import '@astryxdesign/core/astryx.css';
+@import './theme/generated/skytrace.css';
+
+@theme inline {
+  --color-ui-canvas: var(--color-background-body);
+  --color-ui-surface: var(--color-background-surface);
+  --color-ui-subtle: var(--color-background-muted);
+  --color-ui-text: var(--color-text-primary);
+  --color-ui-muted: var(--color-text-secondary);
+  --color-ui-border: var(--color-border);
+  --color-ui-border-strong: var(--color-border-emphasized);
+  --color-ui-brand: var(--color-accent);
+  --color-ui-accent: var(--color-text-accent);
+  --color-ui-tint: var(--color-accent-muted);
+  --color-ui-error: var(--color-text-error);
+  --color-ui-error-border: var(--color-border-error);
+  --color-ui-mark: var(--color-brand-mark);
+  --color-ui-media: var(--color-background-media);
+
+  --radius-ui-inner: var(--radius-inner);
+  --radius-ui-full: var(--radius-full);
+
+  --font-sans: var(--font-family-body);
+  --font-mono: var(--font-family-code);
+  --text-xs: var(--text-supporting-size);
+  --text-sm: var(--text-body-size);
+  --text-xl: var(--text-heading-2-size);
+  --text-2xl: var(--text-heading-1-size);
+}
 
 @font-face {
   font-family: 'Inter';
@@ -24,23 +57,22 @@
 
 @layer base {
   html {
-    color-scheme: light dark;
-    background: #fff;
+    background: var(--color-background-body);
   }
 
   body {
     min-width: 320px;
     min-height: 100vh;
-    background: #fff;
-    color: #18181b;
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased;
+    background: var(--color-background-body);
+    color: var(--color-text-primary);
+    font-family: var(--font-family-body);
   }
 
-  button,
-  a,
-  summary {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-violet-400 dark:focus-visible:ring-offset-zinc-950;
+  :where(a, summary):focus-visible {
+    outline-width: var(--focus-outline-width);
+    outline-style: var(--focus-outline-style);
+    outline-color: var(--focus-outline-color);
+    outline-offset: var(--focus-outline-offset);
   }
 }
 
@@ -55,17 +87,11 @@
     }
 
     & p {
-      @apply mt-3 text-sm leading-7 text-zinc-600 dark:text-zinc-400;
+      @apply mt-3 text-sm leading-7 text-ui-muted;
     }
 
     & a {
-      @apply text-violet-700 underline underline-offset-2 dark:text-violet-400;
-    }
-
-    @media (hover: hover) {
-      &:hover a {
-        @apply text-violet-900 dark:text-violet-300;
-      }
+      @apply text-ui-accent underline underline-offset-2;
     }
 
     & ul,
@@ -84,20 +110,6 @@
     & li {
       @apply text-sm leading-7;
     }
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  html,
-  body {
-    background: #09090b;
-    color: #f4f4f5;
-  }
-}
-
-@keyframes soft-pulse {
-  50% {
-    opacity: 0.45;
   }
 }
 
@@ -139,6 +151,89 @@
   animation-delay: 0.6s;
 }
 
+.feed-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 15rem;
+}
+
+.media-image {
+  opacity: 0;
+  transition: opacity 160ms ease-out;
+}
+
+.media-image[data-loaded='true'] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: none;
+  }
+
+  .media-image {
+    transition: none;
+  }
+
+  .rain-cloud path:not(:first-child) {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+@layer components {
+  .actor-search-control {
+    padding-inline-end: 2.5rem;
+    background-color: var(--color-background-body);
+  }
+
+  .actor-search-control--compact {
+    padding-inline-start: 0.75rem;
+  }
+
+  .actor-search-control--home {
+    --text-body-size: var(--text-search-size);
+    --text-body-leading: var(--text-search-leading);
+    height: 3.5rem;
+    padding-inline-start: 1rem;
+    padding-inline-end: 3.5rem;
+  }
+
+  .actor-search-control--home:not([data-status]):not(:focus-within) {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-search);
+  }
+
+  .actor-search-submit {
+    --color-text-primary: var(--color-text-secondary);
+    --color-overlay-hover: transparent;
+    --color-overlay-pressed: transparent;
+  }
+
+  .actor-search-submit--home {
+    --color-text-primary: var(--color-accent);
+  }
+
+  .profile-tabs {
+    --focus-outline-offset: calc(-1 * var(--focus-outline-width));
+  }
+
+  @media (hover: hover) {
+    .profile-tabs .astryx-tab:hover {
+      color: var(--color-text-primary);
+    }
+  }
+
+  .profile-tabs .astryx-tab-scroll-button {
+    display: none;
+  }
+}
+
+@keyframes soft-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
 .skeleton {
   animation: soft-pulse 1.5s ease-in-out infinite;
   @apply bg-zinc-200 dark:bg-zinc-800;
@@ -160,32 +255,8 @@
   }
 }
 
-.feed-row {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 15rem;
-}
-
-.media-image {
-  opacity: 0;
-  transition: opacity 160ms ease-out;
-}
-
-.media-image[data-loaded='true'] {
-  opacity: 1;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .skeleton,
-  .animate-spin {
+  .skeleton {
     animation: none;
-  }
-
-  .media-image {
-    transition: none;
-  }
-
-  .rain-cloud path:not(:first-child) {
-    animation: none;
-    opacity: 1;
   }
 }
