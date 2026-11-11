@@ -52,7 +52,7 @@ export function ProfileLayout() {
     title = `${actorHandle(profile.identity)} — ${profileTab.label} — SkyTrace`
     content = (
       <article className="min-h-[calc(100vh-3rem)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]">
-        <aside className="border-b border-ui-border bg-ui-canvas lg:sticky lg:top-12 lg:h-[calc(100vh-5.75rem)] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
+        <aside className="border-b border-ui-border bg-ui-canvas lg:sticky lg:top-12 lg:h-[calc(100dvh-3rem-var(--app-footer-height,2.75rem))] lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
           <ProfileIdentity profile={profile} service={service} />
         </aside>
         <div className="min-w-0">

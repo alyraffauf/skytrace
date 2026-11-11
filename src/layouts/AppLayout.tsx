@@ -2,16 +2,37 @@ import { DonateButton } from '../components/ui/DonateButton'
 import { DonateReminder } from '../components/ui/DonateReminder'
 import { RainCloud } from '../components/ui/RainCloud'
 import { Link, Outlet, ScrollRestoration } from 'react-router-dom'
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { useRouteMetadata } from '../routes/metadata'
 import { ActorSearch } from '../components/actors/ActorSearch'
 
 export function AppLayout() {
+  const footerRef = useRef<HTMLElement>(null)
+  const [footerHeight, setFooterHeight] = useState<number>()
   const { presentation } = useRouteMetadata()
   const isHomeRoute = presentation === 'home'
   const isExplorerRoute = presentation === 'explorer'
 
+  useLayoutEffect(() => {
+    const footer = footerRef.current
+    if (!footer) return
+    const updateHeight = () => setFooterHeight(footer.getBoundingClientRect().height)
+    updateHeight()
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(footer)
+    return () => observer.disconnect()
+  }, [])
+
   return (
-    <div className="flex min-h-screen min-h-dvh flex-col bg-ui-canvas pb-[calc(2.75rem+env(safe-area-inset-bottom))] text-ui-text">
+    <div
+      className="flex min-h-screen min-h-dvh flex-col bg-ui-canvas pb-[calc(2.75rem+env(safe-area-inset-bottom))] text-ui-text"
+      style={
+        {
+          paddingBottom: footerHeight,
+          '--app-footer-height': footerHeight === undefined ? undefined : `${footerHeight}px`,
+        } as CSSProperties
+      }
+    >
       <a
         href="#main-content"
         className="fixed left-4 top-3 z-50 -translate-y-20 border border-ui-border-strong bg-ui-canvas px-3 py-2 text-sm font-semibold text-ui-text focus:translate-y-0"
@@ -43,8 +64,11 @@ export function AppLayout() {
       >
         <Outlet />
       </main>
-      <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-ui-border bg-ui-canvas pb-[env(safe-area-inset-bottom)] text-xs text-ui-muted">
-        <div className="mx-auto grid min-h-11 max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6 lg:px-8">
+      <footer
+        ref={footerRef}
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-ui-border bg-ui-canvas pb-[env(safe-area-inset-bottom)] text-xs text-ui-muted"
+      >
+        <div className="mx-auto flex min-h-11 max-w-[1440px] flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:px-6 sm:py-0 lg:px-8">
           <nav aria-label="About SkyTrace" className="flex items-center gap-3 justify-self-start">
             <Link to="/faq" className="rounded-ui-inner text-ui-muted hover:text-ui-accent hover:underline">
               FAQ

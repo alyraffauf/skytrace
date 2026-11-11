@@ -40,6 +40,41 @@ it('lets an unavailable account be retried or replaced with a new search', () =>
   expect(screen.getByRole('heading', { name: 'Search for an account' })).toBeVisible()
 })
 
+it('reserves the footer height again when its content wraps', () => {
+  vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  let footerHeight = 44
+  let resizeFooter!: () => void
+  const disconnect = vi.fn()
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    return new DOMRect(0, 0, 320, this.tagName === 'FOOTER' ? footerHeight : 0)
+  })
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(callback: ResizeObserverCallback) {
+        resizeFooter = () => callback([], this as unknown as ResizeObserver)
+      }
+      observe() {}
+      disconnect = disconnect
+    },
+  )
+  const router = createMemoryRouter([
+    {
+      element: <AppLayout />,
+      children: [{ index: true, element: <h1>Content</h1>, handle: { presentation: 'home' } }],
+    },
+  ])
+  const view = render(<RouterProvider router={router} />)
+  const layout = screen.getByRole('main').parentElement!
+  expect(layout).toHaveStyle({ paddingBottom: '44px' })
+  footerHeight = 88
+  act(() => resizeFooter())
+  expect(layout).toHaveStyle({ paddingBottom: '88px' })
+  expect(layout.style.getPropertyValue('--app-footer-height')).toBe('88px')
+  view.unmount()
+  expect(disconnect).toHaveBeenCalled()
+})
+
 it('requests history only after expansion and retains it on reopening', async () => {
   const client = createTestQueryClient()
   const service = new PublicDataService(client)
