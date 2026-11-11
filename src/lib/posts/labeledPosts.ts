@@ -25,7 +25,7 @@ export function mergeLabeledPosts(items: LabeledPost[]): LabeledPost[] {
   return merged.sort(compareLabeledPostsNewestFirst)
 }
 
-export function compareLabeledPostsNewestFirst(left: LabeledPost, right: LabeledPost): number {
+function compareLabeledPostsNewestFirst(left: LabeledPost, right: LabeledPost): number {
   return (
     timestampFor(right.post.createdAt) - timestampFor(left.post.createdAt) ||
     left.post.uri.localeCompare(right.post.uri)

@@ -96,7 +96,7 @@ export type LabeledPost = {
 
 export type Facet = AppBskyRichtextFacet.Main
 
-export type FeedImage = { cid: Cid; alt: string }
+type FeedImage = { cid: Cid; alt: string }
 
 export type FeedPost = {
   kind: 'post'
