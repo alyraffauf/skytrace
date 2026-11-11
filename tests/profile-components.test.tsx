@@ -1,7 +1,7 @@
 import { PROFILE_TABS } from '../src/routes/profileTabs'
 import { HomePage } from '../src/pages/HomePage'
 import { queryKeys } from '../src/data/queryKeys'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes, createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -73,6 +73,33 @@ it('reserves the footer height again when its content wraps', () => {
   expect(layout.style.getPropertyValue('--app-footer-height')).toBe('88px')
   view.unmount()
   expect(disconnect).toHaveBeenCalled()
+})
+
+it('waits for an open dialog to close before moving search focus', async () => {
+  vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+  const router = createMemoryRouter([
+    {
+      element: <AppLayout />,
+      children: [
+        {
+          index: true,
+          handle: { presentation: 'home' },
+          element: (
+            <dialog open aria-label="Reminder">
+              <button>Close reminder</button>
+            </dialog>
+          ),
+        },
+      ],
+    },
+  ])
+  render(<RouterProvider router={router} />)
+  const button = screen.getByRole('button', { name: 'Close reminder' })
+  act(() => button.focus())
+  await act(() => router.navigate('/', { state: { focusSearchResult: true } }))
+  expect(button).toHaveFocus()
+  act(() => (screen.getByRole('dialog') as HTMLDialogElement).close())
+  expect(screen.getByRole('main')).toHaveFocus()
 })
 
 it('requests history only after expansion and retains it on reopening', async () => {
@@ -284,9 +311,22 @@ it('updates the browser title between profile tabs and restores it on the homepa
   await waitFor(() => expect(document.title).toBe('@example.com — Feed — SkyTrace'))
   expect(screen.getByRole('link', { name: 'SkyTrace' })).toBeVisible()
   expect(screen.getByRole('combobox')).toHaveAttribute('id', 'header-actor-search')
+  const main = screen.getByRole('main')
+  const status = within(main).getByRole('status', { name: 'Profile' })
+  expect(status).toHaveTextContent('@example.com — Feed')
+  const input = screen.getByRole('combobox')
+  act(() => input.focus())
+  fireEvent.change(input, { target: { value: 'example.com' } })
+  fireEvent.submit(input.closest('form')!)
+  await waitFor(() => expect(main).toHaveFocus())
   for (const tab of PROFILE_TABS.slice(1)) {
-    fireEvent.click(screen.getByRole('link', { name: tab.label }))
+    const link = screen.getByRole('link', { name: tab.label })
+    act(() => link.focus())
+    fireEvent.click(link)
     expect(document.title).toBe(`@example.com — ${tab.label} — SkyTrace`)
+    expect(link).toHaveFocus()
+    expect(within(main).getByRole('status', { name: 'Profile' })).toBe(status)
+    expect(status).toHaveTextContent(`@example.com — ${tab.label}`)
   }
   await act(() => router.navigate('/faq'))
   expect(screen.getByRole('link', { name: 'SkyTrace' })).toBeVisible()

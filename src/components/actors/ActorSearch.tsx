@@ -45,7 +45,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
       if (!suggestion) return
       setInput(`@${suggestion.handle}`)
       setError('')
-      navigate(profilePath(did))
+      navigate(profilePath(did), { state: { focusSearchResult: true } })
     },
     listboxId: `${inputId}-suggestions`,
   })
@@ -56,7 +56,7 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
       const actor = normalizeActorInput(input)
       setError('')
       setMenuOpen(false)
-      navigate(profilePath(actor))
+      navigate(profilePath(actor), { state: { focusSearchResult: true } })
     } catch (inputError) {
       setError(inputError instanceof Error ? inputError.message : 'Enter a valid account.')
     }

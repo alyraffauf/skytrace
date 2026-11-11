@@ -1,12 +1,14 @@
 import { DonateButton } from '../components/ui/DonateButton'
 import { DonateReminder } from '../components/ui/DonateReminder'
 import { RainCloud } from '../components/ui/RainCloud'
-import { Link, Outlet, ScrollRestoration } from 'react-router-dom'
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { Link, Outlet, ScrollRestoration, useLocation } from 'react-router-dom'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { useRouteMetadata } from '../routes/metadata'
 import { ActorSearch } from '../components/actors/ActorSearch'
 
 export function AppLayout() {
+  const location = useLocation()
+  const mainRef = useRef<HTMLElement>(null)
   const footerRef = useRef<HTMLElement>(null)
   const [footerHeight, setFooterHeight] = useState<number>()
   const { presentation } = useRouteMetadata()
@@ -22,6 +24,17 @@ export function AppLayout() {
     observer.observe(footer)
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    if (location.state?.focusSearchResult !== true) return
+    const focusMain = () => mainRef.current?.focus({ preventScroll: true })
+    const dialog = document.querySelector<HTMLDialogElement>('dialog[open]')
+    if (dialog) {
+      dialog.addEventListener('close', focusMain, { once: true })
+      return () => dialog.removeEventListener('close', focusMain)
+    }
+    focusMain()
+  }, [location.key, location.state])
 
   return (
     <div
@@ -58,9 +71,10 @@ export function AppLayout() {
         </header>
       )}
       <main
+        ref={mainRef}
         id="main-content"
         tabIndex={-1}
-        className={`mx-auto w-full max-w-[1440px] flex-1 ${isExplorerRoute ? '' : 'flex px-5 sm:px-8'}`}
+        className={`mx-auto w-full max-w-[1440px] flex-1 focus:outline-none ${isExplorerRoute ? '' : 'flex px-5 sm:px-8'}`}
       >
         <Outlet />
       </main>

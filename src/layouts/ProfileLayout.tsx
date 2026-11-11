@@ -79,6 +79,9 @@ export function ProfileLayout() {
   return (
     <>
       <title>{title}</title>
+      <p role="status" aria-label="Profile" aria-atomic="true" className="sr-only">
+        {visibilityQuery.isPending ? 'Loading profile...' : title}
+      </p>
       {content}
     </>
   )
