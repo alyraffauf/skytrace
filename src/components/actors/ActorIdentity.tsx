@@ -25,13 +25,12 @@ const actorAvatarSizeClass: Record<ActorAvatarSize, string> = {
 export function ActorIdentityText({ profile }: { profile: ActorProfile }) {
   const handle = actorHandle(profile.identity)
   return (
-    <Link to={profilePath(profile.identity.did)} className="group/actor min-w-0 rounded-sm flex items-baseline gap-2">
-      <p className="truncate text-sm font-semibold tracking-[-0.01em] text-zinc-950 dark:text-zinc-100">
-        {actorLabel(profile)}
-      </p>
-      <p className="truncate text-xs text-zinc-500 group-hover/actor:text-violet-700 dark:text-zinc-400 dark:group-hover/actor:text-violet-300 sm:text-sm">
-        {handle}
-      </p>
+    <Link
+      to={profilePath(profile.identity.did)}
+      className="group/actor min-w-0 rounded-ui-inner flex items-baseline gap-2"
+    >
+      <p className="truncate text-sm font-semibold tracking-[-0.01em] text-ui-text">{actorLabel(profile)}</p>
+      <p className="truncate text-xs text-ui-muted group-hover/actor:text-ui-accent sm:text-sm">{handle}</p>
     </Link>
   )
 }
@@ -53,7 +52,7 @@ export function ActorAvatar({
       alt={decorative || !profile ? '' : `${actorLabel(profile)}'s avatar`}
       title={actor.kind === 'actorReference' ? actor.did : undefined}
       fallback="avatar"
-      className={`${sizeClass} shrink-0 rounded-full bg-zinc-100 object-cover dark:bg-zinc-900`}
+      className={`${sizeClass} shrink-0 rounded-ui-full bg-ui-subtle object-cover`}
       loading={size === 'profile' ? 'eager' : 'lazy'}
     />
   )
@@ -63,7 +62,7 @@ export function ActorReferenceText({ actor }: { actor: ActorReference }) {
   return (
     <Link
       to={profilePath(actor.did)}
-      className="truncate rounded-sm font-mono text-xs text-zinc-700 hover:text-violet-700 hover:underline dark:text-zinc-300 dark:hover:text-violet-300"
+      className="truncate rounded-ui-inner font-mono text-xs text-ui-text hover:text-ui-accent hover:underline"
     >
       {actor.did}
     </Link>
@@ -78,7 +77,7 @@ export function ActorHandle({ actor, compact = false }: { actor: Actor; compact?
   return (
     <Link
       to={profilePath(actor.identity.did)}
-      className={`truncate rounded-sm hover:text-violet-700 hover:underline dark:hover:text-violet-300 ${compact ? 'text-xs font-normal text-zinc-600 dark:text-zinc-400' : 'text-sm font-medium text-zinc-800 dark:text-zinc-200'}`}
+      className={`truncate rounded-ui-inner hover:text-ui-accent hover:underline ${compact ? 'text-xs font-normal text-ui-muted' : 'text-sm font-medium text-ui-text'}`}
     >
       {handle}
     </Link>
@@ -88,7 +87,7 @@ export function ActorHandle({ actor, compact = false }: { actor: Actor; compact?
 export function MiniActor({ actor, label }: { actor: ActorReference; label?: string }) {
   const hydratedActor = useActorProfile(actor.did).data ?? actor
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+    <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-xs text-ui-muted">
       {label && <span>{label}</span>}
       <ActorAvatar actor={hydratedActor} size="small" decorative />
       <ActorHandle actor={hydratedActor} compact />
