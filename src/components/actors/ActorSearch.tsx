@@ -26,6 +26,14 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
   const anchorRef = useRef<HTMLDivElement>(null)
   const { suggestions, isFetching, canShowSuggestions } = useActorSuggestions({ input, hasFocus })
   const isOpen = menuOpen && canShowSuggestions
+  let announcement = ''
+  if (isOpen) {
+    if (suggestions.length > 0) {
+      announcement = `${suggestions.length} account ${suggestions.length === 1 ? 'suggestion' : 'suggestions'}`
+    } else {
+      announcement = isFetching ? 'Searching...' : 'No matching accounts'
+    }
+  }
   const combobox = useCombobox({
     selectableItems: canShowSuggestions ? suggestions.map(({ did }) => ({ value: did })) : [],
     hasSearch: true,
@@ -66,6 +74,9 @@ export function ActorSearch({ autoFocus = false, compact = false }: ActorSearchP
       className={compact ? 'relative w-full max-w-md' : 'relative w-full'}
       noValidate
     >
+      <p role="status" aria-label="Account search" aria-atomic="true" className="sr-only">
+        {announcement}
+      </p>
       <div ref={anchorRef} className="relative">
         <TextInput
           {...combobox.getFieldProps({

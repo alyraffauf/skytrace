@@ -29,45 +29,40 @@ export function ActorSuggestions({
     >
       <div ref={contentRef}>
         {suggestions.length > 0 ? (
-          <>
-            <p role="status" className="sr-only">
-              {suggestions.length} account suggestions
-            </p>
-            <div {...listboxProps} aria-label="Account suggestions" className="py-1">
-              {suggestions.map((suggestion, index) => (
-                <div
-                  key={suggestion.did}
-                  {...getOptionProps(index)}
-                  className="flex min-h-11 cursor-pointer items-center gap-2.5 px-3 py-2 aria-selected:bg-ui-tint"
-                >
-                  <ImageWithFallback
-                    src={suggestion.avatar}
-                    alt=""
-                    fallback="avatar"
-                    className="size-8 shrink-0 rounded-ui-full object-cover"
-                  />
-                  <span className="min-w-0">
-                    {suggestion.displayName && (
-                      <Text type="label" display="block" maxLines={1} hasTruncateTooltip={false}>
-                        {suggestion.displayName}
-                      </Text>
-                    )}
-                    <Text
-                      type={suggestion.displayName ? 'body' : 'label'}
-                      color={suggestion.displayName ? 'secondary' : 'primary'}
-                      display="block"
-                      maxLines={1}
-                      hasTruncateTooltip={false}
-                    >
-                      @{suggestion.handle}
+          <div {...listboxProps} aria-label="Account suggestions" className="py-1">
+            {suggestions.map((suggestion, index) => (
+              <div
+                key={suggestion.did}
+                {...getOptionProps(index)}
+                className="flex min-h-11 cursor-pointer items-center gap-2.5 px-3 py-2 aria-selected:bg-ui-tint"
+              >
+                <ImageWithFallback
+                  src={suggestion.avatar}
+                  alt=""
+                  fallback="avatar"
+                  className="size-8 shrink-0 rounded-ui-full object-cover"
+                />
+                <span className="min-w-0">
+                  {suggestion.displayName && (
+                    <Text type="label" display="block" maxLines={1} hasTruncateTooltip={false}>
+                      {suggestion.displayName}
                     </Text>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </>
+                  )}
+                  <Text
+                    type={suggestion.displayName ? 'body' : 'label'}
+                    color={suggestion.displayName ? 'secondary' : 'primary'}
+                    display="block"
+                    maxLines={1}
+                    hasTruncateTooltip={false}
+                  >
+                    @{suggestion.handle}
+                  </Text>
+                </span>
+              </div>
+            ))}
+          </div>
         ) : (
-          <Text as="p" color="secondary" display="block" role="status" className="p-3">
+          <Text as="p" color="secondary" display="block" className="p-3">
             {isFetching ? 'Searching...' : 'No matching accounts'}
           </Text>
         )}
