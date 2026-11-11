@@ -21,6 +21,7 @@ it('records the first display and respects the configured interval across visits
   vi.stubGlobal('__SKYTRACE_CONFIG__', { donateReminderDays: 7 })
   const firstVisit = render(<DonateReminder />)
   expect(screen.getByText('Love SkyTrace?')).toBeVisible()
+  expect(screen.getByRole('dialog', { name: 'Love SkyTrace?' })).toBeVisible()
   expect(document.cookie).toContain(`${cookieName}=${Date.now()}`)
   firstVisit.unmount()
 
@@ -33,7 +34,7 @@ it('records the first display and respects the configured interval across visits
   const laterVisit = render(<DonateReminder />)
   expect(screen.getByText('Love SkyTrace?')).toBeVisible()
   expect(document.cookie).toContain(`${cookieName}=${Date.now()}`)
-  fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }))
   expect(screen.queryByText('Love SkyTrace?')).not.toBeInTheDocument()
   laterVisit.unmount()
 
