@@ -1,3 +1,4 @@
+import { Button } from '@astryxdesign/core/Button'
 import type { UseInfiniteQueryResult } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { InfiniteScroll } from './InfiniteScroll'
@@ -95,17 +96,7 @@ function PagedQueryError({
     <div role="alert">
       <EmptyState
         title={`Couldn't ${isInitialLoad ? 'load' : 'refresh'} ${resourceLabel}`}
-        className={isInitialLoad ? 'mt-8 border-none py-12 sm:mt-12' : ''}
-        action={
-          <button
-            type="button"
-            disabled={isRetrying}
-            onClick={retry}
-            className="inline-flex min-h-9 items-center justify-center rounded-sm border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-          >
-            {isRetrying ? 'Trying again…' : 'Retry'}
-          </button>
-        }
+        action={<Button label={isRetrying ? 'Trying again…' : 'Retry'} isDisabled={isRetrying} onClick={retry} />}
       >
         {isInitialLoad
           ? 'Try again in a moment.'

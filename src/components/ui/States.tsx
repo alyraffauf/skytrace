@@ -1,14 +1,13 @@
+import { Banner } from '@astryxdesign/core/Banner'
+import { Button } from '@astryxdesign/core/Button'
+import { EmptyState as AstryxEmptyState } from '@astryxdesign/core/EmptyState'
 import { LoadingRowContents } from '../records/LoadingRowContents'
 import { ArrowPathIcon, ExclamationTriangleIcon, InboxIcon } from '@heroicons/react/24/outline'
 import { ClientResponseError } from '@atcute/client'
 
 export function LoadingRows({ count = 3 }: { count?: number }) {
   return (
-    <div
-      aria-label="Loading"
-      aria-live="polite"
-      className="divide-y divide-zinc-200 border-b border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
-    >
+    <div aria-label="Loading" aria-live="polite" className="divide-y divide-ui-border border-b border-ui-border">
       <span className="sr-only" role="status">
         Loading public records…
       </span>
@@ -25,45 +24,36 @@ export function EmptyState({
   title,
   children,
   action,
-  className = '',
 }: {
   title: string
-  children?: React.ReactNode
+  children?: string
   action?: React.ReactNode
-  className?: string
 }) {
   return (
-    <section className={`border-b border-zinc-200 px-6 py-8 text-center dark:border-zinc-800 ${className}`}>
-      <InboxIcon className="mx-auto size-6 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
-      <h2 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</h2>
-      {children && (
-        <p className="mx-auto mt-1 max-w-md text-sm leading-5 text-zinc-600 dark:text-zinc-400">{children}</p>
-      )}
-      {action && <div className="mt-4">{action}</div>}
-    </section>
+    <AstryxEmptyState
+      title={title}
+      headingLevel={2}
+      icon={<InboxIcon className="size-6" />}
+      actions={action}
+      description={children}
+    />
   )
 }
 
 export function ErrorState({ error, retry }: { error: Error; retry?: () => void }) {
-  const message = readableError(error)
   return (
-    <section
+    <Banner
       role="alert"
-      className="border-b border-red-200 bg-red-50/60 px-5 py-6 text-center dark:border-red-900 dark:bg-red-950/30"
-    >
-      <ExclamationTriangleIcon className="mx-auto size-8 text-red-500 dark:text-red-400" aria-hidden="true" />
-      <h2 className="mt-2 font-semibold text-red-950 dark:text-red-200">Couldn&apos;t load</h2>
-      <p className="mt-1 text-sm text-red-800 dark:text-red-300">{message}</p>
-      {retry && (
-        <button
-          type="button"
-          onClick={retry}
-          className="mt-4 inline-flex items-center gap-2 border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-100 dark:border-red-800 dark:bg-zinc-900 dark:text-red-300 dark:hover:bg-red-950/60"
-        >
-          <ArrowPathIcon className="size-4" aria-hidden="true" /> Retry
-        </button>
-      )}
-    </section>
+      status="error"
+      container="section"
+      title={<h2>Couldn&apos;t load</h2>}
+      description={readableError(error)}
+      endContent={
+        retry ? (
+          <Button label="Retry" variant="secondary" onClick={retry} icon={<ArrowPathIcon className="size-4" />} />
+        ) : undefined
+      }
+    />
   )
 }
 
@@ -77,8 +67,8 @@ function readableError(error: Error): string {
 
 export function UnavailableCard({ reason }: { reason: string }) {
   return (
-    <div className="flex min-h-12 items-center gap-2.5 py-2 text-sm text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
-      <ExclamationTriangleIcon className="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
+    <div className="flex min-h-12 items-center gap-2.5 border-b border-ui-border py-2 text-sm text-ui-muted">
+      <ExclamationTriangleIcon className="size-4 shrink-0" aria-hidden="true" />
       <span>{reason}</span>
     </div>
   )

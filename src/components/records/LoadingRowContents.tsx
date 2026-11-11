@@ -1,10 +1,11 @@
+import { Skeleton } from '@astryxdesign/core/Skeleton'
 export function LoadingRowContents() {
   return (
     <>
-      <div className="skeleton size-8 shrink-0 rounded-full" />
+      <Skeleton width="2rem" height="2rem" radius="rounded" className="shrink-0" />
       <div className="flex-1 space-y-1.5">
-        <div className="skeleton h-3.5 w-36" />
-        <div className="skeleton h-3 w-24" />
+        <Skeleton width="9rem" height="0.875rem" />
+        <Skeleton width="6rem" height="0.75rem" />
       </div>
     </>
   )
