@@ -207,6 +207,14 @@ describe('Listed On minimum blocking', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('does not treat custom purposes as moderation lists', async () => {
+    const { client, service, fetchMock } = setup('com.example.custom#modlist')
+    expect((await client.query(service.lists.listedOnMembershipQueryOptions(membershipUri, did, 1)))?.kind).toBe(
+      'membership',
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('uses the existing list count cache', async () => {
     const { client, service, fetchMock } = setup()
     await client.query(service.lists.listBlockCountQueryOptions(listUri))

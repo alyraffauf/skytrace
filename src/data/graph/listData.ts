@@ -7,6 +7,7 @@ import type { PublicDataCore } from '../publicDataCore'
 import { actorReference, isUnavailableRecord, unavailable } from '../recordResults'
 import type { DataRequestContext } from '../runtime/sharedQueryRequests'
 import { countVerifiedBacklinkPublishers } from './verifiedBacklinks'
+import { isModerationListPurpose } from '../../lib/lists'
 import { queryKeys } from '../queryKeys'
 import { parsedRecord } from '../recordValues'
 
@@ -166,7 +167,7 @@ export class ListDataService {
         if (!isPublishedByListOwner(membershipUri, value.list))
           return unavailable(membershipUri, FOREIGN_MEMBERSHIP_REASON)
         const list = this.listFromRecord(await this.core.record(value.list, signal))
-        if (minimumBlocking !== undefined && list.kind === 'list' && list.purpose === 'app.bsky.graph.defs#modlist') {
+        if (minimumBlocking !== undefined && list.kind === 'list' && isModerationListPurpose(list.purpose)) {
           const count = await this.listBlockCount(list.uri, signal)
           if (count < minimumBlocking) return null
         }
