@@ -70,6 +70,17 @@ describe('actor data', () => {
     })
   })
 
+  it('returns an identity-only profile when the service reports the record as not found', async () => {
+    stubProfileRecord({ error: 'RecordNotFound', message: 'Could not locate record' }, 400)
+    const queryClient = createTestQueryClient()
+    const service = new PublicDataService(queryClient)
+    await expect(queryClient.query(service.actors.actorProfileQueryOptions('atproto.com'))).resolves.toEqual({
+      kind: 'actorProfile',
+      identity,
+      hasNoUnauthenticatedSelfLabel: false,
+    })
+  })
+
   it.each([{ displayName: 42 }, { description: ['invalid'] }, { avatar: 'not-a-blob' }])(
     'preserves a valid privacy self-label despite invalid profile fields: %j',
     async (invalidFields) => {

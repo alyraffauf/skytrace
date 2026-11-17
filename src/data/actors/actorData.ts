@@ -90,8 +90,10 @@ export class ActorDataService {
       return profileFromRecord(identity, await this.core.record(uri, signal))
     } catch (error) {
       throwIfAborted(signal)
+      // The record service reports missing records as a 400 RecordNotFound, not a 404.
       const canUseIdentityOnly =
-        error instanceof PublicDataValidationError || (error instanceof ClientResponseError && error.status === 404)
+        error instanceof PublicDataValidationError ||
+        (error instanceof ClientResponseError && (error.status === 404 || error.error === 'RecordNotFound'))
       if (!canUseIdentityOnly) throw error
       return profileFromRecord(identity)
     }
