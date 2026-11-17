@@ -14,7 +14,8 @@ export function labelDisplayName(
   languages: readonly string[],
 ): string | undefined {
   const definition = definitions?.find((candidate) => candidate.identifier === value)
-  if (!definition) return BUILT_IN_LABEL_NAMES[value]
+  // Label values come from third-party labelers, so only trust own properties of this table.
+  if (!definition) return Object.hasOwn(BUILT_IN_LABEL_NAMES, value) ? BUILT_IN_LABEL_NAMES[value] : undefined
 
   const locales = definition.locales
   const normalizedLanguages = [...languages, 'en'].map((language) => language.toLowerCase())

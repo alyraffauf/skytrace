@@ -18,3 +18,7 @@ it('uses the labeler-provided name with locale fallback', () => {
   expect(labelDisplayName('graphic-media', undefined, ['en'])).toBe('Graphic Media')
   expect(labelDisplayName('unknown-label', undefined, ['en'])).toBeUndefined()
 })
+
+it.each(['__proto__', 'constructor', 'toString'])('treats the prototype key %s as an unknown label', (value) => {
+  expect(labelDisplayName(value, undefined, ['en'])).toBeUndefined()
+})
