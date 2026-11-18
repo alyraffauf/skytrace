@@ -1,5 +1,5 @@
 import { QueryObserver, queryOptions, type QueryClient } from '@tanstack/react-query'
-import { deadlineSignal, throwIfAborted } from '../../lib/abort'
+import { deadlineSignal } from '../../lib/abort'
 
 export type DataRequestContext = {
   queryClient: QueryClient
@@ -29,7 +29,7 @@ export class SharedQueryRequests {
     /** Undefined uses the default deadline; null disables it. Aggregate scans apply deadlines to each I/O request. */
     requestTimeoutMs?: number | null
   }): Promise<T> {
-    throwIfAborted(consumerSignal)
+    if (consumerSignal?.aborted) return Promise.reject(consumerSignal.reason)
     const options = queryOptions({
       queryKey,
       queryFn: ({ signal }) => load(requestTimeoutMs === null ? signal : deadlineSignal(signal, requestTimeoutMs)),
@@ -60,8 +60,7 @@ export class SharedQueryRequests {
         reject(error)
       }
       const abort = () => {
-        const reason = consumerSignal?.reason ?? new DOMException('The request was aborted.', 'AbortError')
-        rejectConsumer(reason)
+        rejectConsumer(consumerSignal?.reason)
       }
       promise.then(resolveConsumer, rejectConsumer)
       consumerSignal?.addEventListener('abort', abort, { once: true })
