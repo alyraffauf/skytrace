@@ -280,3 +280,32 @@ describe('minimum blocking configuration', () => {
     expect(output).toBe(expected)
   })
 })
+
+describe('list type selection', () => {
+  it.each([
+    ['moderation', 'app.bsky.graph.defs#modlist', true],
+    ['curation', 'app.bsky.graph.defs#curatelist', true],
+    ['starter-pack', 'app.bsky.graph.defs#referencelist', true],
+    ['moderation', 'app.bsky.graph.defs#curatelist', false],
+    ['curation', 'app.bsky.graph.defs#referencelist', false],
+    ['starter-pack', 'app.bsky.graph.defs#modlist', false],
+    ['moderation', 'com.example.custom#modlist', false],
+  ])('selects %s for purpose %s: visible=%s', async (type, purpose, visible) => {
+    vi.stubGlobal('__SKYTRACE_CONFIG__', {
+      ignoreNoUnauthenticated: false,
+      blockTargetDid: null,
+      listTypes: [type],
+    })
+    const { client, service } = setup(purpose)
+    const nextPage = vi.spyOn(service.lists, 'listedOnReferences').mockResolvedValue({ items: [] })
+    const view = renderPage(client, service)
+    if (visible) {
+      expect(await screen.findByText('Moderation test')).toBeVisible()
+    } else {
+      expect(await screen.findByText('No lists match the visibility criteria')).toBeVisible()
+      expect(screen.queryByText('Moderation test')).not.toBeInTheDocument()
+      act(() => view.intersect())
+      await waitFor(() => expect(nextPage).toHaveBeenCalledWith(did, 'next', expect.any(AbortSignal)))
+    }
+  })
+})

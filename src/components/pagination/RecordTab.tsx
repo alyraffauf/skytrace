@@ -15,18 +15,26 @@ export function RecordTab<T extends TabRecord>({
   load,
   itemKey,
   renderItem,
+  filterItem,
 }: {
   queryKey: readonly unknown[]
   resourceLabel: string
   emptyTitle: string
   load: (cursor: string | undefined, signal: AbortSignal) => Promise<Page<T>>
   itemKey: (item: T) => string
+  filterItem?: (item: T) => boolean
   renderItem: (item: T) => ReactNode
 }) {
   const query = usePagedRecords(queryKey, load)
   return (
     <PagedQueryView query={query} resourceLabel={resourceLabel}>
-      <RecordTabContents pages={query.data?.pages} emptyTitle={emptyTitle} itemKey={itemKey} renderItem={renderItem} />
+      <RecordTabContents
+        pages={query.data?.pages}
+        emptyTitle={emptyTitle}
+        itemKey={itemKey}
+        renderItem={renderItem}
+        filterItem={filterItem}
+      />
     </PagedQueryView>
   )
 }
@@ -36,15 +44,17 @@ function RecordTabContents<T extends TabRecord>({
   emptyTitle,
   itemKey,
   renderItem,
+  filterItem,
 }: {
   pages: Page<T>[] | undefined
   emptyTitle: string
   itemKey: (item: T) => string
+  filterItem?: (item: T) => boolean
   renderItem: (item: T) => ReactNode
 }) {
   const entries = pages?.flatMap((page) => page.items) ?? []
   const entriesByKey = new Map(entries.map((entry) => [itemKey(entry), entry]))
-  const items = newestFirst(Array.from(entriesByKey.values()))
+  const items = newestFirst(Array.from(entriesByKey.values()).filter((item) => !filterItem || filterItem(item)))
   if (items.length === 0) return <EmptyState title={emptyTitle} />
   return (
     <RecordList>

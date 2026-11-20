@@ -1,6 +1,6 @@
 import { useOutletContext } from 'react-router-dom'
 import { useQueries } from '@tanstack/react-query'
-import { minimumListBlocking } from '../../config/listVisibility'
+import { isListTypeVisible, visibleListTypes, minimumListBlocking } from '../../config/listVisibility'
 import { ListRow } from '../../components/lists/ListRow'
 import { RecordList, UnavailableRow } from '../../components/records/RecordList'
 import { MembershipLoadingRow } from '../../components/lists/StreamedMembershipRows'
@@ -24,12 +24,22 @@ export function ListedOnPage() {
       service.lists.listedOnMembershipQueryOptions(membership.uri, profile.identity.did, minimumBlocking),
     ),
   })
-  const allHidden = membershipQueries.every((membership) => membership.isSuccess && membership.data === null)
+  const isHidden = (membership: (typeof membershipQueries)[number]) =>
+    membership.isSuccess &&
+    (membership.data === null ||
+      (membership.data.kind === 'membership' &&
+        membership.data.list.kind === 'list' &&
+        !isListTypeVisible(membership.data.list.purpose)))
+  const allHidden = membershipQueries.every(isHidden)
   return (
     <PagedQueryView query={query} resourceLabel="list memberships">
       {allHidden ? (
         <EmptyState
-          title={minimumBlocking === undefined ? 'Not on any lists' : 'No lists match the visibility criteria'}
+          title={
+            minimumBlocking === undefined && visibleListTypes() === undefined
+              ? 'Not on any lists'
+              : 'No lists match the visibility criteria'
+          }
         />
       ) : (
         <RecordList>
@@ -38,7 +48,7 @@ export function ListedOnPage() {
             if (membership.isPending) return <MembershipLoadingRow key={key} />
             if (membership.isError)
               return <UnavailableRow key={key} reason="This list membership could not be loaded." />
-            if (membership.data === null) return null
+            if (isHidden(membership) || membership.data === null) return null
             if (membership.data.kind === 'unavailable')
               return <UnavailableRow key={key} reason={membership.data.reason} />
             return <ListRow key={key} list={membership.data.list} membership={membership.data} />

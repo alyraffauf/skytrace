@@ -57,3 +57,17 @@ export SKYTRACE_DISABLED_TABS_VALUE="$(printf '%s' "${SKYTRACE_DISABLED_TABS:-}"
   }
   END { printf "]" }
 ')"
+
+# Unset or blank preserves all list types; explicit values form an allowlist.
+export SKYTRACE_LIST_TYPES_VALUE="$(printf '%s' "${SKYTRACE_LIST_TYPES:-}" | awk '
+  BEGIN { RS = "," }
+  {
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+    if ($0 != "") configured = 1
+    if ($0 == "starter-pack" || $0 == "moderation" || $0 == "curation") {
+      values = values separator "\"" $0 "\""
+      separator = ","
+    }
+  }
+  END { if (configured) printf "[%s]", values; else printf "null" }
+')"

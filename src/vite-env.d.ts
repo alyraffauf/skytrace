@@ -3,6 +3,7 @@
 interface Window {
   readonly __SKYTRACE_CONFIG__?: {
     readonly ignoreNoUnauthenticated: boolean
+    readonly listTypes?: readonly string[] | null
     readonly minListBlocking?: number | null
     readonly blockTargetDid: string | null
     readonly hiddenDids?: readonly string[]

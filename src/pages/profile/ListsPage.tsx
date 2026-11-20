@@ -1,3 +1,4 @@
+import { isListTypeVisible } from '../../config/listVisibility'
 import { useOutletContext } from 'react-router-dom'
 import { ListRow } from '../../components/lists/ListRow'
 import { queryKeys } from '../../data/queryKeys'
@@ -14,6 +15,7 @@ export function ListsPage() {
       emptyTitle="No lists found"
       load={(cursor, signal) => service.lists.lists(profile.identity, cursor, signal)}
       itemKey={(item) => (item.kind === 'unavailable' ? item.id : item.uri)}
+      filterItem={(item) => item.kind === 'unavailable' || isListTypeVisible(item.purpose)}
       renderItem={(item) => <ListRow list={item} />}
     />
   )

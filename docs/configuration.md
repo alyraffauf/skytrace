@@ -9,9 +9,14 @@ SkyTrace reads its settings from `runtime-config.js`, a file created at startup 
 | `SKYTRACE_IGNORE_NO_UNAUTHENTICATED` | `ignoreNoUnauthenticated` | `false` | Shows Feed and Labeled posts for profiles with the `!no-unauthenticated` self-label. Only the exact value `true` enables this.                                                                                       |
 | `SKYTRACE_BLOCK_TARGET_DID`          | `blockTargetDid`          | `null`  | Hides profiles that block or are blocked by this account. Unset or an invalid DID disables the check.                                                                                                                |
 | `SKYTRACE_HIDDEN_DIDS`               | `hiddenDids`              | `[]`    | Hides specific profiles. Comma-separated DIDs in the container, trimmed and validated. JavaScript receives an array of strings.                                                                                      |
+| `SKYTRACE_LIST_TYPES`                | `listTypes`               | `null`  | Comma-separated allowlist: `starter-pack`, `moderation`, `curation`. Unset shows all types.                                                                                                                          |
 | `SKYTRACE_MIN_LIST_BLOCKING`         | `minListBlocking`         | `null`  | Requires a minimum number of members before a moderation list shows on the Listed On tab. Curation lists stay visible regardless.                                                                                    |
 | `SKYTRACE_DONATE_REMINDER_DAYS`      | `donateReminderDays`      | `null`  | How often the donate popup reappears, in days. Set to `7` for a weekly reminder. Unset, zero, or out of range disables it entirely.                                                                                  |
 | `SKYTRACE_DISABLED_TABS`             | `disabledTabs`            | `[]`    | Comma-separated profile tab IDs to hide: `feed`, `labels`, `labeled-posts`, `blocking`, `blocked-by`, `lists`, `listed-on`. Unset enables all tabs. Direct links to disabled tabs redirect to the first enabled tab. |
+
+Set `SKYTRACE_LIST_TYPES=starter-pack,moderation,curation` to choose which list types appear on Lists and Listed On. For example, `SKYTRACE_LIST_TYPES=moderation` shows only moderation lists. On static hosts, set `listTypes: ['moderation']` in `runtime-config.js`.
+
+Unset or blank defaults to all types, including custom purposes. An explicit selection excludes custom purposes. Values are case-sensitive and whitespace is trimmed. Unknown values are ignored; a nonblank value with no recognized types hides all known lists. Direct list pages remain accessible, and unavailable records still show error rows.
 
 ## How precedence works
 
