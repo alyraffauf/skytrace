@@ -1,3 +1,4 @@
+import { accountLabelSubjects } from './accountLabelSubjects'
 import { SERVICE_URLS } from '../../config/serviceUrls'
 import { timestampFor } from '../../lib/sorting'
 import type { LabelEvent, Page, UnavailableItem } from '../../types'
@@ -29,9 +30,11 @@ export class LabelHistoryDataService {
     }
 
     if (!state.discoveryDone) {
+      const subjects = accountLabelSubjects(did)
+      const subjectIndex = state.discoverySubjectIndex ?? 0
       const discovery = await this.core.labelRecords({
         service: SERVICE_URLS.labelRelay,
-        uriPatterns: [did],
+        uriPatterns: [subjects[subjectIndex]],
         cursor: state.discoveryCursor,
         repeatedCursorPolicy: 'return-page',
         limit: LABEL_PAGE_SIZE,
@@ -53,6 +56,13 @@ export class LabelHistoryDataService {
       if (discovery.cursor && !state.discoveryDone) {
         state.discoveryCursorHistory = { cursor: discovery.cursor, previous: state.discoveryCursorHistory }
       }
+      // The relay does not reliably combine multiple exact subjects in one query.
+      if (state.discoveryDone && subjectIndex + 1 < subjects.length) {
+        state.discoverySubjectIndex = subjectIndex + 1
+        state.discoveryDone = false
+        state.discoveryCursorHistory = undefined
+        return this.page(did, state, signal)
+      }
       // Save discovery progress before advancing another relay page.
       if (!state.discoveryDone) return { items: [], cursor: state }
     }
@@ -60,7 +70,7 @@ export class LabelHistoryDataService {
     if (!state.appViewDone) {
       const page = await this.core.labelRecords({
         service: SERVICE_URLS.blueskyAppView,
-        uriPatterns: [did],
+        uriPatterns: accountLabelSubjects(did),
         cursor: state.appViewCursor,
         sources: state.appViewSources ?? [BLUESKY_MODERATION_DID],
         repeatedCursorPolicy: 'return-page',

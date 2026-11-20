@@ -1,3 +1,4 @@
+import { accountLabelSubjects } from './accountLabelSubjects'
 import { SERVICE_URLS } from '../../config/serviceUrls'
 import { deadlineSignal, throwIfAborted } from '../../lib/abort'
 import { LABEL_PAGE_SIZE, type ProviderPagingState } from './labelPaging'
@@ -34,7 +35,7 @@ export async function loadProviderLabelPage({
     try {
       const page = await loadLabels({
         service: provider.service,
-        uriPatterns: [did],
+        uriPatterns: accountLabelSubjects(did),
         cursor: provider.cursor,
         limit: LABEL_PAGE_SIZE,
         signal: deadlineSignal(signal, OPTIONAL_LABELER_TIMEOUT_MS),
@@ -52,7 +53,7 @@ export async function loadProviderLabelPage({
     const page = await loadLabels({
       service: SERVICE_URLS.blueskyAppView,
       sources: [provider.did],
-      uriPatterns: [did],
+      uriPatterns: accountLabelSubjects(did),
       cursor: provider.cursor,
       limit: LABEL_PAGE_SIZE,
       signal: deadlineSignal(signal, OPTIONAL_LABELER_TIMEOUT_MS),

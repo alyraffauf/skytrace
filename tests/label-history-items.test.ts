@@ -21,6 +21,7 @@ it('deduplicates providers and prioritizes their latest AppView events', async (
   const service = createTestService()
   vi.spyOn(service.core, 'labelRecords')
     .mockResolvedValueOnce({ items: [discovered, discovered] })
+    .mockResolvedValueOnce({ items: [] })
     .mockResolvedValueOnce({
       items: [
         label(otherDid, '2026-01-01T00:00:00Z'),

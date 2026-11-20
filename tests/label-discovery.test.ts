@@ -9,6 +9,8 @@ describe('label provider history', () => {
     const label = { src: memberDid, uri: did, val: 'history', cts: '2026-01-01T00:00:00Z' }
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : String(input))
+      if (url.hostname === 'labelers.firehose.stream' && url.searchParams.get('uriPatterns')?.startsWith('at://'))
+        return response({ labels: [] })
       if (url.hostname === 'labelers.firehose.stream') return response({ labels: [label] })
       if (url.hostname === 'public.api.bsky.app') return response({ labels: [] })
       if (url.hostname === 'plc.directory')
@@ -29,12 +31,48 @@ describe('label provider history', () => {
     expect(history.cursor).toBeUndefined()
   })
 
+  it('discovers and backfills profile-record labels missing from AppView', async () => {
+    const profileUri = `at://${did}/app.bsky.actor.profile/self`
+    const label = { src: memberDid, uri: profileUri, val: 'harassment', cts: '2026-11-17T06:30:42.091Z' }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.pathname.endsWith('queryLabels')) {
+          const subjects = url.searchParams.getAll('uriPatterns')
+          if (url.hostname === 'public.api.bsky.app') return response({ labels: [] })
+          return response({
+            labels: (
+              url.hostname === 'labelers.firehose.stream' ? subjects[0] === profileUri : subjects.includes(profileUri)
+            )
+              ? [label]
+              : [],
+          })
+        }
+        if (url.hostname === 'plc.directory')
+          return response({
+            id: memberDid,
+            service: [{ id: '#atproto_labeler', type: 'AtprotoLabeler', serviceEndpoint: 'https://history.example' }],
+          })
+        throw new Error(`Unexpected URL ${url}`)
+      }),
+    )
+    const service = createTestService()
+    const first = await service.labelHistory.page(did)
+    const history = await service.labelHistory.page(did, first.cursor)
+    expect(history.items).toContainEqual(
+      expect.objectContaining({ subject: profileUri, value: 'harassment', sourceDid: memberDid }),
+    )
+  })
+
   it('saves discovery progress one page at a time and stops cursor cycles', async () => {
     const relayCursors: Array<string | null> = []
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'labelers.firehose.stream' && url.searchParams.get('uriPatterns')?.startsWith('at://'))
+          return response({ labels: [] })
         if (url.hostname === 'labelers.firehose.stream') {
           const cursor = url.searchParams.get('cursor')
           relayCursors.push(cursor)
@@ -71,6 +109,8 @@ describe('label provider history', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'labelers.firehose.stream' && url.searchParams.get('uriPatterns')?.startsWith('at://'))
+          return response({ labels: [] })
         if (url.hostname === 'labelers.firehose.stream') {
           relayRequests += 1
           return response({
@@ -101,6 +141,8 @@ describe('label provider history', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'labelers.firehose.stream' && url.searchParams.get('uriPatterns')?.startsWith('at://'))
+          return response({ labels: [] })
         if (url.hostname === 'labelers.firehose.stream')
           return response({
             labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }],
@@ -149,6 +191,8 @@ describe('label provider history', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'labelers.firehose.stream' && url.searchParams.get('uriPatterns')?.startsWith('at://'))
+          return response({ labels: [] })
         if (url.hostname === 'labelers.firehose.stream')
           return response({
             labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }],
@@ -219,6 +263,8 @@ describe('label provider history', () => {
     const currentDid = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : String(input))
+      if (url.hostname === 'labelers.firehose.stream' && url.searchParams.get('uriPatterns')?.startsWith('at://'))
+        return response({ labels: [] })
       if (url.hostname === 'labelers.firehose.stream')
         return response({ labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }] })
       if (
@@ -272,6 +318,8 @@ describe('label provider history', () => {
     const labelerDid = memberDid
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : String(input))
+      if (url.hostname === 'labelers.firehose.stream' && url.searchParams.get('uriPatterns')?.startsWith('at://'))
+        return response({ labels: [] })
       if (url.hostname === 'labelers.firehose.stream')
         return response({ labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }] })
       if (
@@ -321,6 +369,8 @@ describe('label provider history', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'labelers.firehose.stream' && url.searchParams.get('uriPatterns')?.startsWith('at://'))
+          return response({ labels: [] })
         if (url.hostname === 'labelers.firehose.stream')
           return response({
             labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }],
@@ -366,6 +416,8 @@ describe('label provider history', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.hostname === 'labelers.firehose.stream' && url.searchParams.get('uriPatterns')?.startsWith('at://'))
+          return response({ labels: [] })
         if (url.hostname === 'labelers.firehose.stream')
           return response({
             labels: [{ src: memberDid, uri: did, val: 'discovery-only', cts: '2026-01-01T00:00:00Z' }],

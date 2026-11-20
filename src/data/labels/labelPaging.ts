@@ -14,6 +14,7 @@ export type ProviderPagingState = {
 }
 
 export type LabelPagingState = {
+  discoverySubjectIndex?: number
   discoveryCursor?: string
   discoveryCursorHistory?: CursorHistory
   discoveryDone?: boolean
